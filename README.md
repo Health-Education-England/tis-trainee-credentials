@@ -3,11 +3,6 @@
 ## About
 This service issues and verifies trainee digital credentials.
 
-## TODO
- - Sonar:
-    - Add repository to SonarCloud.
-    - Add SonarCloud API key to repository secrets.
-
 ## Developing
 
 ### Running
