@@ -42,6 +42,8 @@ dependencies {
   ext.sentryVersion = "6.11.0"
   implementation "io.sentry:sentry-spring-boot-starter:$sentryVersion"
   implementation "io.sentry:sentry-logback:$sentryVersion"
+
+  implementation "commons-codec:commons-codec:1.15"
 }
 
 checkstyle {
