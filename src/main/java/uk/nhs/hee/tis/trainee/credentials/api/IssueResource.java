@@ -21,27 +21,28 @@
 
 package uk.nhs.hee.tis.trainee.credentials.api;
 
+import java.time.LocalDate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import uk.nhs.hee.tis.trainee.credentials.dto.Placement;
-import uk.nhs.hee.tis.trainee.credentials.dto.Programme;
 
+/**
+ * API endpoints for issuing trainee digital credentials.
+ */
 @RestController()
 @RequestMapping("/api/issue")
 public class IssueResource {
 
-  @PostMapping("/placement")
-  ResponseEntity<String> issuePlacement(@RequestBody Placement placement) {
+  @PostMapping("/test")
+  ResponseEntity<String> issueTestCredential(@RequestBody TestCredential testCredential) {
     return ResponseEntity.ok(
-        "Issuing Placement %s (%s)".formatted(placement.getId(), placement.getName()));
+        "Issuing Test Credential for %s %s".formatted(testCredential.givenName(),
+            testCredential.familyName));
   }
 
-  @PostMapping("/programme")
-  ResponseEntity<String> issueProgramme(@RequestBody Programme programme) {
-    return ResponseEntity.ok(
-        "Issuing Programme %s (%s)".formatted(programme.getId(), programme.getName()));
+  private record TestCredential(String givenName, String familyName, LocalDate birthDate) {
+
   }
 }

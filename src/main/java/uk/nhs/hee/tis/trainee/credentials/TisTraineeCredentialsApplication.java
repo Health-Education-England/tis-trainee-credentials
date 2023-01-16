@@ -24,6 +24,9 @@ package uk.nhs.hee.tis.trainee.credentials;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+/**
+ * An application for issuing and verifying trainee digital credentials.
+ */
 @SpringBootApplication
 public class TisTraineeCredentialsApplication {
 

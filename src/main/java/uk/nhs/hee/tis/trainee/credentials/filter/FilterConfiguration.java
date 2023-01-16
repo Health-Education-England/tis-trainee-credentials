@@ -26,14 +26,24 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 
+/**
+ * A configuration for request filters.
+ */
 @Configuration
 public class FilterConfiguration {
 
+  /**
+   * Register a {@link SignedDataFilter}.
+   *
+   * @param filter The filter to register.
+   * @return The {@link FilterRegistrationBean} for the registration.
+   */
   @Bean
-  public FilterRegistrationBean<SignedDataFilter> registerSignedDataFilter() {
-    var registrationBean = new FilterRegistrationBean<SignedDataFilter>();
+  public FilterRegistrationBean<SignedDataFilter> registerSignedDataFilter(
+      SignedDataFilter filter) {
+    FilterRegistrationBean<SignedDataFilter> registrationBean = new FilterRegistrationBean<>();
 
-    registrationBean.setFilter(new SignedDataFilter());
+    registrationBean.setFilter(filter);
     registrationBean.addUrlPatterns("/api/issue/*");
     registrationBean.setOrder(Ordered.HIGHEST_PRECEDENCE);
 

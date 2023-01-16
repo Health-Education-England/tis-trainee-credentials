@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.filter;
 
+import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
@@ -32,19 +33,21 @@ import java.io.InputStreamReader;
 import org.springframework.util.StreamUtils;
 
 /**
- * A request wrapper which uses a cached body
+ * A request wrapper which caches the content of the original request's input stream so it can be
+ * read multiple times.
  */
-public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
+public class CachedBodyRequestWrapper extends HttpServletRequestWrapper {
 
   private final byte[] cachedBody;
 
   /**
-   * Constructs a request object wrapping the given request.
+   * Create a request wrapper which caches the content of the original request's input stream so it
+   * can be read multiple times.
    *
-   * @param request The request to wrap
-   * @throws IllegalArgumentException if the request is null
+   * @param request The request to wrap.
+   * @throws IOException if the request's input stream could not be cached.
    */
-  public CachedBodyHttpServletRequest(HttpServletRequest request) throws IOException {
+  public CachedBodyRequestWrapper(HttpServletRequest request) throws IOException {
     super(request);
     InputStream requestInputStream = request.getInputStream();
     cachedBody = StreamUtils.copyToByteArray(requestInputStream);
@@ -52,12 +55,49 @@ public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
 
   @Override
   public ServletInputStream getInputStream() {
-    return new CachedBodyServletInputStream(cachedBody);
+    return new CachedBodyInputStream(cachedBody);
   }
 
   @Override
   public BufferedReader getReader() {
     ByteArrayInputStream inputStream = new ByteArrayInputStream(this.cachedBody);
     return new BufferedReader(new InputStreamReader(inputStream));
+  }
+
+  /**
+   * An input stream which can be constructed from a cached request body.
+   */
+  private static class CachedBodyInputStream extends ServletInputStream {
+
+    private final ByteArrayInputStream cachedBody;
+
+    /**
+     * Create an input stream from a cached request body.
+     *
+     * @param cachedBody The cached request body.
+     */
+    public CachedBodyInputStream(byte[] cachedBody) {
+      this.cachedBody = new ByteArrayInputStream(cachedBody);
+    }
+
+    @Override
+    public int read() {
+      return cachedBody.read();
+    }
+
+    @Override
+    public boolean isFinished() {
+      return cachedBody.available() == 0;
+    }
+
+    @Override
+    public boolean isReady() {
+      return true;
+    }
+
+    @Override
+    public void setReadListener(ReadListener listener) {
+      throw new UnsupportedOperationException();
+    }
   }
 }
