@@ -54,12 +54,13 @@ class CachedBodyRequestWrapperTest {
     assertThat("Unexpected stream ready status.", inputStream1.isReady(), is(true));
     assertThat("Unexpected stream finished status.", inputStream1.isFinished(), is(false));
     assertThat("Unexpected stream contents.", inputStream1.readAllBytes(), is(REQUEST_BYTES));
-
+    assertThat("Unexpected stream finished status.", inputStream1.isFinished(), is(true));
 
     ServletInputStream inputStream2 = requestWrapper.getInputStream();
     assertThat("Unexpected stream ready status.", inputStream2.isReady(), is(true));
     assertThat("Unexpected stream finished status.", inputStream2.isFinished(), is(false));
     assertThat("Unexpected stream contents.", inputStream2.readAllBytes(), is(REQUEST_BYTES));
+    assertThat("Unexpected stream finished status.", inputStream2.isFinished(), is(true));
   }
 
   @Test
@@ -75,7 +76,8 @@ class CachedBodyRequestWrapperTest {
 
   @Test
   void shouldThrowExceptionWhenSettingReadListenerOnCachedInputStream() {
-    assertThrows(UnsupportedOperationException.class,
-        () -> requestWrapper.getInputStream().setReadListener(null));
+    ServletInputStream inputStream = requestWrapper.getInputStream();
+
+    assertThrows(UnsupportedOperationException.class, () -> inputStream.setReadListener(null));
   }
 }
