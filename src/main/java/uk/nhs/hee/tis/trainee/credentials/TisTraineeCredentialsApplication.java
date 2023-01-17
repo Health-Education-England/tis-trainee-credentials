@@ -38,4 +38,9 @@ public class TisTraineeCredentialsApplication {
   public static void main(String[] args) {
     SpringApplication.run(TisTraineeCredentialsApplication.class);
   }
+
+  @Bean
+  RestTemplate restTemplate(RestTemplateBuilder builder) {
+    return builder.build();
+  }
 }

@@ -29,6 +29,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.nhs.hee.tis.trainee.credentials.SignatureTestUtil;
@@ -72,5 +75,12 @@ class IssueResourceTest {
                 .content(signedData)
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk());
+  }
+
+  @TestConfiguration
+  static class TestConfig {
+
+    @MockBean
+    private RestTemplateBuilder restTemplateBuilder;
   }
 }
