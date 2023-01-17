@@ -59,6 +59,7 @@ public record GatewayProperties(
      * @param issuer     The issuer of the credential token.
      * @param signingKey The key to use for signing the credential token.
      */
+    @ConfigurationProperties(prefix = "application.gateway.issuing.token")
     public record TokenProperties(String audience, String issuer, String signingKey) {
 
     }
