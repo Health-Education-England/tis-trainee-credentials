@@ -21,20 +21,33 @@
 
 package uk.nhs.hee.tis.trainee.credentials.api;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.net.URI;
 import java.time.Instant;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.nhs.hee.tis.trainee.credentials.SignatureTestUtil;
+import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
 
 @WebMvcTest(IssueResource.class)
 class IssueResourceTest {
@@ -54,6 +67,12 @@ class IssueResourceTest {
   @Autowired
   private MockMvc mockMvc;
 
+  @MockBean
+  private GatewayService service;
+
+  @MockBean
+  private RestTemplateBuilder restTemplateBuilder;
+
   @Value("${application.signature.secret-key}")
   private String secretKey;
 
@@ -67,20 +86,71 @@ class IssueResourceTest {
   }
 
   @Test
-  void shouldAllowSignedRequests() throws Exception {
+  void shouldReturnErrorWhenCredentialUriNotAvailable() throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
+
+    when(service.getCredentialUri(any(), any(), eq("issue.TestCredential"))).thenReturn(
+        Optional.empty());
 
     mockMvc.perform(
             post("/api/issue/test")
                 .content(signedData)
                 .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isOk());
+        .andExpect(status().isInternalServerError());
   }
 
-  @TestConfiguration
-  static class TestConfig {
+  @Test
+  void shouldReturnCreatedWhenCredentialUriAvailable() throws Exception {
+    String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
-    @MockBean
-    private RestTemplateBuilder restTemplateBuilder;
+    String credentialUriString = "the-credential-uri";
+    URI credentialUri = URI.create(credentialUriString);
+    when(service.getCredentialUri(any(), any(), eq("issue.TestCredential"))).thenReturn(
+        Optional.of(credentialUri));
+
+    mockMvc.perform(
+            post("/api/issue/test")
+                .content(signedData)
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isCreated())
+        .andExpect(header().string(HttpHeaders.LOCATION, credentialUriString))
+        .andExpect(content().string(credentialUriString));
+  }
+
+  @Test
+  void shouldPassStateDownstreamWhenStateGiven() throws Exception {
+    String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
+
+    URI credentialUri = URI.create("the-credential-uri");
+    when(service.getCredentialUri(any(), any(), eq("issue.TestCredential"))).thenReturn(
+        Optional.of(credentialUri));
+
+    mockMvc.perform(
+        post("/api/issue/test")
+            .queryParam("state", "some-state-value")
+            .content(signedData)
+            .contentType(MediaType.APPLICATION_JSON));
+
+    ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
+    verify(service).getCredentialUri(any(), stateCaptor.capture(), eq("issue.TestCredential"));
+
+    String state = stateCaptor.getValue();
+    assertThat("Unexpected state.", state, is("some-state-value"));
+  }
+
+  @Test
+  void shouldNotPassStateDownstreamWhenNoStateGiven() throws Exception {
+    String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
+
+    mockMvc.perform(
+        post("/api/issue/test")
+            .content(signedData)
+            .contentType(MediaType.APPLICATION_JSON));
+
+    ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
+    verify(service).getCredentialUri(any(), stateCaptor.capture(), eq("issue.TestCredential"));
+
+    String state = stateCaptor.getValue();
+    assertThat("Unexpected state.", state, nullValue());
   }
 }
