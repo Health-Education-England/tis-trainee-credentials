@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDataDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
 
 /**
@@ -46,6 +47,19 @@ public class IssueResource {
     this.service = service;
   }
 
+  @PostMapping("/programme-membership")
+  ResponseEntity<String> issueProgrammeMembershipCredential(@RequestBody ProgrammeMembershipDto dto,
+      @RequestParam(required = false) String state) {
+    Optional<URI> credentialUri = service.getCredentialUri(dto, state, "issue.ProgrammeMembership");
+
+    if (credentialUri.isPresent()) {
+      URI uri = credentialUri.get();
+      return ResponseEntity.created(uri).body(uri.toString());
+    } else {
+      return ResponseEntity.internalServerError().build();
+    }
+  }
+
   @PostMapping("/test")
   ResponseEntity<String> issueTestCredential(@RequestBody TestCredentialDto dto,
       @RequestParam(required = false) String state) {
@@ -59,7 +73,7 @@ public class IssueResource {
     }
   }
 
-  private record TestCredentialDto(String givenName, String familyName, LocalDate birthDate)
+  record TestCredentialDto(String givenName, String familyName, LocalDate birthDate)
       implements CredentialDataDto {
 
   }

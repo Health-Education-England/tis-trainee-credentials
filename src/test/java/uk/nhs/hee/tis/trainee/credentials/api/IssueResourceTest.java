@@ -35,8 +35,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.net.URI;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,6 +50,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.nhs.hee.tis.trainee.credentials.SignatureTestUtil;
+import uk.nhs.hee.tis.trainee.credentials.api.IssueResource.TestCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
 
 @WebMvcTest(IssueResource.class)
@@ -85,31 +90,41 @@ class IssueResourceTest {
         .andExpect(status().isForbidden());
   }
 
-  @Test
-  void shouldReturnErrorWhenCredentialUriNotAvailable() throws Exception {
+  @ParameterizedTest
+  @CsvSource(delimiter = '|', value = """
+      programme-membership | issue.ProgrammeMembership
+      test                 | issue.TestCredential
+      """)
+  void shouldReturnErrorWhenCredentialUriNotAvailable(String mapping, String scope)
+      throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
-    when(service.getCredentialUri(any(), any(), eq("issue.TestCredential"))).thenReturn(
+    when(service.getCredentialUri(any(), any(), eq(scope))).thenReturn(
         Optional.empty());
 
     mockMvc.perform(
-            post("/api/issue/test")
+            post("/api/issue/" + mapping)
                 .content(signedData)
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isInternalServerError());
   }
 
-  @Test
-  void shouldReturnCreatedWhenCredentialUriAvailable() throws Exception {
+  @ParameterizedTest
+  @CsvSource(delimiter = '|', value = """
+      programme-membership | issue.ProgrammeMembership
+      test                 | issue.TestCredential
+      """)
+  void shouldReturnCreatedWhenCredentialUriAvailable(String mapping, String scope)
+      throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
     String credentialUriString = "the-credential-uri";
     URI credentialUri = URI.create(credentialUriString);
-    when(service.getCredentialUri(any(), any(), eq("issue.TestCredential"))).thenReturn(
+    when(service.getCredentialUri(any(), any(), eq(scope))).thenReturn(
         Optional.of(credentialUri));
 
     mockMvc.perform(
-            post("/api/issue/test")
+            post("/api/issue/" + mapping)
                 .content(signedData)
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isCreated())
@@ -117,29 +132,49 @@ class IssueResourceTest {
         .andExpect(content().string(credentialUriString));
   }
 
-  @Test
-  void shouldPassStateDownstreamWhenStateGiven() throws Exception {
+  @ParameterizedTest
+  @CsvSource(delimiter = '|', value = """
+      programme-membership | issue.ProgrammeMembership
+      test                 | issue.TestCredential
+      """)
+  void shouldPassStateDownstreamWhenStateGiven(String mapping, String scope) throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
-    URI credentialUri = URI.create("the-credential-uri");
-    when(service.getCredentialUri(any(), any(), eq("issue.TestCredential"))).thenReturn(
-        Optional.of(credentialUri));
-
     mockMvc.perform(
-        post("/api/issue/test")
+        post("/api/issue/" + mapping)
             .queryParam("state", "some-state-value")
             .content(signedData)
             .contentType(MediaType.APPLICATION_JSON));
 
     ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
-    verify(service).getCredentialUri(any(), stateCaptor.capture(), eq("issue.TestCredential"));
+    verify(service).getCredentialUri(any(), stateCaptor.capture(), eq(scope));
 
     String state = stateCaptor.getValue();
     assertThat("Unexpected state.", state, is("some-state-value"));
   }
 
+  @ParameterizedTest
+  @CsvSource(delimiter = '|', value = """
+      programme-membership | issue.ProgrammeMembership
+      test                 | issue.TestCredential
+      """)
+  void shouldNotPassStateDownstreamWhenNoStateGiven(String mapping, String scope) throws Exception {
+    String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
+
+    mockMvc.perform(
+        post("/api/issue/" + mapping)
+            .content(signedData)
+            .contentType(MediaType.APPLICATION_JSON));
+
+    ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
+    verify(service).getCredentialUri(any(), stateCaptor.capture(), eq(scope));
+
+    String state = stateCaptor.getValue();
+    assertThat("Unexpected state.", state, nullValue());
+  }
+
   @Test
-  void shouldNotPassStateDownstreamWhenNoStateGiven() throws Exception {
+  void shouldUseTestCredentialDtoFromRequestBody() throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
     mockMvc.perform(
@@ -147,10 +182,46 @@ class IssueResourceTest {
             .content(signedData)
             .contentType(MediaType.APPLICATION_JSON));
 
-    ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
-    verify(service).getCredentialUri(any(), stateCaptor.capture(), eq("issue.TestCredential"));
+    ArgumentCaptor<TestCredentialDto> dtoCaptor = ArgumentCaptor.forClass(TestCredentialDto.class);
+    verify(service).getCredentialUri(dtoCaptor.capture(), any(), eq("issue.TestCredential"));
 
-    String state = stateCaptor.getValue();
-    assertThat("Unexpected state.", state, nullValue());
+    TestCredentialDto dto = dtoCaptor.getValue();
+    assertThat("Unexpected given name.", dto.givenName(), is("Anthony"));
+    assertThat("Unexpected family name.", dto.familyName(), is("Gilliam"));
+    assertThat("Unexpected birth date.", dto.birthDate(), is(LocalDate.of(1991, 11, 11)));
+  }
+
+  @Test
+  void shouldUseProgrammeMembershipDtoFromRequestBody() throws Exception {
+    String programmeMembership = """
+        {
+          "tisId": "123",
+          "programmeName": "programme one",
+          "startDate": "2022-01-01",
+          "endDate": "2022-12-31",
+          "signature": {
+              "signedAt": "%s",
+              "validUntil": "%s"
+            }
+          }
+        }
+        """.formatted(Instant.MIN, Instant.MAX);
+    ;
+    String signedData = SignatureTestUtil.signData(programmeMembership, secretKey);
+
+    mockMvc.perform(
+        post("/api/issue/programme-membership")
+            .content(signedData)
+            .contentType(MediaType.APPLICATION_JSON));
+
+    ArgumentCaptor<ProgrammeMembershipDto> dtoCaptor = ArgumentCaptor.forClass(
+        ProgrammeMembershipDto.class);
+    verify(service).getCredentialUri(dtoCaptor.capture(), any(), eq("issue.ProgrammeMembership"));
+
+    ProgrammeMembershipDto dto = dtoCaptor.getValue();
+    assertThat("Unexpected TIS ID.", dto.tisId(), is("123"));
+    assertThat("Unexpected programme name.", dto.programmeName(), is("programme one"));
+    assertThat("Unexpected start date.", dto.startDate(), is(LocalDate.of(2022, 1, 1)));
+    assertThat("Unexpected end date.", dto.endDate(), is(LocalDate.of(2022, 12, 31)));
   }
 }
