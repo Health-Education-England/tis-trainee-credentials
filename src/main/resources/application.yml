@@ -3,6 +3,10 @@ server:
   servlet:
     context-path: /credentials
 
+application:
+  signature:
+    secret-key: ${SIGNATURE_SECRET_KEY}
+
 sentry:
   dsn: ${SENTRY_DSN:}
   environment: ${SENTRY_ENVIRONMENT:}

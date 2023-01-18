@@ -19,18 +19,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials;
+package uk.nhs.hee.tis.trainee.credentials.api;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import java.time.LocalDate;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
- * An application for issuing and verifying trainee digital credentials.
+ * API endpoints for issuing trainee digital credentials.
  */
-@SpringBootApplication
-public class TisTraineeCredentialsApplication {
+@RestController()
+@RequestMapping("/api/issue")
+public class IssueResource {
 
-  public static void main(String[] args) {
-    SpringApplication.run(TisTraineeCredentialsApplication.class);
+  @PostMapping("/test")
+  ResponseEntity<String> issueTestCredential(@RequestBody TestCredential testCredential) {
+    return ResponseEntity.ok(
+        "Issuing Test Credential for %s %s".formatted(testCredential.givenName(),
+            testCredential.familyName));
+  }
+
+  private record TestCredential(String givenName, String familyName, LocalDate birthDate) {
+
   }
 }

@@ -1,0 +1,3 @@
+application:
+  signature:
+    secret-key: test-secret-key

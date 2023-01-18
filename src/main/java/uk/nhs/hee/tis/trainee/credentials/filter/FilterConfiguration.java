@@ -19,18 +19,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials;
+package uk.nhs.hee.tis.trainee.credentials.filter;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 
 /**
- * An application for issuing and verifying trainee digital credentials.
+ * A configuration for request filters.
  */
-@SpringBootApplication
-public class TisTraineeCredentialsApplication {
+@Configuration
+public class FilterConfiguration {
 
-  public static void main(String[] args) {
-    SpringApplication.run(TisTraineeCredentialsApplication.class);
+  /**
+   * Register a {@link SignedDataFilter}.
+   *
+   * @param filter The filter to register.
+   * @return The {@link FilterRegistrationBean} for the registration.
+   */
+  @Bean
+  public FilterRegistrationBean<SignedDataFilter> registerSignedDataFilter(
+      SignedDataFilter filter) {
+    FilterRegistrationBean<SignedDataFilter> registrationBean = new FilterRegistrationBean<>();
+
+    registrationBean.setFilter(filter);
+    registrationBean.addUrlPatterns("/api/issue/*");
+    registrationBean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+
+    return registrationBean;
   }
 }
