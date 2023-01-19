@@ -22,7 +22,6 @@
 package uk.nhs.hee.tis.trainee.credentials.api;
 
 import java.net.URI;
-import java.time.LocalDate;
 import java.util.Optional;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,8 +29,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
 
 /**
@@ -50,7 +49,7 @@ public class IssueResource {
   @PostMapping("/programme-membership")
   ResponseEntity<String> issueProgrammeMembershipCredential(@RequestBody ProgrammeMembershipDto dto,
       @RequestParam(required = false) String state) {
-    Optional<URI> credentialUri = service.getCredentialUri(dto, state, "issue.ProgrammeMembership");
+    Optional<URI> credentialUri = service.getCredentialUri(dto, state);
 
     if (credentialUri.isPresent()) {
       URI uri = credentialUri.get();
@@ -63,7 +62,7 @@ public class IssueResource {
   @PostMapping("/test")
   ResponseEntity<String> issueTestCredential(@RequestBody TestCredentialDto dto,
       @RequestParam(required = false) String state) {
-    Optional<URI> credentialUri = service.getCredentialUri(dto, state, "issue.TestCredential");
+    Optional<URI> credentialUri = service.getCredentialUri(dto, state);
 
     if (credentialUri.isPresent()) {
       URI uri = credentialUri.get();
@@ -71,10 +70,5 @@ public class IssueResource {
     } else {
       return ResponseEntity.internalServerError().build();
     }
-  }
-
-  record TestCredentialDto(String givenName, String familyName, LocalDate birthDate)
-      implements CredentialDataDto {
-
   }
 }

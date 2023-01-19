@@ -67,11 +67,10 @@ public class GatewayService {
    *
    * @param dto   The credential data to be issued.
    * @param state The client state.
-   * @param scope The gateway credential type.
    * @return The URI to issue the credential.
    */
-  public Optional<URI> getCredentialUri(CredentialDataDto dto, String state, String scope) {
-    HttpEntity<MultiValueMap<String, String>> request = buildParRequest(dto, state, scope);
+  public Optional<URI> getCredentialUri(CredentialDataDto dto, String state) {
+    HttpEntity<MultiValueMap<String, String>> request = buildParRequest(dto, state);
     ResponseEntity<ParResponse> response = restTemplate.postForEntity(
         properties.issuing().parEndpoint(), request, ParResponse.class);
     return buildCredentialUri(response);
@@ -82,12 +81,10 @@ public class GatewayService {
    *
    * @param dto   The dto to build a credential for.
    * @param state The client state.
-   * @param scope The gateway credential type.
    * @return The built request.
    */
   private HttpEntity<MultiValueMap<String, String>> buildParRequest(CredentialDataDto dto,
-      String state,
-      String scope) {
+      String state) {
     String idTokenHint = jwtService.generateToken(dto);
 
     String nonce = UUID.randomUUID().toString();
@@ -95,7 +92,7 @@ public class GatewayService {
     bodyPair.add("client_id", properties.clientId());
     bodyPair.add("client_secret", properties.clientSecret());
     bodyPair.add("redirect_uri", properties.issuing().redirectUri());
-    bodyPair.add("scope", scope);
+    bodyPair.add("scope", dto.getScope());
     bodyPair.add("id_token_hint", idTokenHint);
     bodyPair.add("nonce", nonce);
     bodyPair.add("state", state);

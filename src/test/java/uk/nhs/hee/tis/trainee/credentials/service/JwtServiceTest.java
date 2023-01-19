@@ -82,6 +82,10 @@ class JwtServiceTest {
   void shouldGenerateTokenWithDefaultClaims() {
     record EmptyData() implements CredentialDataDto {
 
+      @Override
+      public String getScope() {
+        return "issue.Empty";
+      }
     }
 
     final Instant now = Instant.now();

@@ -21,9 +21,18 @@
 
 package uk.nhs.hee.tis.trainee.credentials.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * An interface representing a DTO containing credential data.
  */
 public interface CredentialDataDto {
 
+  /**
+   * Get gateway credential type, known as scope internally.
+   *
+   * @return The credential's scope.
+   */
+  @JsonIgnore
+  String getScope();
 }

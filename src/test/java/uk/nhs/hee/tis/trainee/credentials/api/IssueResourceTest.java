@@ -25,7 +25,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -50,14 +49,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.nhs.hee.tis.trainee.credentials.SignatureTestUtil;
-import uk.nhs.hee.tis.trainee.credentials.api.IssueResource.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
 
 @WebMvcTest(IssueResource.class)
 class IssueResourceTest {
 
-  public static final String UNSIGNED_DATA = """
+  private static final String UNSIGNED_DATA = """
       {
             "givenName": "Anthony",
             "familyName": "Gilliam",
@@ -91,16 +90,16 @@ class IssueResourceTest {
   }
 
   @ParameterizedTest
-  @CsvSource(delimiter = '|', value = """
-      programme-membership | issue.ProgrammeMembership
-      test                 | issue.TestCredential
+  @CsvSource(delimiter = '|', textBlock = """
+      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto
+      test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
-  void shouldReturnErrorWhenCredentialUriNotAvailable(String mapping, String scope)
+  void shouldReturnErrorWhenCredentialUriNotAvailable(String mapping,
+      Class<? extends TestCredentialDto> dtoClass)
       throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
-    when(service.getCredentialUri(any(), any(), eq(scope))).thenReturn(
-        Optional.empty());
+    when(service.getCredentialUri(any(dtoClass), any())).thenReturn(Optional.empty());
 
     mockMvc.perform(
             post("/api/issue/" + mapping)
@@ -110,18 +109,18 @@ class IssueResourceTest {
   }
 
   @ParameterizedTest
-  @CsvSource(delimiter = '|', value = """
-      programme-membership | issue.ProgrammeMembership
-      test                 | issue.TestCredential
+  @CsvSource(delimiter = '|', textBlock = """
+      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto
+      test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
-  void shouldReturnCreatedWhenCredentialUriAvailable(String mapping, String scope)
+  void shouldReturnCreatedWhenCredentialUriAvailable(String mapping,
+      Class<? extends TestCredentialDto> dtoClass)
       throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
     String credentialUriString = "the-credential-uri";
     URI credentialUri = URI.create(credentialUriString);
-    when(service.getCredentialUri(any(), any(), eq(scope))).thenReturn(
-        Optional.of(credentialUri));
+    when(service.getCredentialUri(any(dtoClass), any())).thenReturn(Optional.of(credentialUri));
 
     mockMvc.perform(
             post("/api/issue/" + mapping)
@@ -133,11 +132,12 @@ class IssueResourceTest {
   }
 
   @ParameterizedTest
-  @CsvSource(delimiter = '|', value = """
-      programme-membership | issue.ProgrammeMembership
-      test                 | issue.TestCredential
+  @CsvSource(delimiter = '|', textBlock = """
+      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto
+      test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
-  void shouldPassStateDownstreamWhenStateGiven(String mapping, String scope) throws Exception {
+  void shouldPassStateDownstreamWhenStateGiven(String mapping,
+      Class<? extends TestCredentialDto> dtoClass) throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
     mockMvc.perform(
@@ -147,18 +147,19 @@ class IssueResourceTest {
             .contentType(MediaType.APPLICATION_JSON));
 
     ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
-    verify(service).getCredentialUri(any(), stateCaptor.capture(), eq(scope));
+    verify(service).getCredentialUri(any(dtoClass), stateCaptor.capture());
 
     String state = stateCaptor.getValue();
     assertThat("Unexpected state.", state, is("some-state-value"));
   }
 
   @ParameterizedTest
-  @CsvSource(delimiter = '|', value = """
-      programme-membership | issue.ProgrammeMembership
-      test                 | issue.TestCredential
+  @CsvSource(delimiter = '|', textBlock = """
+      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto
+      test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
-  void shouldNotPassStateDownstreamWhenNoStateGiven(String mapping, String scope) throws Exception {
+  void shouldNotPassStateDownstreamWhenNoStateGiven(String mapping,
+      Class<? extends TestCredentialDto> dtoClass) throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
     mockMvc.perform(
@@ -167,7 +168,7 @@ class IssueResourceTest {
             .contentType(MediaType.APPLICATION_JSON));
 
     ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
-    verify(service).getCredentialUri(any(), stateCaptor.capture(), eq(scope));
+    verify(service).getCredentialUri(any(dtoClass), stateCaptor.capture());
 
     String state = stateCaptor.getValue();
     assertThat("Unexpected state.", state, nullValue());
@@ -183,7 +184,7 @@ class IssueResourceTest {
             .contentType(MediaType.APPLICATION_JSON));
 
     ArgumentCaptor<TestCredentialDto> dtoCaptor = ArgumentCaptor.forClass(TestCredentialDto.class);
-    verify(service).getCredentialUri(dtoCaptor.capture(), any(), eq("issue.TestCredential"));
+    verify(service).getCredentialUri(dtoCaptor.capture(), any());
 
     TestCredentialDto dto = dtoCaptor.getValue();
     assertThat("Unexpected given name.", dto.givenName(), is("Anthony"));
@@ -206,7 +207,6 @@ class IssueResourceTest {
           }
         }
         """.formatted(Instant.MIN, Instant.MAX);
-    ;
     String signedData = SignatureTestUtil.signData(programmeMembership, secretKey);
 
     mockMvc.perform(
@@ -216,7 +216,7 @@ class IssueResourceTest {
 
     ArgumentCaptor<ProgrammeMembershipDto> dtoCaptor = ArgumentCaptor.forClass(
         ProgrammeMembershipDto.class);
-    verify(service).getCredentialUri(dtoCaptor.capture(), any(), eq("issue.ProgrammeMembership"));
+    verify(service).getCredentialUri(dtoCaptor.capture(), any());
 
     ProgrammeMembershipDto dto = dtoCaptor.getValue();
     assertThat("Unexpected TIS ID.", dto.tisId(), is("123"));
