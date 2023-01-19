@@ -21,7 +21,9 @@
 
 package uk.nhs.hee.tis.trainee.credentials.dto;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 /**
  * A DTO representing test credential data.
@@ -32,6 +34,11 @@ import java.time.LocalDate;
  */
 public record TestCredentialDto(String givenName, String familyName, LocalDate birthDate)
     implements CredentialDataDto {
+
+  @Override
+  public Instant getExpiration(Instant issuedAt) {
+    return issuedAt.atOffset(ZoneOffset.UTC).plusYears(1).toInstant();
+  }
 
   @Override
   public String getScope() {

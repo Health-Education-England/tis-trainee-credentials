@@ -38,7 +38,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
 import javax.crypto.SecretKey;
@@ -83,6 +83,11 @@ class JwtServiceTest {
     record EmptyData() implements CredentialDataDto {
 
       @Override
+      public Instant getExpiration(Instant issuedAt) {
+        return issuedAt.plus(Duration.ofDays(30));
+      }
+
+      @Override
       public String getScope() {
         return "issue.Empty";
       }
@@ -103,9 +108,8 @@ class JwtServiceTest {
     assertThat("Unexpected difference between now and iat.", issuedAtDiff, is(0L));
     assertThat("Unexpected token nbf.", tokenClaims.getNotBefore(), is(issuedAt));
 
-    Date expectedExpiry = Date.from(
-        issuedAt.toInstant().atOffset(ZoneOffset.UTC).plusYears(1).toInstant());
-    assertThat("Unexpected token exp.", tokenClaims.getExpiration(), is(expectedExpiry));
+    Date expectedExpiration = Date.from(issuedAt.toInstant().plus(Duration.ofDays(30)));
+    assertThat("Unexpected token exp.", tokenClaims.getExpiration(), is(expectedExpiration));
   }
 
   @Test
@@ -125,5 +129,10 @@ class JwtServiceTest {
         is(START_DATE.toString()));
     assertThat("Unexpected programme end date.", tokenClaims.get("endDate"),
         is(END_DATE.toString()));
+
+    Instant issuedAt = tokenClaims.getIssuedAt().toInstant();
+    Instant expectedExpiration = dto.getExpiration(issuedAt).truncatedTo(ChronoUnit.SECONDS);
+    Instant expiration = tokenClaims.getExpiration().toInstant();
+    assertThat("Unexpected token exp.", expiration, is(expectedExpiration));
   }
 }

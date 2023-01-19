@@ -22,11 +22,21 @@
 package uk.nhs.hee.tis.trainee.credentials.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.time.Instant;
 
 /**
  * An interface representing a DTO containing credential data.
  */
 public interface CredentialDataDto {
+
+  /**
+   * Get the expiry instant for the credential.
+   *
+   * @param issuedAt The time the credential is being issued.
+   * @return The expiry instant of the credential.
+   */
+  @JsonIgnore
+  Instant getExpiration(Instant issuedAt);
 
   /**
    * Get gateway credential type, known as scope internally.

@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.Date;
 import java.util.Map;
@@ -62,8 +61,6 @@ public class JwtService {
    */
   public String generateToken(CredentialDataDto dto) {
     Instant now = Instant.now();
-    Instant expiry = now.atOffset(ZoneOffset.UTC).plusYears(1).toInstant();
-
     Map<String, Object> claimsMap = mapper.convertValue(dto, Map.class);
     SecretKey signingKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(properties.signingKey()));
 
@@ -72,7 +69,7 @@ public class JwtService {
         .setIssuer(properties.issuer())
         .setIssuedAt(Date.from(now))
         .setNotBefore(Date.from(now))
-        .setExpiration(Date.from(expiry))
+        .setExpiration(Date.from(dto.getExpiration(now)))
         .addClaims(claimsMap)
         .signWith(signingKey)
         .compact();
