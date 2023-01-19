@@ -30,6 +30,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.net.URI;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,8 @@ import org.springframework.web.client.RestTemplate;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDataDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService.ParResponse;
 
 class GatewayServiceTest {
@@ -156,9 +159,8 @@ class GatewayServiceTest {
   }
 
   @Test
-  void shouldIncludeScopeInParRequest() {
-    CredentialDataDto dto = mock(CredentialDataDto.class);
-    when(dto.getScope()).thenReturn("test.scope.value");
+  void shouldIncludeProgrammeMembershipScopeInParRequest() {
+    ProgrammeMembershipDto dto = new ProgrammeMembershipDto("", "", LocalDate.MIN, LocalDate.MAX);
 
     var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
@@ -168,7 +170,23 @@ class GatewayServiceTest {
 
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
-    assertThat("Unexpected scope.", requestBody.get("scope"), is(List.of("test.scope.value")));
+    assertThat("Unexpected scope.", requestBody.get("scope"),
+        is(List.of("issue.ProgrammeMembership")));
+  }
+
+  @Test
+  void shouldIncludeTestScopeInParRequest() {
+    TestCredentialDto dto = new TestCredentialDto("", "", LocalDate.now());
+
+    var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
+        eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
+
+    service.getCredentialUri(dto, STATE);
+
+    var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
+    MultiValueMap<String, String> requestBody = request.getBody();
+    assertThat("Unexpected scope.", requestBody.get("scope"), is(List.of("issue.TestCredential")));
   }
 
   @Test

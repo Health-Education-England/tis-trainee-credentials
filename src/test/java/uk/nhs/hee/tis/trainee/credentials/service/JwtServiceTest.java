@@ -47,12 +47,17 @@ import org.junit.jupiter.api.Test;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties.TokenProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 
 class JwtServiceTest {
 
   private static final String PROGRAMME_NAME = "Programme One";
   private static final LocalDate START_DATE = LocalDate.now().minusYears(1);
   private static final LocalDate END_DATE = LocalDate.now().plusYears(1);
+
+  private static final String GIVEN_NAME = "Anthony";
+  private static final String FAMILY_NAME = "Gilliam";
+  private static final LocalDate BIRTH_DATE = LocalDate.now();
 
   private static final String AUDIENCE = "https://test.tis.nhs.uk/audience";
   private static final String ISSUER = "some-identifier";
@@ -129,6 +134,27 @@ class JwtServiceTest {
         is(START_DATE.toString()));
     assertThat("Unexpected programme end date.", tokenClaims.get("endDate"),
         is(END_DATE.toString()));
+
+    Instant issuedAt = tokenClaims.getIssuedAt().toInstant();
+    Instant expectedExpiration = dto.getExpiration(issuedAt).truncatedTo(ChronoUnit.SECONDS);
+    Instant expiration = tokenClaims.getExpiration().toInstant();
+    assertThat("Unexpected token exp.", expiration, is(expectedExpiration));
+  }
+
+  @Test
+  void shouldGenerateTokenWithTestCredentialClaims() {
+    TestCredentialDto dto = new TestCredentialDto(GIVEN_NAME, FAMILY_NAME, BIRTH_DATE);
+
+    String tokenString = service.generateToken(dto);
+
+    Jwt<?, Claims> token = parser.parse(tokenString);
+    Claims tokenClaims = token.getBody();
+
+    assertThat("Unexpected number of claims.", tokenClaims.size(), is(DEFAULT_CLAIM_COUNT + 3));
+    assertThat("Unexpected given name.", tokenClaims.get("givenName"), is(GIVEN_NAME));
+    assertThat("Unexpected family name.", tokenClaims.get("familyName"),
+        is(FAMILY_NAME));
+    assertThat("Unexpected birth date.", tokenClaims.get("birthDate"), is(BIRTH_DATE.toString()));
 
     Instant issuedAt = tokenClaims.getIssuedAt().toInstant();
     Instant expectedExpiration = dto.getExpiration(issuedAt).truncatedTo(ChronoUnit.SECONDS);
