@@ -33,13 +33,13 @@ import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.Base64;
 import java.util.Date;
 import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,10 +68,10 @@ class JwtServiceTest {
     mapper.registerModule(new JavaTimeModule());
     mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-    byte[] keyBytes = new byte[256];
+    byte[] keyBytes = new byte[32];
     SecureRandom.getInstanceStrong().nextBytes(keyBytes);
-    String keyString = new String(keyBytes, StandardCharsets.UTF_8);
-    SecretKey key = Keys.hmacShaKeyFor(keyString.getBytes(StandardCharsets.UTF_8));
+    String keyString = Base64.getEncoder().encodeToString(keyBytes);
+    SecretKey key = Keys.hmacShaKeyFor(keyBytes);
     parser = Jwts.parserBuilder().setSigningKey(key).build();
 
     TokenProperties properties = new TokenProperties(AUDIENCE, ISSUER, keyString);
