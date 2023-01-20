@@ -49,6 +49,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.nhs.hee.tis.trainee.credentials.SignatureTestUtil;
+import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
@@ -92,6 +93,7 @@ class IssueResourceTest {
   @ParameterizedTest
   @CsvSource(delimiter = '|', textBlock = """
       programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto
+      placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto
       test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
   void shouldReturnErrorWhenCredentialUriNotAvailable(String mapping,
@@ -111,6 +113,7 @@ class IssueResourceTest {
   @ParameterizedTest
   @CsvSource(delimiter = '|', textBlock = """
       programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto
+      placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto
       test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
   void shouldReturnCreatedWhenCredentialUriAvailable(String mapping,
@@ -134,6 +137,7 @@ class IssueResourceTest {
   @ParameterizedTest
   @CsvSource(delimiter = '|', textBlock = """
       programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto
+      placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto
       test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
   void shouldPassStateDownstreamWhenStateGiven(String mapping,
@@ -156,6 +160,7 @@ class IssueResourceTest {
   @ParameterizedTest
   @CsvSource(delimiter = '|', textBlock = """
       programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto
+      placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto
       test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
   void shouldNotPassStateDownstreamWhenNoStateGiven(String mapping,
@@ -223,5 +228,46 @@ class IssueResourceTest {
     assertThat("Unexpected programme name.", dto.programmeName(), is("programme one"));
     assertThat("Unexpected start date.", dto.startDate(), is(LocalDate.of(2022, 1, 1)));
     assertThat("Unexpected end date.", dto.endDate(), is(LocalDate.of(2022, 12, 31)));
+  }
+
+  @Test
+  void shouldUsePlacementDtoFromRequestBody() throws Exception {
+    String placement = """
+        {
+          "tisId": "123",
+          "specialty": "placement specialty",
+          "grade": "placement grade",
+          "nationalPostNumber": "NPN",
+          "employingBody": "employing body",
+          "site": "placement site",
+          "startDate": "2022-01-01",
+          "endDate": "2022-06-30",
+          "signature": {
+              "signedAt": "%s",
+              "validUntil": "%s"
+            }
+          }
+        }
+        """.formatted(Instant.MIN, Instant.MAX);
+    String signedData = SignatureTestUtil.signData(placement, secretKey);
+
+    mockMvc.perform(
+        post("/api/issue/placement")
+            .content(signedData)
+            .contentType(MediaType.APPLICATION_JSON));
+
+    ArgumentCaptor<PlacementDto> dtoCaptor = ArgumentCaptor.forClass(
+        PlacementDto.class);
+    verify(service).getCredentialUri(dtoCaptor.capture(), any());
+
+    PlacementDto dto = dtoCaptor.getValue();
+    assertThat("Unexpected TIS ID.", dto.tisId(), is("123"));
+    assertThat("Unexpected specialty.", dto.specialty(), is("placement specialty"));
+    assertThat("Unexpected specialty.", dto.grade(), is("placement grade"));
+    assertThat("Unexpected specialty.", dto.nationalPostNumber(), is("NPN"));
+    assertThat("Unexpected specialty.", dto.employingBody(), is("employing body"));
+    assertThat("Unexpected specialty.", dto.site(), is("placement site"));
+    assertThat("Unexpected start date.", dto.startDate(), is(LocalDate.of(2022, 1, 1)));
+    assertThat("Unexpected end date.", dto.endDate(), is(LocalDate.of(2022, 6, 30)));
   }
 }

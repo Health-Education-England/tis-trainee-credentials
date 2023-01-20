@@ -46,6 +46,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties.TokenProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDataDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 
@@ -54,6 +55,12 @@ class JwtServiceTest {
   private static final String PROGRAMME_NAME = "Programme One";
   private static final LocalDate START_DATE = LocalDate.now().minusYears(1);
   private static final LocalDate END_DATE = LocalDate.now().plusYears(1);
+
+  private static final String PLACEMENT_SPECIALTY = "placement specialty";
+  private static final String PLACEMENT_GRADE = "placement grade";
+  private static final String PLACEMENT_NATIONAL_POST_NUMBER = "placement NPN";
+  private static final String PLACEMENT_EMPLOYING_BODY = "placement employing body";
+  private static final String PLACEMENT_SITE = "placement site";
 
   private static final String GIVEN_NAME = "Anthony";
   private static final String FAMILY_NAME = "Gilliam";
@@ -133,6 +140,40 @@ class JwtServiceTest {
     assertThat("Unexpected programme start date.", tokenClaims.get("startDate"),
         is(START_DATE.toString()));
     assertThat("Unexpected programme end date.", tokenClaims.get("endDate"),
+        is(END_DATE.toString()));
+
+    Instant issuedAt = tokenClaims.getIssuedAt().toInstant();
+    Instant expectedExpiration = dto.getExpiration(issuedAt).truncatedTo(ChronoUnit.SECONDS);
+    Instant expiration = tokenClaims.getExpiration().toInstant();
+    assertThat("Unexpected token exp.", expiration, is(expectedExpiration));
+  }
+
+  @Test
+  void shouldGenerateTokenWithPlacementClaims() {
+    PlacementDto dto = new PlacementDto(
+        "123", PLACEMENT_SPECIALTY, PLACEMENT_GRADE, PLACEMENT_NATIONAL_POST_NUMBER,
+        PLACEMENT_EMPLOYING_BODY, PLACEMENT_SITE, START_DATE, END_DATE);
+
+    String tokenString = service.generateToken(dto);
+
+    Jwt<?, Claims> token = parser.parse(tokenString);
+    Claims tokenClaims = token.getBody();
+
+    assertThat("Unexpected number of claims.", tokenClaims.size(), is(DEFAULT_CLAIM_COUNT + 7));
+    assertThat("Unexpected claim.", tokenClaims.get("tisId"), nullValue());
+    assertThat("Unexpected placement specialty.", tokenClaims.get("specialty"),
+        is(PLACEMENT_SPECIALTY));
+    assertThat("Unexpected placement grade.", tokenClaims.get("grade"),
+        is(PLACEMENT_GRADE));
+    assertThat("Unexpected placement NPN.", tokenClaims.get("nationalPostNumber"),
+        is(PLACEMENT_NATIONAL_POST_NUMBER));
+    assertThat("Unexpected placement employing body.", tokenClaims.get("employingBody"),
+        is(PLACEMENT_EMPLOYING_BODY));
+    assertThat("Unexpected placement site.", tokenClaims.get("site"),
+        is(PLACEMENT_SITE));
+    assertThat("Unexpected placement start date.", tokenClaims.get("startDate"),
+        is(START_DATE.toString()));
+    assertThat("Unexpected placement end date.", tokenClaims.get("endDate"),
         is(END_DATE.toString()));
 
     Instant issuedAt = tokenClaims.getIssuedAt().toInstant();
