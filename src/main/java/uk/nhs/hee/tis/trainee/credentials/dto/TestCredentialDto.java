@@ -19,28 +19,29 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials;
+package uk.nhs.hee.tis.trainee.credentials.dto;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.context.annotation.Bean;
-import org.springframework.web.client.RestTemplate;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 /**
- * An application for issuing and verifying trainee digital credentials.
+ * A DTO representing test credential data.
+ *
+ * @param givenName  A given name.
+ * @param familyName A family name.
+ * @param birthDate  The birthdate.
  */
-@SpringBootApplication
-@ConfigurationPropertiesScan
-public class TisTraineeCredentialsApplication {
+public record TestCredentialDto(String givenName, String familyName, LocalDate birthDate)
+    implements CredentialDataDto {
 
-  public static void main(String[] args) {
-    SpringApplication.run(TisTraineeCredentialsApplication.class);
+  @Override
+  public Instant getExpiration(Instant issuedAt) {
+    return issuedAt.atOffset(ZoneOffset.UTC).plusYears(1).toInstant();
   }
 
-  @Bean
-  RestTemplate restTemplate(RestTemplateBuilder builder) {
-    return builder.build();
+  @Override
+  public String getScope() {
+    return "issue.TestCredential";
   }
 }

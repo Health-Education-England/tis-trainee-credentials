@@ -21,12 +21,17 @@
 
 package uk.nhs.hee.tis.trainee.credentials.api;
 
-import java.time.LocalDate;
+import java.net.URI;
+import java.util.Optional;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
 
 /**
  * API endpoints for issuing trainee digital credentials.
@@ -35,14 +40,35 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/issue")
 public class IssueResource {
 
-  @PostMapping("/test")
-  ResponseEntity<String> issueTestCredential(@RequestBody TestCredential testCredential) {
-    return ResponseEntity.ok(
-        "Issuing Test Credential for %s %s".formatted(testCredential.givenName(),
-            testCredential.familyName));
+  private final GatewayService service;
+
+  IssueResource(GatewayService service) {
+    this.service = service;
   }
 
-  private record TestCredential(String givenName, String familyName, LocalDate birthDate) {
+  @PostMapping("/programme-membership")
+  ResponseEntity<String> issueProgrammeMembershipCredential(@RequestBody ProgrammeMembershipDto dto,
+      @RequestParam(required = false) String state) {
+    Optional<URI> credentialUri = service.getCredentialUri(dto, state);
 
+    if (credentialUri.isPresent()) {
+      URI uri = credentialUri.get();
+      return ResponseEntity.created(uri).body(uri.toString());
+    } else {
+      return ResponseEntity.internalServerError().build();
+    }
+  }
+
+  @PostMapping("/test")
+  ResponseEntity<String> issueTestCredential(@RequestBody TestCredentialDto dto,
+      @RequestParam(required = false) String state) {
+    Optional<URI> credentialUri = service.getCredentialUri(dto, state);
+
+    if (credentialUri.isPresent()) {
+      URI uri = credentialUri.get();
+      return ResponseEntity.created(uri).body(uri.toString());
+    } else {
+      return ResponseEntity.internalServerError().build();
+    }
   }
 }

@@ -19,28 +19,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials;
+package uk.nhs.hee.tis.trainee.credentials.dto;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.context.annotation.Bean;
-import org.springframework.web.client.RestTemplate;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 
 /**
- * An application for issuing and verifying trainee digital credentials.
+ * A DTO representing Programme Membership credential data.
+ *
+ * @param programmeName The programme name.
+ * @param startDate     The programme's start date.
+ * @param endDate       The programme's end date.
  */
-@SpringBootApplication
-@ConfigurationPropertiesScan
-public class TisTraineeCredentialsApplication {
+public record ProgrammeMembershipDto(
+    @JsonProperty(access = Access.WRITE_ONLY)
+    String tisId,
+    String programmeName,
+    LocalDate startDate,
+    LocalDate endDate) implements CredentialDataDto {
 
-  public static void main(String[] args) {
-    SpringApplication.run(TisTraineeCredentialsApplication.class);
+  @Override
+  public Instant getExpiration(Instant issuedAt) {
+    return endDate.atTime(LocalTime.MAX).toInstant(ZoneOffset.UTC);
   }
 
-  @Bean
-  RestTemplate restTemplate(RestTemplateBuilder builder) {
-    return builder.build();
+  @Override
+  public String getScope() {
+    return "issue.ProgrammeMembership";
   }
 }

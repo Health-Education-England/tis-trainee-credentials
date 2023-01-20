@@ -19,28 +19,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials;
+package uk.nhs.hee.tis.trainee.credentials.dto;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.context.annotation.Bean;
-import org.springframework.web.client.RestTemplate;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.time.Instant;
 
 /**
- * An application for issuing and verifying trainee digital credentials.
+ * An interface representing a DTO containing credential data.
  */
-@SpringBootApplication
-@ConfigurationPropertiesScan
-public class TisTraineeCredentialsApplication {
+public interface CredentialDataDto {
 
-  public static void main(String[] args) {
-    SpringApplication.run(TisTraineeCredentialsApplication.class);
-  }
+  /**
+   * Get the expiry instant for the credential.
+   *
+   * @param issuedAt The time the credential is being issued.
+   * @return The expiry instant of the credential.
+   */
+  @JsonIgnore
+  Instant getExpiration(Instant issuedAt);
 
-  @Bean
-  RestTemplate restTemplate(RestTemplateBuilder builder) {
-    return builder.build();
-  }
+  /**
+   * Get gateway credential type, known as scope internally.
+   *
+   * @return The credential's scope.
+   */
+  @JsonIgnore
+  String getScope();
 }
