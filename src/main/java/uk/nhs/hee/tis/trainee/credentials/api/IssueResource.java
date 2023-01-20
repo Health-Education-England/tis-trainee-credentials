@@ -69,11 +69,13 @@ public class IssueResource {
   ResponseEntity<String> issuePlacementCredential(@RequestBody PlacementDto dto,
                                                   @RequestParam(required = false) String state) {
     Optional<URI> credentialUri = service.getCredentialUri(dto, state);
-
+    log.info("Received request to issue Placement credential.");
     if (credentialUri.isPresent()) {
       URI uri = credentialUri.get();
+      log.info("Placement credential successfully issued.");
       return ResponseEntity.created(uri).body(uri.toString());
     } else {
+      log.error("Could not issue Placement credential.");
       return ResponseEntity.internalServerError().build();
     }
   }
