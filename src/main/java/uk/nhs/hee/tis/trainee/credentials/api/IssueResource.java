@@ -23,6 +23,7 @@ package uk.nhs.hee.tis.trainee.credentials.api;
 
 import java.net.URI;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,6 +37,7 @@ import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
 /**
  * API endpoints for issuing trainee digital credentials.
  */
+@Slf4j
 @RestController()
 @RequestMapping("/api/issue")
 public class IssueResource {
@@ -49,12 +51,15 @@ public class IssueResource {
   @PostMapping("/programme-membership")
   ResponseEntity<String> issueProgrammeMembershipCredential(@RequestBody ProgrammeMembershipDto dto,
       @RequestParam(required = false) String state) {
+    log.info("Received request to issue Programme Membership credential.");
     Optional<URI> credentialUri = service.getCredentialUri(dto, state);
 
     if (credentialUri.isPresent()) {
       URI uri = credentialUri.get();
+      log.info("Programme Membership credential successfully issued.");
       return ResponseEntity.created(uri).body(uri.toString());
     } else {
+      log.error("Could not issue Programme Membership credential.");
       return ResponseEntity.internalServerError().build();
     }
   }
@@ -62,12 +67,15 @@ public class IssueResource {
   @PostMapping("/test")
   ResponseEntity<String> issueTestCredential(@RequestBody TestCredentialDto dto,
       @RequestParam(required = false) String state) {
+    log.info("Received request to issue Test credential.");
     Optional<URI> credentialUri = service.getCredentialUri(dto, state);
 
     if (credentialUri.isPresent()) {
       URI uri = credentialUri.get();
+      log.info("Test credential successfully issued.");
       return ResponseEntity.created(uri).body(uri.toString());
     } else {
+      log.error("Could not issue Test credential.");
       return ResponseEntity.internalServerError().build();
     }
   }

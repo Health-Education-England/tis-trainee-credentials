@@ -26,6 +26,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -42,6 +43,7 @@ import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDataDto;
 /**
  * A service providing credential gateway functionality.
  */
+@Slf4j
 @Service
 public class GatewayService {
 
@@ -71,8 +73,12 @@ public class GatewayService {
    */
   public Optional<URI> getCredentialUri(CredentialDataDto dto, String state) {
     HttpEntity<MultiValueMap<String, String>> request = buildParRequest(dto, state);
+
+    log.info("Sending PAR request.");
     ResponseEntity<ParResponse> response = restTemplate.postForEntity(
         properties.issuing().parEndpoint(), request, ParResponse.class);
+    log.info("Received PAR response.");
+
     return buildCredentialUri(response);
   }
 
@@ -85,6 +91,7 @@ public class GatewayService {
    */
   private HttpEntity<MultiValueMap<String, String>> buildParRequest(CredentialDataDto dto,
       String state) {
+    log.info("Building PAR request.");
     String idTokenHint = jwtService.generateToken(dto);
 
     String nonce = UUID.randomUUID().toString();
@@ -101,6 +108,7 @@ public class GatewayService {
     headers.setAccept(List.of(MediaType.APPLICATION_JSON));
     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
+    log.info("Built PAR request.");
     return new HttpEntity<>(bodyPair, headers);
   }
 
@@ -111,6 +119,7 @@ public class GatewayService {
    * @return The credential URI, or empty optional if the response was invalid.
    */
   private Optional<URI> buildCredentialUri(ResponseEntity<ParResponse> response) {
+    log.info("Building credential URI.");
     URI credentialUri = null;
 
     if (response.getStatusCode().equals(HttpStatus.CREATED)) {
@@ -121,7 +130,12 @@ public class GatewayService {
             .queryParam("request_uri", parResponse.requestUri())
             .build()
             .toUri();
+        log.info("Built credential URI.");
+      } else {
+        log.error("PAR response was empty.");
       }
+    } else {
+      log.error("PAR request unsuccessful, status code {}.", response.getStatusCode());
     }
 
     return Optional.ofNullable(credentialUri);

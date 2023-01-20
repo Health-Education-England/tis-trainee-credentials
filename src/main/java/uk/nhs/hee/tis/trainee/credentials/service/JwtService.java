@@ -29,6 +29,7 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.Map;
 import javax.crypto.SecretKey;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties.TokenProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDataDto;
@@ -36,6 +37,7 @@ import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDataDto;
 /**
  * A service providing JWT token functionality.
  */
+@Slf4j
 @Service
 public class JwtService {
 
@@ -60,11 +62,12 @@ public class JwtService {
    * @return The generated token as an encoded string.
    */
   public String generateToken(CredentialDataDto dto) {
+    log.info("Generating id_token_hint JWT.");
     Instant now = Instant.now();
     Map<String, Object> claimsMap = mapper.convertValue(dto, Map.class);
     SecretKey signingKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(properties.signingKey()));
 
-    return Jwts.builder()
+    String jwt = Jwts.builder()
         .setAudience(properties.audience())
         .setIssuer(properties.issuer())
         .setIssuedAt(Date.from(now))
@@ -73,5 +76,8 @@ public class JwtService {
         .addClaims(claimsMap)
         .signWith(signingKey)
         .compact();
+
+    log.info("Generated id_token_hint JWT.");
+    return jwt;
   }
 }
