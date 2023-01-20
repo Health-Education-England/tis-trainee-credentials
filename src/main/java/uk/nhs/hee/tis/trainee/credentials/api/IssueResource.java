@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
@@ -60,6 +61,19 @@ public class IssueResource {
       return ResponseEntity.created(uri).body(uri.toString());
     } else {
       log.error("Could not issue Programme Membership credential.");
+      return ResponseEntity.internalServerError().build();
+    }
+  }
+
+  @PostMapping("/placement")
+  ResponseEntity<String> issuePlacementCredential(@RequestBody PlacementDto dto,
+                                                  @RequestParam(required = false) String state) {
+    Optional<URI> credentialUri = service.getCredentialUri(dto, state);
+
+    if (credentialUri.isPresent()) {
+      URI uri = credentialUri.get();
+      return ResponseEntity.created(uri).body(uri.toString());
+    } else {
       return ResponseEntity.internalServerError().build();
     }
   }
