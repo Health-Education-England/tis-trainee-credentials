@@ -45,6 +45,40 @@ public class SignatureTestUtil {
   }
 
   /**
+   * A helper method to remove a field from the data and then sign it with a valid HMAC.
+   *
+   * @param dataToSign       The data to sign.
+   * @param secretKey        The secret key to sign the data with.
+   * @param fieldToOverwrite The field to overwrite in the data before signing.
+   * @param newFieldValue    The new value of the overwritten field.
+   * @return A string representation of the signed data.
+   * @throws JsonProcessingException If the dataToSign was not valid JSON.
+   */
+  public static String overwriteFieldAndSignData(String dataToSign, String secretKey,
+      String fieldToOverwrite, String newFieldValue) throws JsonProcessingException {
+    ObjectNode nodeToSign = (ObjectNode) MAPPER.readTree(dataToSign);
+    nodeToSign.put(fieldToOverwrite, newFieldValue);
+    return signData(nodeToSign, secretKey);
+  }
+
+  /**
+   * A helper method to remove a field from the data and then sign it with a valid HMAC.
+   *
+   * @param dataToSign    The data to sign.
+   * @param secretKey     The secret key to sign the data with.
+   * @param fieldToRemove The field to remove from the data before signing.
+   * @return A string representation of the signed data.
+   * @throws JsonProcessingException If the dataToSign was not valid JSON.
+   */
+  public static String removeFieldAndSignData(String dataToSign, String secretKey,
+      String fieldToRemove) throws JsonProcessingException {
+    ObjectNode nodeToSign = (ObjectNode) MAPPER.readTree(dataToSign);
+    nodeToSign.remove(fieldToRemove);
+
+    return signData(nodeToSign, secretKey);
+  }
+
+  /**
    * A helper method to sign test data with a valid HMAC.
    *
    * @param dataToSign The data to sign.
@@ -55,6 +89,19 @@ public class SignatureTestUtil {
   public static String signData(String dataToSign, String secretKey)
       throws JsonProcessingException {
     JsonNode nodeToSign = MAPPER.readTree(dataToSign);
+    return signData(nodeToSign, secretKey);
+  }
+
+  /**
+   * A helper method to sign test data with a valid HMAC.
+   *
+   * @param nodeToSign The data to sign.
+   * @param secretKey  The secret key to sign the data with.
+   * @return A string representation of the signed data.
+   * @throws JsonProcessingException If the dataToSign was not valid JSON.
+   */
+  private static String signData(JsonNode nodeToSign, String secretKey)
+      throws JsonProcessingException {
     ObjectNode signatureNode = (ObjectNode) nodeToSign.get(SIGNATURE_FIELD);
 
     byte[] bytesToSign = MAPPER.writeValueAsBytes(nodeToSign);
