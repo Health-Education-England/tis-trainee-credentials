@@ -26,6 +26,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -39,6 +40,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -59,6 +61,15 @@ class IssueResourceTest {
 
   private static final String UNSIGNED_DATA = """
       {
+            "tisId": "123",
+            "programmeName": "programme one",
+            "specialty": "placement specialty",
+            "grade": "placement grade",
+            "nationalPostNumber": "NPN",
+            "employingBody": "employing body",
+            "site": "placement site",
+            "startDate": "2022-01-01",
+            "endDate": "2022-12-31",
             "givenName": "Anthony",
             "familyName": "Gilliam",
             "birthDate": "1991-11-11",
@@ -67,6 +78,49 @@ class IssueResourceTest {
               "validUntil": "%s"
             }
           }
+      """.formatted(Instant.MIN, Instant.MAX);
+
+  private static final String UNSIGNED_TEST_CREDENTIAL = """
+      {
+        "givenName": "Anthony",
+        "familyName": "Gilliam",
+        "birthDate": "1991-11-11",
+        "signature": {
+          "signedAt": "%s",
+          "validUntil": "%s"
+        }
+      }
+      """.formatted(Instant.MIN, Instant.MAX);
+
+  private static final String UNSIGNED_PROGRAMME_MEMBERSHIP = """
+      {
+        "tisId": "123",
+        "programmeName": "programme one",
+        "startDate": "2022-01-01",
+        "endDate": "2022-12-31",
+        "signature": {
+            "signedAt": "%s",
+            "validUntil": "%s"
+          }
+        }
+      }
+      """.formatted(Instant.MIN, Instant.MAX);
+  private static final String UNSIGNED_PLACEMENT = """
+      {
+        "tisId": "123",
+        "specialty": "placement specialty",
+        "grade": "placement grade",
+        "nationalPostNumber": "NPN",
+        "employingBody": "employing body",
+        "site": "placement site",
+        "startDate": "2022-01-01",
+        "endDate": "2022-06-30",
+        "signature": {
+            "signedAt": "%s",
+            "validUntil": "%s"
+          }
+        }
+      }
       """.formatted(Instant.MIN, Instant.MAX);
 
   @Autowired
@@ -181,7 +235,7 @@ class IssueResourceTest {
 
   @Test
   void shouldUseTestCredentialDtoFromRequestBody() throws Exception {
-    String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
+    String signedData = SignatureTestUtil.signData(UNSIGNED_TEST_CREDENTIAL, secretKey);
 
     mockMvc.perform(
         post("/api/issue/test")
@@ -197,22 +251,52 @@ class IssueResourceTest {
     assertThat("Unexpected birth date.", dto.birthDate(), is(LocalDate.of(1991, 11, 11)));
   }
 
+  @ParameterizedTest
+  @CsvSource(delimiter = '|', textBlock = """
+          givenName  | ''
+          givenName  |
+          familyName | ''
+          familyName |
+          birthDate  | ''
+          birthDate  |
+      """)
+  void shouldRejectTestCredentialWhenPropertiesInvalid(String fieldName, String fieldValue)
+      throws Exception {
+    String signedData = SignatureTestUtil.overwriteFieldAndSignData(UNSIGNED_TEST_CREDENTIAL,
+        secretKey, fieldName,
+        fieldValue);
+
+    mockMvc.perform(
+            post("/api/issue/test")
+                .content(signedData)
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(service);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "givenName",
+      "familyName",
+      "birthDate"
+  })
+  void shouldRejectTestCredentialWhenPropertiesMissing(String fieldName) throws Exception {
+    String signedData = SignatureTestUtil.removeFieldAndSignData(UNSIGNED_TEST_CREDENTIAL,
+        secretKey, fieldName);
+
+    mockMvc.perform(
+            post("/api/issue/test")
+                .content(signedData)
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(service);
+  }
+
   @Test
   void shouldUseProgrammeMembershipDtoFromRequestBody() throws Exception {
-    String programmeMembership = """
-        {
-          "tisId": "123",
-          "programmeName": "programme one",
-          "startDate": "2022-01-01",
-          "endDate": "2022-12-31",
-          "signature": {
-              "signedAt": "%s",
-              "validUntil": "%s"
-            }
-          }
-        }
-        """.formatted(Instant.MIN, Instant.MAX);
-    String signedData = SignatureTestUtil.signData(programmeMembership, secretKey);
+    String signedData = SignatureTestUtil.signData(UNSIGNED_PROGRAMME_MEMBERSHIP, secretKey);
 
     mockMvc.perform(
         post("/api/issue/programme-membership")
@@ -230,26 +314,55 @@ class IssueResourceTest {
     assertThat("Unexpected end date.", dto.endDate(), is(LocalDate.of(2022, 12, 31)));
   }
 
+  @ParameterizedTest
+  @CsvSource(delimiter = '|', textBlock = """
+          tisId         | ''
+          tisId         |
+          programmeName | ''
+          programmeName |
+          startDate     | ''
+          startDate     |
+          endDate       | ''
+          endDate       |
+      """)
+  void shouldRejectProgrammeMembershipWhenPropertiesInvalid(String fieldName, String fieldValue)
+      throws Exception {
+    String signedData = SignatureTestUtil.overwriteFieldAndSignData(UNSIGNED_PROGRAMME_MEMBERSHIP,
+        secretKey, fieldName,
+        fieldValue);
+
+    mockMvc.perform(
+            post("/api/issue/programme-membership")
+                .content(signedData)
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(service);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "tisId",
+      "programmeName",
+      "startDate",
+      "endDate"
+  })
+  void shouldRejectProgrammeMembershipWhenPropertiesMissing(String fieldName) throws Exception {
+    String signedData = SignatureTestUtil.removeFieldAndSignData(UNSIGNED_PROGRAMME_MEMBERSHIP,
+        secretKey, fieldName);
+
+    mockMvc.perform(
+            post("/api/issue/programme-membership")
+                .content(signedData)
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(service);
+  }
+
   @Test
   void shouldUsePlacementDtoFromRequestBody() throws Exception {
-    String placement = """
-        {
-          "tisId": "123",
-          "specialty": "placement specialty",
-          "grade": "placement grade",
-          "nationalPostNumber": "NPN",
-          "employingBody": "employing body",
-          "site": "placement site",
-          "startDate": "2022-01-01",
-          "endDate": "2022-06-30",
-          "signature": {
-              "signedAt": "%s",
-              "validUntil": "%s"
-            }
-          }
-        }
-        """.formatted(Instant.MIN, Instant.MAX);
-    String signedData = SignatureTestUtil.signData(placement, secretKey);
+    String signedData = SignatureTestUtil.signData(UNSIGNED_PLACEMENT, secretKey);
 
     mockMvc.perform(
         post("/api/issue/placement")
@@ -269,5 +382,63 @@ class IssueResourceTest {
     assertThat("Unexpected specialty.", dto.site(), is("placement site"));
     assertThat("Unexpected start date.", dto.startDate(), is(LocalDate.of(2022, 1, 1)));
     assertThat("Unexpected end date.", dto.endDate(), is(LocalDate.of(2022, 6, 30)));
+  }
+
+  @ParameterizedTest
+  @CsvSource(delimiter = '|', textBlock = """
+          tisId              | ''
+          tisId              |
+          specialty          | ''
+          specialty          |
+          grade              | ''
+          grade              |
+          nationalPostNumber | ''
+          nationalPostNumber |
+          employingBody      | ''
+          employingBody      |
+          site               | ''
+          site               |
+          startDate          | ''
+          startDate          |
+          endDate            | ''
+          endDate            |
+      """)
+  void shouldRejectPlacementWhenPropertiesInvalid(String fieldName, String fieldValue)
+      throws Exception {
+    String signedData = SignatureTestUtil.overwriteFieldAndSignData(UNSIGNED_PLACEMENT, secretKey,
+        fieldName,
+        fieldValue);
+
+    mockMvc.perform(
+            post("/api/issue/placement")
+                .content(signedData)
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(service);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "tisId",
+      "specialty",
+      "grade",
+      "nationalPostNumber",
+      "employingBody",
+      "site",
+      "startDate",
+      "endDate"
+  })
+  void shouldRejectPlacementWhenPropertiesMissing(String fieldName) throws Exception {
+    String signedData = SignatureTestUtil.removeFieldAndSignData(UNSIGNED_PLACEMENT, secretKey,
+        fieldName);
+
+    mockMvc.perform(
+            post("/api/issue/placement")
+                .content(signedData)
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(service);
   }
 }

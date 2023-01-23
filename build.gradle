@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "uk.nhs.tis.trainee"
-version = "0.3.0"
+version = "0.4.0"
 
 configurations {
   compileOnly {
@@ -26,6 +26,7 @@ dependencies {
   // Spring Boot starters
   implementation "org.springframework.boot:spring-boot-starter-actuator"
   implementation "org.springframework.boot:spring-boot-starter-web"
+  implementation "org.springframework.boot:spring-boot-starter-validation"
   testImplementation "org.springframework.boot:spring-boot-starter-test"
 
   // Lombok
