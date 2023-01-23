@@ -25,6 +25,7 @@ import java.net.URI;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -50,7 +51,8 @@ public class IssueResource {
   }
 
   @PostMapping("/programme-membership")
-  ResponseEntity<String> issueProgrammeMembershipCredential(@RequestBody ProgrammeMembershipDto dto,
+  ResponseEntity<String> issueProgrammeMembershipCredential(
+      @Validated @RequestBody ProgrammeMembershipDto dto,
       @RequestParam(required = false) String state) {
     log.info("Received request to issue Programme Membership credential.");
     Optional<URI> credentialUri = service.getCredentialUri(dto, state);
@@ -66,8 +68,9 @@ public class IssueResource {
   }
 
   @PostMapping("/placement")
-  ResponseEntity<String> issuePlacementCredential(@RequestBody PlacementDto dto,
-                                                  @RequestParam(required = false) String state) {
+  ResponseEntity<String> issuePlacementCredential(
+      @Validated @RequestBody PlacementDto dto,
+      @RequestParam(required = false) String state) {
     Optional<URI> credentialUri = service.getCredentialUri(dto, state);
     log.info("Received request to issue Placement credential.");
     if (credentialUri.isPresent()) {
@@ -81,7 +84,8 @@ public class IssueResource {
   }
 
   @PostMapping("/test")
-  ResponseEntity<String> issueTestCredential(@RequestBody TestCredentialDto dto,
+  ResponseEntity<String> issueTestCredential(
+      @Validated @RequestBody TestCredentialDto dto,
       @RequestParam(required = false) String state) {
     log.info("Received request to issue Test credential.");
     Optional<URI> credentialUri = service.getCredentialUri(dto, state);

@@ -21,6 +21,8 @@
 
 package uk.nhs.hee.tis.trainee.credentials.dto;
 
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -32,8 +34,10 @@ import java.time.ZoneOffset;
  * @param familyName A family name.
  * @param birthDate  The birthdate.
  */
-public record TestCredentialDto(String givenName, String familyName, LocalDate birthDate)
-    implements CredentialDataDto {
+public record TestCredentialDto(
+    @NotEmpty String givenName,
+    @NotEmpty String familyName,
+    @NotNull LocalDate birthDate) implements CredentialDataDto {
 
   @Override
   public Instant getExpiration(Instant issuedAt) {
