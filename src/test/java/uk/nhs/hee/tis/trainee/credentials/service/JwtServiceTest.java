@@ -134,10 +134,10 @@ class JwtServiceTest {
     Claims tokenClaims = token.getBody();
 
     assertThat("Unexpected number of claims.", tokenClaims.size(), is(DEFAULT_CLAIM_COUNT + 3));
-    assertThat("Unexpected programme name.", tokenClaims.get("programmeName"), is(PROGRAMME_NAME));
-    assertThat("Unexpected programme start date.", tokenClaims.get("startDate"),
+    assertThat("Unexpected programme name.", tokenClaims.get("TPR-Name"), is(PROGRAMME_NAME));
+    assertThat("Unexpected programme start date.", tokenClaims.get("TPR-ProgrammeStartDate"),
         is(START_DATE.toString()));
-    assertThat("Unexpected programme end date.", tokenClaims.get("endDate"),
+    assertThat("Unexpected programme end date.", tokenClaims.get("TPR-ProgrammeEndDate"),
         is(END_DATE.toString()));
 
     Instant issuedAt = tokenClaims.getIssuedAt().toInstant();

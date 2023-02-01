@@ -172,7 +172,7 @@ class GatewayServiceTest {
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
     assertThat("Unexpected scope.", requestBody.get("scope"),
-        is(List.of("issue.ProgrammeMembership")));
+        is(List.of("issue.TrainingProgramme")));
   }
 
   @Test

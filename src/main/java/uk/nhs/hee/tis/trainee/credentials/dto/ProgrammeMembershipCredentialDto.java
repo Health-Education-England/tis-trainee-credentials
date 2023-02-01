@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -34,8 +35,13 @@ import java.time.ZoneOffset;
  * @param endDate       The programme's end date.
  */
 public record ProgrammeMembershipCredentialDto(
+    @JsonProperty("TPR-Name")
     String programmeName,
+
+    @JsonProperty("TPR-ProgrammeStartDate")
     LocalDate startDate,
+
+    @JsonProperty("TPR-ProgrammeEndDate")
     LocalDate endDate
 ) implements CredentialDto {
 
@@ -46,6 +52,6 @@ public record ProgrammeMembershipCredentialDto(
 
   @Override
   public String getScope() {
-    return "issue.ProgrammeMembership";
+    return "issue.TrainingProgramme";
   }
 }
