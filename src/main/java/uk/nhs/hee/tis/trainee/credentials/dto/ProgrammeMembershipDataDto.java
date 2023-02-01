@@ -21,36 +21,22 @@
 
 package uk.nhs.hee.tis.trainee.credentials.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonProperty.Access;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
 
 /**
- * A DTO representing Programme Membership credential data.
+ * A DTO representing Programme Membership data.
  *
+ * @param tisId         The programme membership's TIS ID.
  * @param programmeName The programme name.
  * @param startDate     The programme's start date.
  * @param endDate       The programme's end date.
  */
-public record ProgrammeMembershipDto(
-    @JsonProperty(access = Access.WRITE_ONLY)
+public record ProgrammeMembershipDataDto(
     @NotEmpty String tisId,
     @NotEmpty String programmeName,
     @NotNull LocalDate startDate,
-    @NotNull LocalDate endDate) implements CredentialDto {
+    @NotNull LocalDate endDate) {
 
-  @Override
-  public Instant getExpiration(Instant issuedAt) {
-    return endDate.atTime(LocalTime.MAX).toInstant(ZoneOffset.UTC);
-  }
-
-  @Override
-  public String getScope() {
-    return "issue.ProgrammeMembership";
-  }
 }

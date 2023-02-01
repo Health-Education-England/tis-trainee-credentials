@@ -46,17 +46,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.nhs.hee.tis.trainee.credentials.SignatureTestUtil;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
 
 @WebMvcTest(IssueResource.class)
+@ComponentScan(basePackageClasses = CredentialDataMapper.class)
 class IssueResourceTest {
 
   private static final String UNSIGNED_DATA = """
@@ -132,6 +136,9 @@ class IssueResourceTest {
   @MockBean
   private RestTemplateBuilder restTemplateBuilder;
 
+  @SpyBean
+  private CredentialDataMapper mapper;
+
   @Value("${application.signature.secret-key}")
   private String secretKey;
 
@@ -146,7 +153,7 @@ class IssueResourceTest {
 
   @ParameterizedTest
   @CsvSource(delimiter = '|', textBlock = """
-      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto
+      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto
       placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto
       test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
@@ -166,7 +173,7 @@ class IssueResourceTest {
 
   @ParameterizedTest
   @CsvSource(delimiter = '|', textBlock = """
-      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto
+      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto
       placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto
       test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
@@ -190,7 +197,7 @@ class IssueResourceTest {
 
   @ParameterizedTest
   @CsvSource(delimiter = '|', textBlock = """
-      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto
+      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto
       placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto
       test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
@@ -213,7 +220,7 @@ class IssueResourceTest {
 
   @ParameterizedTest
   @CsvSource(delimiter = '|', textBlock = """
-      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto
+      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto
       placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto
       test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
@@ -295,7 +302,7 @@ class IssueResourceTest {
   }
 
   @Test
-  void shouldUseProgrammeMembershipDtoFromRequestBody() throws Exception {
+  void shouldUseProgrammeMembershipDataFromRequestBody() throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_PROGRAMME_MEMBERSHIP, secretKey);
 
     mockMvc.perform(
@@ -303,12 +310,11 @@ class IssueResourceTest {
             .content(signedData)
             .contentType(MediaType.APPLICATION_JSON));
 
-    ArgumentCaptor<ProgrammeMembershipDto> dtoCaptor = ArgumentCaptor.forClass(
-        ProgrammeMembershipDto.class);
+    ArgumentCaptor<ProgrammeMembershipCredentialDto> dtoCaptor = ArgumentCaptor.forClass(
+        ProgrammeMembershipCredentialDto.class);
     verify(service).getCredentialUri(dtoCaptor.capture(), any());
 
-    ProgrammeMembershipDto dto = dtoCaptor.getValue();
-    assertThat("Unexpected TIS ID.", dto.tisId(), is("123"));
+    ProgrammeMembershipCredentialDto dto = dtoCaptor.getValue();
     assertThat("Unexpected programme name.", dto.programmeName(), is("programme one"));
     assertThat("Unexpected start date.", dto.startDate(), is(LocalDate.of(2022, 1, 1)));
     assertThat("Unexpected end date.", dto.endDate(), is(LocalDate.of(2022, 12, 31)));

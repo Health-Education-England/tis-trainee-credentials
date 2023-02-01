@@ -32,8 +32,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
 
 /**
@@ -45,17 +47,20 @@ import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
 public class IssueResource {
 
   private final GatewayService service;
+  private final CredentialDataMapper mapper;
 
-  IssueResource(GatewayService service) {
+  IssueResource(GatewayService service, CredentialDataMapper mapper) {
     this.service = service;
+    this.mapper = mapper;
   }
 
   @PostMapping("/programme-membership")
   ResponseEntity<String> issueProgrammeMembershipCredential(
-      @Validated @RequestBody ProgrammeMembershipDto dto,
+      @Validated @RequestBody ProgrammeMembershipDataDto dataDto,
       @RequestParam(required = false) String state) {
     log.info("Received request to issue Programme Membership credential.");
-    Optional<URI> credentialUri = service.getCredentialUri(dto, state);
+    ProgrammeMembershipCredentialDto credentialDto = mapper.toCredential(dataDto);
+    Optional<URI> credentialUri = service.getCredentialUri(credentialDto, state);
 
     if (credentialUri.isPresent()) {
       URI uri = credentialUri.get();

@@ -45,10 +45,10 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties;
-import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService.ParResponse;
 
 class GatewayServiceTest {
@@ -161,7 +161,7 @@ class GatewayServiceTest {
 
   @Test
   void shouldIncludeProgrammeMembershipScopeInParRequest() {
-    ProgrammeMembershipDto dto = new ProgrammeMembershipDto("", "", LocalDate.MIN, LocalDate.MAX);
+    var dto = new ProgrammeMembershipCredentialDto("", LocalDate.MIN, LocalDate.MAX);
 
     var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
@@ -172,7 +172,7 @@ class GatewayServiceTest {
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
     assertThat("Unexpected scope.", requestBody.get("scope"),
-        is(List.of(dto.getScope())));
+        is(List.of("issue.ProgrammeMembership")));
   }
 
   @Test
@@ -188,7 +188,7 @@ class GatewayServiceTest {
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
     assertThat("Unexpected scope.", requestBody.get("scope"),
-        is(List.of(dto.getScope())));
+        is(List.of("issue.Placement")));
   }
 
   @Test
@@ -203,7 +203,7 @@ class GatewayServiceTest {
 
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
-    assertThat("Unexpected scope.", requestBody.get("scope"), is(List.of(dto.getScope())));
+    assertThat("Unexpected scope.", requestBody.get("scope"), is(List.of("issue.TestCredential")));
   }
 
   @Test
