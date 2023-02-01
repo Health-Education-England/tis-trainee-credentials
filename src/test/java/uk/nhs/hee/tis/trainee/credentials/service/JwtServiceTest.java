@@ -45,10 +45,10 @@ import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties.TokenProperties;
-import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 
 class JwtServiceTest {
 
@@ -92,7 +92,7 @@ class JwtServiceTest {
 
   @Test
   void shouldGenerateTokenWithDefaultClaims() {
-    record EmptyData() implements CredentialDataDto {
+    record EmptyData() implements CredentialDto {
 
       @Override
       public Instant getExpiration(Instant issuedAt) {

@@ -27,7 +27,7 @@ import java.time.Instant;
 /**
  * An interface representing a DTO containing credential data.
  */
-public interface CredentialDataDto {
+public interface CredentialDto {
 
   /**
    * Get the expiry instant for the credential.

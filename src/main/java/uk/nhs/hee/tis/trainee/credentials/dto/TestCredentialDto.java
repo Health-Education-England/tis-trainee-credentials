@@ -37,7 +37,7 @@ import java.time.ZoneOffset;
 public record TestCredentialDto(
     @NotEmpty String givenName,
     @NotEmpty String familyName,
-    @NotNull LocalDate birthDate) implements CredentialDataDto {
+    @NotNull LocalDate birthDate) implements CredentialDto {
 
   @Override
   public Instant getExpiration(Instant issuedAt) {

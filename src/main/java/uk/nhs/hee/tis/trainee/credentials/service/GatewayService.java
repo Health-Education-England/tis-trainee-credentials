@@ -38,7 +38,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
-import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDataDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 
 /**
  * A service providing credential gateway functionality.
@@ -71,7 +71,7 @@ public class GatewayService {
    * @param state The client state.
    * @return The URI to issue the credential.
    */
-  public Optional<URI> getCredentialUri(CredentialDataDto dto, String state) {
+  public Optional<URI> getCredentialUri(CredentialDto dto, String state) {
     HttpEntity<MultiValueMap<String, String>> request = buildParRequest(dto, state);
 
     log.info("Sending PAR request.");
@@ -89,7 +89,7 @@ public class GatewayService {
    * @param state The client state.
    * @return The built request.
    */
-  private HttpEntity<MultiValueMap<String, String>> buildParRequest(CredentialDataDto dto,
+  private HttpEntity<MultiValueMap<String, String>> buildParRequest(CredentialDto dto,
       String state) {
     log.info("Building PAR request.");
     String idTokenHint = jwtService.generateToken(dto);
