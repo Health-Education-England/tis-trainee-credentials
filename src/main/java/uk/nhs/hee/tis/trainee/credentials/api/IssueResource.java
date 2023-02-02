@@ -33,7 +33,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
