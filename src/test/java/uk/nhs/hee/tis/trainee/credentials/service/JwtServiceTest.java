@@ -46,6 +46,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties.TokenProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
@@ -148,8 +149,8 @@ class JwtServiceTest {
 
   @Test
   void shouldGenerateTokenWithPlacementClaims() {
-    PlacementDto dto = new PlacementDto(
-        "123", PLACEMENT_SPECIALTY, PLACEMENT_GRADE, PLACEMENT_NATIONAL_POST_NUMBER,
+    var dto = new PlacementCredentialDto(
+        PLACEMENT_SPECIALTY, PLACEMENT_GRADE, PLACEMENT_NATIONAL_POST_NUMBER,
         PLACEMENT_EMPLOYING_BODY, PLACEMENT_SITE, START_DATE, END_DATE);
 
     String tokenString = service.generateToken(dto);
@@ -158,20 +159,20 @@ class JwtServiceTest {
     Claims tokenClaims = token.getBody();
 
     assertThat("Unexpected number of claims.", tokenClaims.size(), is(DEFAULT_CLAIM_COUNT + 7));
-    assertThat("Unexpected claim.", tokenClaims.get("tisId"), nullValue());
-    assertThat("Unexpected placement specialty.", tokenClaims.get("specialty"),
+    assertThat("Unexpected placement specialty.", tokenClaims.get("TPL-Specialty"),
         is(PLACEMENT_SPECIALTY));
-    assertThat("Unexpected placement grade.", tokenClaims.get("grade"),
+    assertThat("Unexpected placement grade.", tokenClaims.get("TPL-Grade"),
         is(PLACEMENT_GRADE));
-    assertThat("Unexpected placement NPN.", tokenClaims.get("nationalPostNumber"),
+    assertThat("Unexpected placement NPN.", tokenClaims.get("TPL-PlacementNPN"),
         is(PLACEMENT_NATIONAL_POST_NUMBER));
-    assertThat("Unexpected placement employing body.", tokenClaims.get("employingBody"),
+    assertThat("Unexpected placement employing body.",
+        tokenClaims.get("TPL-EmployingBodyOfPost"),
         is(PLACEMENT_EMPLOYING_BODY));
-    assertThat("Unexpected placement site.", tokenClaims.get("site"),
+    assertThat("Unexpected placement site.", tokenClaims.get("TPL-Site"),
         is(PLACEMENT_SITE));
-    assertThat("Unexpected placement start date.", tokenClaims.get("startDate"),
+    assertThat("Unexpected placement start date.", tokenClaims.get("TPL-PlacementStartDate"),
         is(START_DATE.toString()));
-    assertThat("Unexpected placement end date.", tokenClaims.get("endDate"),
+    assertThat("Unexpected placement end date.", tokenClaims.get("TPL-PlacementEndDate"),
         is(END_DATE.toString()));
 
     Instant issuedAt = tokenClaims.getIssuedAt().toInstant();

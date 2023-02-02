@@ -19,34 +19,32 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.mapper;
+package uk.nhs.hee.tis.trainee.credentials.dto;
 
-import org.mapstruct.Mapper;
-import org.mapstruct.MappingConstants.ComponentModel;
-import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
 
 /**
- * A mapper to map between TIS Data and Credential Data.
+ * A DTO representing Placement data.
+ *
+ * @param tisId              The placement's TIS ID.
+ * @param specialty          The placement specialty.
+ * @param grade              The placement grade.
+ * @param nationalPostNumber The national post number (NPN) for the post.
+ * @param employingBody      The employing body.
+ * @param site               The placement site.
+ * @param startDate          The placement's start date.
+ * @param endDate            The placement's end date.
  */
-@Mapper(componentModel = ComponentModel.SPRING)
-public interface CredentialDataMapper {
+public record PlacementDataDto(
+    @NotEmpty String tisId,
+    @NotEmpty String specialty,
+    @NotEmpty String grade,
+    @NotEmpty String nationalPostNumber,
+    @NotEmpty String employingBody,
+    @NotEmpty String site,
+    @NotNull LocalDate startDate,
+    @NotNull LocalDate endDate) {
 
-  /**
-   * Map a programme membership data DTO to the equivalent credential DTO.
-   *
-   * @param data The programme membership data to map.
-   * @return The mapped programme membership credential.
-   */
-  ProgrammeMembershipCredentialDto toCredential(ProgrammeMembershipDataDto data);
-
-  /**
-   * Map a placement data DTO to the equivalent credential DTO.
-   *
-   * @param data The placement data to map.
-   * @return The mapped placement credential.
-   */
-  PlacementCredentialDto toCredential(PlacementDataDto data);
 }
