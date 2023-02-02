@@ -47,7 +47,6 @@ import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService.ParResponse;
@@ -178,7 +177,8 @@ class GatewayServiceTest {
 
   @Test
   void shouldIncludePlacementScopeInParRequest() {
-    PlacementCredentialDto dto = new PlacementCredentialDto("", "", "", "", "", LocalDate.MIN, LocalDate.MAX);
+    PlacementCredentialDto dto
+        = new PlacementCredentialDto("", "", "", "", "", LocalDate.MIN, LocalDate.MAX);
 
     var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),

@@ -54,7 +54,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.nhs.hee.tis.trainee.credentials.SignatureTestUtil;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
