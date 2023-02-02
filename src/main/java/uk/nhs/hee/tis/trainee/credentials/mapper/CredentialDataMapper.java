@@ -23,6 +23,8 @@ package uk.nhs.hee.tis.trainee.credentials.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants.ComponentModel;
+import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
 
@@ -39,4 +41,12 @@ public interface CredentialDataMapper {
    * @return The mapped programme membership credential.
    */
   ProgrammeMembershipCredentialDto toCredential(ProgrammeMembershipDataDto data);
+
+  /**
+   * Map a placement data DTO to the equivalent credential DTO.
+   *
+   * @param data The placement data to map.
+   * @return The mapped placement credential.
+   */
+  PlacementCredentialDto toCredential(PlacementDataDto data);
 }

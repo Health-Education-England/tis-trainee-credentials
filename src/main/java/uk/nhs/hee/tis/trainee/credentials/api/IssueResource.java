@@ -31,7 +31,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
@@ -74,10 +75,12 @@ public class IssueResource {
 
   @PostMapping("/placement")
   ResponseEntity<String> issuePlacementCredential(
-      @Validated @RequestBody PlacementDto dto,
+      @Validated @RequestBody PlacementDataDto dataDto,
       @RequestParam(required = false) String state) {
-    Optional<URI> credentialUri = service.getCredentialUri(dto, state);
     log.info("Received request to issue Placement credential.");
+    PlacementCredentialDto credentialDto = mapper.toCredential(dataDto);
+    Optional<URI> credentialUri = service.getCredentialUri(credentialDto, state);
+
     if (credentialUri.isPresent()) {
       URI uri = credentialUri.get();
       log.info("Placement credential successfully issued.");

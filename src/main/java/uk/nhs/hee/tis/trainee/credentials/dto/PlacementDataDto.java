@@ -21,28 +21,23 @@
 
 package uk.nhs.hee.tis.trainee.credentials.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonProperty.Access;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
 
 /**
- * A DTO representing Placement credential data.
+ * A DTO representing Placement data.
  *
+ * @param tisId              The placement's TIS ID.
  * @param specialty          The placement specialty.
  * @param grade              The placement grade.
- * @param nationalPostNumber The placement national post number (NPN).
- * @param employingBody      The employing body of the placement post.
- * @param site               The placement site (location).
+ * @param nationalPostNumber The national post number (NPN) for the post.
+ * @param employingBody      The employing body.
+ * @param site               The placement site.
  * @param startDate          The placement's start date.
  * @param endDate            The placement's end date.
  */
-public record PlacementDto(
-    @JsonProperty(access = Access.WRITE_ONLY)
+public record PlacementDataDto(
     @NotEmpty String tisId,
     @NotEmpty String specialty,
     @NotEmpty String grade,
@@ -50,15 +45,6 @@ public record PlacementDto(
     @NotEmpty String employingBody,
     @NotEmpty String site,
     @NotNull LocalDate startDate,
-    @NotNull LocalDate endDate) implements CredentialDto {
+    @NotNull LocalDate endDate) {
 
-  @Override
-  public Instant getExpiration(Instant issuedAt) {
-    return endDate.atTime(LocalTime.MAX).toInstant(ZoneOffset.UTC);
-  }
-
-  @Override
-  public String getScope() {
-    return "issue.Placement";
-  }
 }
