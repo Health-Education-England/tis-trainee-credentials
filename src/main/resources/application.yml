@@ -14,7 +14,7 @@ application:
       token-endpoint: https://${application.gateway.host}/issuing/token
       token:
         audience: https://${application.gateway.host}/issuing
-        issuer: ${GATEWAY_TOKEN_ISSUER}
+        issuer: ${application.gateway.client-id}
         signing-key: ${GATEWAY_TOKEN_SIGNING_KEY}
       redirect-uri: ${GATEWAY_ISSUING_REDIRECT_URI}
 

@@ -21,31 +21,37 @@
 
 package uk.nhs.hee.tis.trainee.credentials.dto;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
 
 /**
- * A DTO representing test credential data.
+ * A DTO representing a Programme Membership credential.
  *
- * @param givenName  A given name.
- * @param familyName A family name.
- * @param birthDate  The birthdate.
+ * @param programmeName The programme name.
+ * @param startDate     The programme's start date.
+ * @param endDate       The programme's end date.
  */
-public record TestCredentialDto(
-    @NotEmpty String givenName,
-    @NotEmpty String familyName,
-    @NotNull LocalDate birthDate) implements CredentialDto {
+public record ProgrammeMembershipCredentialDto(
+    @JsonProperty("TPR-Name")
+    String programmeName,
+
+    @JsonProperty("TPR-ProgrammeStartDate")
+    LocalDate startDate,
+
+    @JsonProperty("TPR-ProgrammeEndDate")
+    LocalDate endDate
+) implements CredentialDto {
 
   @Override
   public Instant getExpiration(Instant issuedAt) {
-    return issuedAt.atOffset(ZoneOffset.UTC).plusYears(1).toInstant();
+    return endDate.atTime(LocalTime.MAX).toInstant(ZoneOffset.UTC);
   }
 
   @Override
   public String getScope() {
-    return "issue.TestCredential";
+    return "issue.TrainingProgramme";
   }
 }

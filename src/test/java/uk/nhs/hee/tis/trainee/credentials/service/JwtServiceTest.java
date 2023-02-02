@@ -45,9 +45,9 @@ import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties.TokenProperties;
-import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDataDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 
 class JwtServiceTest {
@@ -92,7 +92,7 @@ class JwtServiceTest {
 
   @Test
   void shouldGenerateTokenWithDefaultClaims() {
-    record EmptyData() implements CredentialDataDto {
+    record EmptyData() implements CredentialDto {
 
       @Override
       public Instant getExpiration(Instant issuedAt) {
@@ -126,8 +126,7 @@ class JwtServiceTest {
 
   @Test
   void shouldGenerateTokenWithProgrammeMembershipClaims() {
-    ProgrammeMembershipDto dto = new ProgrammeMembershipDto(
-        "123", PROGRAMME_NAME, START_DATE, END_DATE);
+    var dto = new ProgrammeMembershipCredentialDto(PROGRAMME_NAME, START_DATE, END_DATE);
 
     String tokenString = service.generateToken(dto);
 
@@ -135,11 +134,10 @@ class JwtServiceTest {
     Claims tokenClaims = token.getBody();
 
     assertThat("Unexpected number of claims.", tokenClaims.size(), is(DEFAULT_CLAIM_COUNT + 3));
-    assertThat("Unexpected claim.", tokenClaims.get("tisId"), nullValue());
-    assertThat("Unexpected programme name.", tokenClaims.get("programmeName"), is(PROGRAMME_NAME));
-    assertThat("Unexpected programme start date.", tokenClaims.get("startDate"),
+    assertThat("Unexpected programme name.", tokenClaims.get("TPR-Name"), is(PROGRAMME_NAME));
+    assertThat("Unexpected programme start date.", tokenClaims.get("TPR-ProgrammeStartDate"),
         is(START_DATE.toString()));
-    assertThat("Unexpected programme end date.", tokenClaims.get("endDate"),
+    assertThat("Unexpected programme end date.", tokenClaims.get("TPR-ProgrammeEndDate"),
         is(END_DATE.toString()));
 
     Instant issuedAt = tokenClaims.getIssuedAt().toInstant();

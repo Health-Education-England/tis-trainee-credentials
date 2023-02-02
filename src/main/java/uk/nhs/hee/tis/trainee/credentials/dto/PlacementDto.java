@@ -50,7 +50,7 @@ public record PlacementDto(
     @NotEmpty String employingBody,
     @NotEmpty String site,
     @NotNull LocalDate startDate,
-    @NotNull LocalDate endDate) implements CredentialDataDto {
+    @NotNull LocalDate endDate) implements CredentialDto {
 
   @Override
   public Instant getExpiration(Instant issuedAt) {

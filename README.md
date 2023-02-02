@@ -20,7 +20,6 @@ gradlew bootRun
 | GATEWAY_HOST                 | The credential gateway host.                              |           |
 | GATEWAY_CLIENT_ID            | The client ID for the credential gateway.                 |           |
 | GATEWAY_CLIENT_SECRET        | The client secret for the credential gateway.             |           |
-| GATEWAY_TOKEN_ISSUER         | The issuer to add to the credential data.                 |           |
 | GATEWAY_TOKEN_SIGNING_KEY    | The Base64 encoded signing key for the credential data.   |           |
 | GATEWAY_ISSUING_REDIRECT_URI | Where the gateway issue should redirect to after issuing. |           |
 | SENTRY_DSN                   | A Sentry error monitoring Data Source Name.               |           |

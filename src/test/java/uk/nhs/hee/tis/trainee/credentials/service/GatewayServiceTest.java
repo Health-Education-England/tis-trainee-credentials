@@ -45,9 +45,9 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties;
-import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDataDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService.ParResponse;
 
@@ -80,7 +80,7 @@ class GatewayServiceTest {
 
   @Test
   void shouldIncludeAcceptHeaderInParRequest() {
-    CredentialDataDto dto = mock(CredentialDataDto.class);
+    CredentialDto dto = mock(CredentialDto.class);
 
     when(jwtService.generateToken(dto)).thenReturn("id_token_hint_value");
 
@@ -97,7 +97,7 @@ class GatewayServiceTest {
 
   @Test
   void shouldIncludeContentTypeHeaderInParRequest() {
-    CredentialDataDto dto = mock(CredentialDataDto.class);
+    CredentialDto dto = mock(CredentialDto.class);
 
     when(jwtService.generateToken(dto)).thenReturn("id_token_hint_value");
 
@@ -114,7 +114,7 @@ class GatewayServiceTest {
 
   @Test
   void shouldIncludeClientIdInParRequest() {
-    CredentialDataDto dto = mock(CredentialDataDto.class);
+    CredentialDto dto = mock(CredentialDto.class);
 
     var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
@@ -129,7 +129,7 @@ class GatewayServiceTest {
 
   @Test
   void shouldIncludeClientSecretInParRequest() {
-    CredentialDataDto dto = mock(CredentialDataDto.class);
+    CredentialDto dto = mock(CredentialDto.class);
 
     var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
@@ -145,7 +145,7 @@ class GatewayServiceTest {
 
   @Test
   void shouldIncludeRedirectUriInParRequest() {
-    CredentialDataDto dto = mock(CredentialDataDto.class);
+    CredentialDto dto = mock(CredentialDto.class);
 
     var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
@@ -161,7 +161,7 @@ class GatewayServiceTest {
 
   @Test
   void shouldIncludeProgrammeMembershipScopeInParRequest() {
-    ProgrammeMembershipDto dto = new ProgrammeMembershipDto("", "", LocalDate.MIN, LocalDate.MAX);
+    var dto = new ProgrammeMembershipCredentialDto("", LocalDate.MIN, LocalDate.MAX);
 
     var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
@@ -172,7 +172,7 @@ class GatewayServiceTest {
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
     assertThat("Unexpected scope.", requestBody.get("scope"),
-        is(List.of(dto.getScope())));
+        is(List.of("issue.TrainingProgramme")));
   }
 
   @Test
@@ -188,7 +188,7 @@ class GatewayServiceTest {
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
     assertThat("Unexpected scope.", requestBody.get("scope"),
-        is(List.of(dto.getScope())));
+        is(List.of("issue.Placement")));
   }
 
   @Test
@@ -203,12 +203,12 @@ class GatewayServiceTest {
 
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
-    assertThat("Unexpected scope.", requestBody.get("scope"), is(List.of(dto.getScope())));
+    assertThat("Unexpected scope.", requestBody.get("scope"), is(List.of("issue.TestCredential")));
   }
 
   @Test
   void shouldIncludeStateInParRequest() {
-    CredentialDataDto dto = mock(CredentialDataDto.class);
+    CredentialDto dto = mock(CredentialDto.class);
 
     var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
@@ -223,7 +223,7 @@ class GatewayServiceTest {
 
   @Test
   void shouldIncludeGeneratedNonceInParRequest() {
-    CredentialDataDto dto = mock(CredentialDataDto.class);
+    CredentialDto dto = mock(CredentialDto.class);
 
     var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
@@ -238,7 +238,7 @@ class GatewayServiceTest {
 
   @Test
   void shouldIncludeIdTokenHintInParRequest() {
-    CredentialDataDto dto = mock(CredentialDataDto.class);
+    CredentialDto dto = mock(CredentialDto.class);
 
     when(jwtService.generateToken(dto)).thenReturn("id_token_hint_value");
 
@@ -256,7 +256,7 @@ class GatewayServiceTest {
 
   @Test
   void shouldReturnEmptyUriWhenParResponseCodeNotCreated() {
-    CredentialDataDto dto = mock(CredentialDataDto.class);
+    CredentialDto dto = mock(CredentialDto.class);
 
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), any(), eq(ParResponse.class))).thenReturn(
         ResponseEntity.notFound().build());
@@ -268,7 +268,7 @@ class GatewayServiceTest {
 
   @Test
   void shouldReturnEmptyUriWhenParResponseEmpty() {
-    CredentialDataDto dto = mock(CredentialDataDto.class);
+    CredentialDto dto = mock(CredentialDto.class);
 
     var response = ResponseEntity.status(HttpStatus.CREATED).body((ParResponse) null);
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), any(), eq(ParResponse.class))).thenReturn(
@@ -281,7 +281,7 @@ class GatewayServiceTest {
 
   @Test
   void shouldReturnUriWhenParResponseNotEmpty() {
-    CredentialDataDto dto = mock(CredentialDataDto.class);
+    CredentialDto dto = mock(CredentialDto.class);
 
     String requestUri = "a-new-request-uri";
     var response = ResponseEntity.status(HttpStatus.CREATED).body(new ParResponse(requestUri));

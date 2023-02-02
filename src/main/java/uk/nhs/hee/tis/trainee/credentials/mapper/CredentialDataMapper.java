@@ -19,33 +19,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.dto;
+package uk.nhs.hee.tis.trainee.credentials.mapper;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
+import org.mapstruct.Mapper;
+import org.mapstruct.MappingConstants.ComponentModel;
+import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
 
 /**
- * A DTO representing test credential data.
- *
- * @param givenName  A given name.
- * @param familyName A family name.
- * @param birthDate  The birthdate.
+ * A mapper to map between TIS Data and Credential Data.
  */
-public record TestCredentialDto(
-    @NotEmpty String givenName,
-    @NotEmpty String familyName,
-    @NotNull LocalDate birthDate) implements CredentialDto {
+@Mapper(componentModel = ComponentModel.SPRING)
+public interface CredentialDataMapper {
 
-  @Override
-  public Instant getExpiration(Instant issuedAt) {
-    return issuedAt.atOffset(ZoneOffset.UTC).plusYears(1).toInstant();
-  }
-
-  @Override
-  public String getScope() {
-    return "issue.TestCredential";
-  }
+  /**
+   * Map a programme membership data DTO to the equivalent credential DTO.
+   *
+   * @param data The programme membership data to map.
+   * @return The mapped programme membership credential.
+   */
+  ProgrammeMembershipCredentialDto toCredential(ProgrammeMembershipDataDto data);
 }

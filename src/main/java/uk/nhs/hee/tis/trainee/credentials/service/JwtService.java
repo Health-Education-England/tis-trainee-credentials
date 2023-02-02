@@ -32,7 +32,7 @@ import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties.TokenProperties;
-import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDataDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 
 /**
  * A service providing JWT token functionality.
@@ -61,7 +61,7 @@ public class JwtService {
    * @param dto The credential data to include in the token claims.
    * @return The generated token as an encoded string.
    */
-  public String generateToken(CredentialDataDto dto) {
+  public String generateToken(CredentialDto dto) {
     log.info("Generating id_token_hint JWT.");
     Instant now = Instant.now();
     Map<String, Object> claimsMap = mapper.convertValue(dto, Map.class);
