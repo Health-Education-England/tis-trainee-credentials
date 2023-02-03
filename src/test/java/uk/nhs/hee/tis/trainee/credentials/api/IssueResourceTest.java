@@ -447,10 +447,10 @@ class IssueResourceTest {
   /**
    * Allow national post number to be missing from placement data.
    *
-   * This is a temporary relaxation of the normal rules until the field is populated in
+   * <p>This is a temporary relaxation of the normal rules until the field is populated in
    * tis-trainee-details.
    *
-   * @throws Exception
+   * <p>@throws Exception If the dataToSign was not valid JSON.
    */
   void shouldAcceptPlacementWhenNpnMissing() throws Exception {
     String signedData = SignatureTestUtil.removeFieldAndSignData(UNSIGNED_PLACEMENT, secretKey,
