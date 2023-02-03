@@ -397,8 +397,6 @@ class IssueResourceTest {
           specialty          |
           grade              | ''
           grade              |
-          nationalPostNumber | ''
-          nationalPostNumber |
           employingBody      | ''
           employingBody      |
           site               | ''
@@ -428,7 +426,6 @@ class IssueResourceTest {
       "tisId",
       "specialty",
       "grade",
-      "nationalPostNumber",
       "employingBody",
       "site",
       "startDate",
@@ -445,5 +442,25 @@ class IssueResourceTest {
         .andExpect(status().isBadRequest());
 
     verifyNoInteractions(service);
+  }
+
+  /**
+   * Allow national post number to be missing from placement data.
+   *
+   * This is a temporary relaxation of the normal rules until the field is populated in
+   * tis-trainee-details.
+   *
+   * @throws Exception
+   */
+  void shouldAcceptPlacementWhenNpnMissing() throws Exception {
+    String signedData = SignatureTestUtil.removeFieldAndSignData(UNSIGNED_PLACEMENT, secretKey,
+        "nationalPostNumber");
+
+    mockMvc.perform(
+            post("/api/issue/placement")
+                .content(signedData)
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk());
+
   }
 }

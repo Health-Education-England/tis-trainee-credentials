@@ -41,7 +41,7 @@ public record PlacementDataDto(
     @NotEmpty String tisId,
     @NotEmpty String specialty,
     @NotEmpty String grade,
-    @NotEmpty String nationalPostNumber,
+    String nationalPostNumber,
     @NotEmpty String employingBody,
     @NotEmpty String site,
     @NotNull LocalDate startDate,
