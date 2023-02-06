@@ -21,41 +21,38 @@
 
 package uk.nhs.hee.tis.trainee.credentials.filter;
 
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import uk.nhs.hee.tis.trainee.credentials.service.CacheService;
 
-/**
- * A configuration for request filters.
- */
-@Configuration
-public class FilterConfiguration {
+@Slf4j
+@Component
+public class VerifiedIdentityFilter extends OncePerRequestFilter {
 
-  /**
-   * Register a {@link SignedDataFilter}.
-   *
-   * @param filter The filter to register.
-   * @return The {@link FilterRegistrationBean} for the registration.
-   */
-  @Bean
-  public FilterRegistrationBean<SignedDataFilter> registerSignedDataFilter(
-      SignedDataFilter filter) {
-    FilterRegistrationBean<SignedDataFilter> registrationBean = new FilterRegistrationBean<>();
+  private final CacheService cacheService;
 
-    registrationBean.setFilter(filter);
-    registrationBean.addUrlPatterns("/api/issue/*");
-
-    return registrationBean;
+  VerifiedIdentityFilter(CacheService cacheService) {
+    this.cacheService = cacheService;
   }
 
-  @Bean
-  public FilterRegistrationBean<VerifiedIdentityFilter> registerVerifiedIdentityFilter(
-      VerifiedIdentityFilter filter) {
-    FilterRegistrationBean<VerifiedIdentityFilter> registrationBean = new FilterRegistrationBean<>();
+  @Override
+  protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+      FilterChain filterChain) throws ServletException, IOException {
+    String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-    registrationBean.setFilter(filter);
-    registrationBean.addUrlPatterns("/api/issue/*");
-
-    return registrationBean;
+    if (authorization != null && cacheService.hasVerifiedIdentity(authorization)) {
+      filterChain.doFilter(request, response);
+    } else {
+      response.setStatus(401);
+      response.setHeader(HttpHeaders.WWW_AUTHENTICATE,
+          "IdentityVerification realm=\"/api/verify/identity\"");
+    }
   }
 }

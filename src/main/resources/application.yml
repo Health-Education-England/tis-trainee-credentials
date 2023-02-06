@@ -17,7 +17,10 @@ application:
         issuer: ${application.gateway.client-id}
         signing-key: ${GATEWAY_TOKEN_SIGNING_KEY}
       redirect-uri: ${GATEWAY_ISSUING_REDIRECT_URI}
-
+    verification:
+      identity-endpoint: https://${application.gateway.host}/connect/authorize?client_id=${application.gateway.client-id}&response_type=code&redirect_uri=${application.gateway.verification.redirect-uri}&response_mode=query&scope=openid+Identity
+      token-endpoint: https://${application.gateway.host}/connect/token
+      redirect-uri: ${GATEWAY_VERIFICATION_REDIRECT_URI:https://jwt.ms} # http://local.tis-selfservice.com/credentials/api/verify/identity/callback}
   signature:
     secret-key: ${SIGNATURE_SECRET_KEY}
 

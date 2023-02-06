@@ -34,7 +34,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record GatewayProperties(
     String clientId,
     String clientSecret,
-    IssuingProperties issuing) {
+    IssuingProperties issuing,
+    VerificationProperties verification) {
 
   /**
    * A representation of the gateway's issuing properties.
@@ -63,5 +64,12 @@ public record GatewayProperties(
     public record TokenProperties(String audience, String issuer, String signingKey) {
 
     }
+  }
+
+  public record VerificationProperties(
+      String identityEndpoint,
+      String tokenEndpoint,
+      String redirectUri) {
+
   }
 }

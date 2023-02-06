@@ -22,11 +22,16 @@
 package uk.nhs.hee.tis.trainee.credentials.service;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import java.net.URI;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -49,6 +54,7 @@ public class GatewayService {
 
   private final RestTemplate restTemplate;
   private final JwtService jwtService;
+  private final CacheService cacheService;
   private final GatewayProperties properties;
 
   /**
@@ -58,10 +64,77 @@ public class GatewayService {
    * @param jwtService   The service to use to build JWT.
    * @param properties   The gateway application configuration.
    */
-  GatewayService(RestTemplate restTemplate, JwtService jwtService, GatewayProperties properties) {
+  GatewayService(RestTemplate restTemplate, JwtService jwtService, CacheService cacheService,
+      GatewayProperties properties) {
     this.restTemplate = restTemplate;
     this.jwtService = jwtService;
+    this.cacheService = cacheService;
     this.properties = properties;
+  }
+
+  public URI getIdentityVerificationUri(String nonce, String state) {
+    String codeVerifier = generateCodeVerifier();
+    cacheService.cacheCodeVerifier(state, codeVerifier);
+    String codeChallenge = generateCodeChallenge(codeVerifier);
+
+    return UriComponentsBuilder.fromUriString(properties.verification().identityEndpoint())
+        .queryParam("nonce", nonce)
+        .queryParam("state", state)
+        .queryParam("code_challenge_method", "S256")
+        .queryParam("code_challenge", codeChallenge)
+        .build()
+        .toUri();
+  }
+
+  private String generateCodeVerifier() {
+    SecureRandom secureRandom = new SecureRandom();
+    byte[] codeVerifier = new byte[32];
+    secureRandom.nextBytes(codeVerifier);
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(codeVerifier);
+  }
+
+  private String generateCodeChallenge(String codeVerifier) {
+    byte[] codeChallenge = DigestUtils.sha256(codeVerifier);
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(codeChallenge);
+  }
+
+  public Claims getVerificationTokenClaims(String code, String state) {
+    HttpEntity<MultiValueMap<String, String>> request = buildTokenRequest(code, state);
+
+    log.info("Sending Token request.");
+    ResponseEntity<TokenResponse> response = restTemplate.postForEntity(
+        properties.verification().tokenEndpoint(), request, TokenResponse.class);
+    log.info("Received Token response.");
+
+    // TODO: check response codes etc.
+    // TODO: verify with public key
+    String signedToken = response.getBody().idToken();
+    String unsignedToken = signedToken.substring(0, signedToken.lastIndexOf('.') + 1);
+    return Jwts.parserBuilder().build().parseClaimsJwt(unsignedToken).getBody();
+  }
+
+  private HttpEntity<MultiValueMap<String, String>> buildTokenRequest(String code, String state) {
+    log.info("Building Token request.");
+
+    MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
+    bodyPair.add("client_id", properties.clientId());
+    bodyPair.add("client_secret", properties.clientSecret());
+    bodyPair.add("redirect_uri", properties.verification().redirectUri());
+    bodyPair.add("grant_type", "authorization_code");
+    bodyPair.add("code", code);
+    bodyPair.add("code_verifier", cacheService.getCachedCodeVerifier(state));
+    bodyPair.add("state", state);
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+    log.info("Built Token request.");
+    return new HttpEntity<>(bodyPair, headers);
+  }
+
+  record TokenResponse(@JsonProperty("id_token") String idToken) {
+
   }
 
   /**
