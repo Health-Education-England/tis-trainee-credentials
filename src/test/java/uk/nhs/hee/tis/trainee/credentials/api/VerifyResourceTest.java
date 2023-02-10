@@ -25,7 +25,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -36,7 +35,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -94,27 +92,13 @@ class VerifyResourceTest {
   }
 
   @Test
-  void shouldReturnErrorWhenStartIdentityVerificationFails() throws Exception {
-    String signedData = SignatureTestUtil.signData(UNSIGNED_IDENTITY_DATA, secretKey);
-
-    when(service.startIdentityVerification(any(), any())).thenReturn(Optional.empty());
-
-    mockMvc.perform(
-            post("/api/verify/identity")
-                .content(signedData)
-                .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isInternalServerError());
-  }
-
-  @Test
-  void shouldReturnCreatedWhenCredentialUriAvailable()
+  void shouldReturnCreatedWhenVerificationStarted()
       throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_IDENTITY_DATA, secretKey);
 
     String uriString = "the-uri";
     URI uri = URI.create(uriString);
-    when(service.startIdentityVerification(any(IdentityDataDto.class), any())).thenReturn(
-        Optional.of(uri));
+    when(service.startIdentityVerification(any(IdentityDataDto.class), any())).thenReturn(uri);
 
     mockMvc.perform(
             post("/api/verify/identity")
@@ -129,14 +113,15 @@ class VerifyResourceTest {
   void shouldPassStateDownstreamWhenStateGiven() throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_IDENTITY_DATA, secretKey);
 
+    ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
+    when(service.startIdentityVerification(any(IdentityDataDto.class),
+        stateCaptor.capture())).thenReturn(URI.create(""));
+
     mockMvc.perform(
         post("/api/verify/identity")
             .queryParam("state", "some-state-value")
             .content(signedData)
             .contentType(MediaType.APPLICATION_JSON));
-
-    ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
-    verify(service).startIdentityVerification(any(IdentityDataDto.class), stateCaptor.capture());
 
     String state = stateCaptor.getValue();
     assertThat("Unexpected state.", state, is("some-state-value"));
@@ -146,13 +131,14 @@ class VerifyResourceTest {
   void shouldNotPassStateDownstreamWhenNoStateGiven() throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_IDENTITY_DATA, secretKey);
 
+    ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
+    when(service.startIdentityVerification(any(IdentityDataDto.class),
+        stateCaptor.capture())).thenReturn(URI.create(""));
+
     mockMvc.perform(
         post("/api/verify/identity")
             .content(signedData)
             .contentType(MediaType.APPLICATION_JSON));
-
-    ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
-    verify(service).startIdentityVerification(any(IdentityDataDto.class), stateCaptor.capture());
 
     String state = stateCaptor.getValue();
     assertThat("Unexpected state.", state, nullValue());
@@ -162,13 +148,13 @@ class VerifyResourceTest {
   void shouldUseIdentityDataDtoFromRequestBody() throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_IDENTITY_DATA, secretKey);
 
+    ArgumentCaptor<IdentityDataDto> dtoCaptor = ArgumentCaptor.forClass(IdentityDataDto.class);
+    when(service.startIdentityVerification(dtoCaptor.capture(), any())).thenReturn(URI.create(""));
+
     mockMvc.perform(
         post("/api/verify/identity")
             .content(signedData)
             .contentType(MediaType.APPLICATION_JSON));
-
-    ArgumentCaptor<IdentityDataDto> dtoCaptor = ArgumentCaptor.forClass(IdentityDataDto.class);
-    verify(service).startIdentityVerification(dtoCaptor.capture(), any());
 
     IdentityDataDto dto = dtoCaptor.getValue();
     assertThat("Unexpected given name.", dto.givenName(), is("Anthony"));
