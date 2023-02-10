@@ -44,7 +44,7 @@ public class FilterConfiguration {
     FilterRegistrationBean<SignedDataFilter> registrationBean = new FilterRegistrationBean<>();
 
     registrationBean.setFilter(filter);
-    registrationBean.addUrlPatterns("/api/issue/*");
+    registrationBean.addUrlPatterns("/api/issue/*", "/api/verify/*");
     registrationBean.setOrder(Ordered.HIGHEST_PRECEDENCE);
 
     return registrationBean;

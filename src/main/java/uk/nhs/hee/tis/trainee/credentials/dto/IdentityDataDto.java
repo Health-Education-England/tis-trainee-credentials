@@ -21,6 +21,8 @@
 
 package uk.nhs.hee.tis.trainee.credentials.dto;
 
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.time.LocalDate;
 
@@ -31,7 +33,9 @@ import java.time.LocalDate;
  * @param familyName The user's family name.
  * @param birthDate  The user's birthdate.
  */
-public record IdentityDataDto(String givenName, String familyName, LocalDate birthDate) implements
-    Serializable {
+public record IdentityDataDto(
+    @NotEmpty String givenName,
+    @NotEmpty String familyName,
+    @NotNull LocalDate birthDate) implements Serializable {
 
 }

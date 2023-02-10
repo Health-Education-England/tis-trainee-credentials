@@ -22,8 +22,8 @@
 package uk.nhs.hee.tis.trainee.credentials.api;
 
 import java.net.URI;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -52,10 +52,16 @@ public class VerifyResource {
   ResponseEntity<String> verifyIdentity(
       @RequestParam(required = false) String state,
       @Validated @RequestBody IdentityDataDto dto) {
-    URI identityVerificationUri = service.startIdentityVerification(state, dto);
-    return ResponseEntity
-        .status(HttpStatus.CREATED)
-        .location(identityVerificationUri)
-        .body(identityVerificationUri.toString());
+    log.info("Received request to start identity verification.");
+    Optional<URI> identityVerificationUri = service.startIdentityVerification(dto, state);
+
+    if (identityVerificationUri.isPresent()) {
+      log.info("Identity verification successfully started.");
+      URI uri = identityVerificationUri.get();
+      return ResponseEntity.created(uri).body(uri.toString());
+    } else {
+      log.error("Could not start identity verification.");
+      return ResponseEntity.internalServerError().build();
+    }
   }
 }

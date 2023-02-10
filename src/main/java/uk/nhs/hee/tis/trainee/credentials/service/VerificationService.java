@@ -24,6 +24,7 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 import java.net.URI;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.UUID;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.lang.Nullable;
@@ -56,11 +57,12 @@ public class VerificationService {
    * Start the identity credential verification process, the result will direct the user to provide
    * an identity credential using the credential gateway.
    *
-   * @param clientState The state sent by client when making the request to start verification.
    * @param dto         The user's identity data.
+   * @param clientState The state sent by client when making the request to start verification.
    * @return A URI to a credential gateway prompt for an identity credential.
    */
-  public URI startIdentityVerification(@Nullable String clientState, IdentityDataDto dto) {
+  public Optional<URI> startIdentityVerification(IdentityDataDto dto,
+      @Nullable String clientState) {
     // Cache the provided identity data against the nonce.
     UUID nonce = UUID.randomUUID();
     cachingDelegate.cacheIdentityData(nonce, dto);
@@ -75,7 +77,7 @@ public class VerificationService {
     String codeChallenge = generateCodeChallenge(codeVerifier);
 
     // Build and return the URI at which the user can provide an identity credential.
-    return UriComponentsBuilder.fromUriString(properties.authorizeEndpoint())
+    URI uri = UriComponentsBuilder.fromUriString(properties.authorizeEndpoint())
         .queryParam("nonce", nonce)
         .queryParam("state", internalState)
         .queryParam("code_challenge_method", "S256")
@@ -83,6 +85,8 @@ public class VerificationService {
         .queryParam("scope", "openid+Identity")
         .build()
         .toUri();
+
+    return Optional.of(uri);
   }
 
   /**
