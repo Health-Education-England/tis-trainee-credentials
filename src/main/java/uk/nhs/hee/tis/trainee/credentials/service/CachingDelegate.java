@@ -88,7 +88,7 @@ class CachingDelegate {
    */
   @Cacheable(cacheNames = IDENTITY_DATA, cacheManager = VERIFICATION_REQUEST_DATA)
   @CacheEvict(IDENTITY_DATA)
-  public Optional<IdentityDataDto> getIdentityData(String key) {
+  public Optional<IdentityDataDto> getIdentityData(UUID key) {
     return Optional.empty();
   }
 
@@ -124,18 +124,17 @@ class CachingDelegate {
    * @return The cached session id.
    */
   @CachePut(cacheNames = SESSION_IDENTIFIER, cacheManager = VERIFIED_SESSION_DATA, key = "#key")
-  public UUID cacheVerifiedSession(UUID key, String verifiedSessionId) {
-    return key;
+  public String cacheVerifiedSession(UUID key, String verifiedSessionId) {
+    return verifiedSessionId;
   }
 
   /**
-   * Get the verified session associated with the given key, any cached value will be removed.
+   * Get the verified session associated with the given key.
    *
    * @param key The cache key.
    * @return The cached session id, or an empty optional if not found.
    */
   @Cacheable(cacheNames = SESSION_IDENTIFIER, cacheManager = VERIFIED_SESSION_DATA)
-  @CacheEvict(SESSION_IDENTIFIER)
   public Optional<String> getVerifiedSession(UUID key) {
     return Optional.empty();
   }
