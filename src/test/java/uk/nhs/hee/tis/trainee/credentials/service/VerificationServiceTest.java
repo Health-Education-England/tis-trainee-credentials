@@ -97,7 +97,7 @@ class VerificationServiceTest {
   }
 
   @Test
-  void shouldUserAuthorizeEndpointWhenStartingVerification() {
+  void shouldUseAuthorizeEndpointWhenStartingVerification() {
     URI uri = service.startIdentityVerification(null, null);
 
     URI relativeUri = uri.relativize(URI.create(AUTHORIZE_ENDPOINT));
@@ -159,8 +159,8 @@ class VerificationServiceTest {
     Map<String, String> queryParams = splitQueryParams(uri);
     String codeChallengeParam = queryParams.get("code_challenge");
 
-    String coreVerifier = codeVerifierCaptor.getValue();
-    byte[] codeChallengeBytes = DigestUtils.sha256(coreVerifier);
+    String codeVerifier = codeVerifierCaptor.getValue();
+    byte[] codeChallengeBytes = DigestUtils.sha256(codeVerifier);
     String codeChallenge = Base64.getUrlEncoder().withoutPadding()
         .encodeToString(codeChallengeBytes);
     assertThat("Unexpected query parameter value.", codeChallengeParam, is(codeChallenge));
