@@ -19,34 +19,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.filter;
+package uk.nhs.hee.tis.trainee.credentials.config;
 
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.convert.DurationUnit;
 
 /**
- * A configuration for request filters.
+ * A representation of the application cache properties.
+ *
+ * @param keyPrefix  The cache key prefix.
+ * @param timeToLive The time-to-live properties.
  */
-@Configuration
-public class FilterConfiguration {
+@ConfigurationProperties(prefix = "application.cache")
+public record CacheProperties(String keyPrefix, TimeToLiveProperties timeToLive) {
 
   /**
-   * Register a {@link SignedDataFilter}.
+   * A representation of the application cache time-to-live properties.
    *
-   * @param filter The filter to register.
-   * @return The {@link FilterRegistrationBean} for the registration.
+   * @param verificationRequest The time-to-live for verification request data.
+   * @param verifiedSession     The time-to-live for verified session data.
    */
-  @Bean
-  public FilterRegistrationBean<SignedDataFilter> registerSignedDataFilter(
-      SignedDataFilter filter) {
-    FilterRegistrationBean<SignedDataFilter> registrationBean = new FilterRegistrationBean<>();
+  public record TimeToLiveProperties(
+      @DurationUnit(ChronoUnit.SECONDS)
+      Duration verificationRequest,
 
-    registrationBean.setFilter(filter);
-    registrationBean.addUrlPatterns("/api/issue/*", "/api/verify/*");
-    registrationBean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+      @DurationUnit(ChronoUnit.SECONDS)
+      Duration verifiedSession) {
 
-    return registrationBean;
   }
 }

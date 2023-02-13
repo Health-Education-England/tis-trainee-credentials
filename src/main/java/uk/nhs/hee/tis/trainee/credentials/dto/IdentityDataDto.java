@@ -19,34 +19,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.filter;
+package uk.nhs.hee.tis.trainee.credentials.dto;
 
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import java.io.Serializable;
+import java.time.LocalDate;
 
 /**
- * A configuration for request filters.
+ * A DTO representing identity data.
+ *
+ * @param givenName  The user's given name.
+ * @param familyName The user's family name.
+ * @param birthDate  The user's birthdate.
  */
-@Configuration
-public class FilterConfiguration {
+public record IdentityDataDto(
+    @NotEmpty String givenName,
+    @NotEmpty String familyName,
+    @NotNull LocalDate birthDate) implements Serializable {
 
-  /**
-   * Register a {@link SignedDataFilter}.
-   *
-   * @param filter The filter to register.
-   * @return The {@link FilterRegistrationBean} for the registration.
-   */
-  @Bean
-  public FilterRegistrationBean<SignedDataFilter> registerSignedDataFilter(
-      SignedDataFilter filter) {
-    FilterRegistrationBean<SignedDataFilter> registrationBean = new FilterRegistrationBean<>();
-
-    registrationBean.setFilter(filter);
-    registrationBean.addUrlPatterns("/api/issue/*", "/api/verify/*");
-    registrationBean.setOrder(Ordered.HIGHEST_PRECEDENCE);
-
-    return registrationBean;
-  }
 }

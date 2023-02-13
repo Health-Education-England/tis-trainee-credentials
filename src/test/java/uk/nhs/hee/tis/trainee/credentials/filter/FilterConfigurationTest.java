@@ -70,7 +70,16 @@ class FilterConfigurationTest {
     var registrationBean = configuration.registerSignedDataFilter(filter);
 
     Collection<String> urlPatterns = registrationBean.getUrlPatterns();
-    assertThat("Unexpected filter pattern count.", urlPatterns.size(), is(1));
     assertThat("Unexpected filter patterns.", urlPatterns, hasItem("/api/issue/*"));
+  }
+
+  @Test
+  void shouldRegisterSignedDataFilterOnVerifyApiEndpoints() {
+    SignedDataFilter filter = new SignedDataFilter(new ObjectMapper(), SIGNATURE_SECRET_KEY);
+
+    var registrationBean = configuration.registerSignedDataFilter(filter);
+
+    Collection<String> urlPatterns = registrationBean.getUrlPatterns();
+    assertThat("Unexpected filter patterns.", urlPatterns, hasItem("/api/verify/*"));
   }
 }

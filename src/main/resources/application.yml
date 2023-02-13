@@ -4,6 +4,11 @@ server:
     context-path: /credentials
 
 application:
+  cache:
+    key-prefix: Credentials
+    time-to-live:
+      verification-request: ${REDIS_TTL_VERIFICATION_REQUEST:300}
+      verified-session: ${REDIS_TTL_VERIFIED_SESSION:600}
   gateway:
     host: ${GATEWAY_HOST}
     client-id: ${GATEWAY_CLIENT_ID}
@@ -17,10 +22,21 @@ application:
         issuer: ${application.gateway.client-id}
         signing-key: ${GATEWAY_TOKEN_SIGNING_KEY}
       redirect-uri: ${GATEWAY_ISSUING_REDIRECT_URI}
-
+    verification:
+      authorize-endpoint: https://${application.gateway.host}/connect/authorize?client_id=${application.gateway.client-id}&response_type=code&redirect_uri=${application.gateway.verification.redirect-uri}&response_mode=query
+      redirect-uri: ${GATEWAY_VERIFICATION_REDIRECT_URI:https://jwt.ms}
   signature:
     secret-key: ${SIGNATURE_SECRET_KEY}
 
 sentry:
   dsn: ${SENTRY_DSN:}
   environment: ${SENTRY_ENVIRONMENT:}
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      ssl: ${REDIS_SSL:false}
+      user: ${REDIS_USER:default}
+      password: ${REDIS_PASSWORD:password}

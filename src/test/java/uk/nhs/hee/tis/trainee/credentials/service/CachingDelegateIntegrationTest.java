@@ -1,0 +1,212 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright 2023 Crown Copyright (Health Education England)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package uk.nhs.hee.tis.trainee.credentials.service;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import java.time.LocalDate;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
+
+@SpringBootTest
+@ActiveProfiles("redis")
+@Testcontainers(disabledWithoutDocker = true)
+class CachingDelegateIntegrationTest {
+
+  @Autowired
+  CachingDelegate delegate;
+
+  @Test
+  void shouldReturnEmptyClientStateWhenNotCached() {
+    UUID key = UUID.randomUUID();
+
+    Optional<String> cachedOptional = delegate.getClientState(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
+  }
+
+  @Test
+  void shouldReturnCachedClientStateAfterCaching() {
+    UUID key = UUID.randomUUID();
+
+    String clientState = "clientState1";
+    String cachedString = delegate.cacheClientState(key, clientState);
+    assertThat("Unexpected cached value.", cachedString, is(clientState));
+  }
+
+  @Test
+  void shouldGetCachedClientStateWhenCached() {
+    UUID key = UUID.randomUUID();
+
+    String clientState = "clientState1";
+    delegate.cacheClientState(key, clientState);
+
+    Optional<String> cachedOptional = delegate.getClientState(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(clientState)));
+  }
+
+  @Test
+  void shouldRemoveClientStateWhenRetrieved() {
+    UUID key = UUID.randomUUID();
+
+    String clientState = "clientState1";
+    delegate.cacheClientState(key, clientState);
+
+    // Ignore this result, the cached value should be evicted.
+    delegate.getClientState(key);
+
+    Optional<String> cachedOptional = delegate.getClientState(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
+  }
+
+  @Test
+  void shouldReturnEmptyCodeVerifierWhenNotCached() {
+    UUID key = UUID.randomUUID();
+
+    Optional<String> cachedOptional = delegate.getCodeVerifier(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
+  }
+
+  @Test
+  void shouldReturnCachedCodeVerifierAfterCaching() {
+    UUID key = UUID.randomUUID();
+
+    String codeVerifier = "codeVerifier1";
+    String cachedString = delegate.cacheCodeVerifier(key, codeVerifier);
+    assertThat("Unexpected cached value.", cachedString, is(codeVerifier));
+  }
+
+  @Test
+  void shouldGetCachedCodeVerifierWhenCached() {
+    UUID key = UUID.randomUUID();
+
+    String codeVerifier = "codeVerifier1";
+    delegate.cacheCodeVerifier(key, codeVerifier);
+
+    Optional<String> cachedOptional = delegate.getCodeVerifier(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(codeVerifier)));
+  }
+
+  @Test
+  void shouldRemoveCodeVerifierWhenRetrieved() {
+    UUID key = UUID.randomUUID();
+
+    String codeVerifier = "codeVerifier1";
+    delegate.cacheCodeVerifier(key, codeVerifier);
+
+    // Ignore this result, the cached value should be evicted.
+    delegate.getCodeVerifier(key);
+
+    Optional<String> cachedOptional = delegate.getCodeVerifier(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
+  }
+
+  @Test
+  void shouldReturnEmptyIdentityDataWhenNotCached() {
+    UUID key = UUID.randomUUID();
+
+    Optional<IdentityDataDto> cachedOptional = delegate.getIdentityData(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
+  }
+
+  @Test
+  void shouldReturnCachedIdentityDataAfterCaching() {
+    UUID key = UUID.randomUUID();
+
+    IdentityDataDto identityData = new IdentityDataDto("Anthony", "Gilliam", LocalDate.now());
+    IdentityDataDto cachedDto = delegate.cacheIdentityData(key, identityData);
+    assertThat("Unexpected cached value.", cachedDto, is(identityData));
+  }
+
+  @Test
+  void shouldGetCachedIdentityDataWhenCached() {
+    UUID key = UUID.randomUUID();
+
+    IdentityDataDto identityData = new IdentityDataDto("Anthony", "Gilliam", LocalDate.now());
+    delegate.cacheIdentityData(key, identityData);
+
+    Optional<IdentityDataDto> cachedOptional = delegate.getIdentityData(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(identityData)));
+  }
+
+  @Test
+  void shouldRemoveIdentityDataWhenRetrieved() {
+    UUID key = UUID.randomUUID();
+
+    IdentityDataDto identityData = new IdentityDataDto("Anthony", "Gilliam", LocalDate.now());
+    delegate.cacheIdentityData(key, identityData);
+
+    // Ignore this result, the cached value should be evicted.
+    delegate.getIdentityData(key);
+
+    Optional<IdentityDataDto> cachedOptional = delegate.getIdentityData(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
+  }
+
+  @Test
+  void shouldReturnEmptyVerifiedSessionWhenNotCached() {
+    UUID key = UUID.randomUUID();
+
+    Optional<String> cachedOptional = delegate.getVerifiedSession(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
+  }
+
+  @Test
+  void shouldReturnCachedVerifiedSessionAfterCaching() {
+    UUID key = UUID.randomUUID();
+
+    String verifiedSession = "verifiedSession1";
+    String cachedString = delegate.cacheVerifiedSession(key, verifiedSession);
+    assertThat("Unexpected cached value.", cachedString, is(verifiedSession));
+  }
+
+  @Test
+  void shouldGetCachedVerifiedSessionWhenCached() {
+    UUID key = UUID.randomUUID();
+
+    String verifiedSession = "verifiedSession1";
+    delegate.cacheVerifiedSession(key, verifiedSession);
+
+    Optional<String> cachedOptional = delegate.getVerifiedSession(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(verifiedSession)));
+  }
+
+  @Test
+  void shouldNotRemoveVerifiedSessionWhenRetrieved() {
+    UUID key = UUID.randomUUID();
+
+    String verifiedSession = "verifiedSession1";
+    delegate.cacheVerifiedSession(key, verifiedSession);
+
+    // Ignore this result, the cached value should be evicted.
+    delegate.getVerifiedSession(key);
+
+    Optional<String> cachedOptional = delegate.getVerifiedSession(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(verifiedSession)));
+  }
+}

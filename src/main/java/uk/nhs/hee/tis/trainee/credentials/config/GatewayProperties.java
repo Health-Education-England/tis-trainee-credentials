@@ -34,14 +34,15 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record GatewayProperties(
     String clientId,
     String clientSecret,
-    IssuingProperties issuing) {
+    IssuingProperties issuing,
+    VerificationProperties verification) {
 
   /**
    * A representation of the gateway's issuing properties.
    *
    * @param parEndpoint       The gateway's PAR endpoint URI.
-   * @param authorizeEndpoint The gateway's authorize endpoint URI.
-   * @param tokenEndpoint     The gateway's token endpoint URI.
+   * @param authorizeEndpoint The gateway's issue authorize endpoint URI.
+   * @param tokenEndpoint     The gateway's issue token endpoint URI.
    * @param token             The issuing token child properties.
    * @param redirectUri       The URI to redirect to after issuing a credential.
    */
@@ -63,5 +64,15 @@ public record GatewayProperties(
     public record TokenProperties(String audience, String issuer, String signingKey) {
 
     }
+  }
+
+  /**
+   * A representation of the gateway verification properties.
+   *
+   * @param authorizeEndpoint The gateway's connect authorize endpoint URI.
+   */
+  @ConfigurationProperties(prefix = "application.gateway.verification")
+  public record VerificationProperties(String authorizeEndpoint) {
+
   }
 }

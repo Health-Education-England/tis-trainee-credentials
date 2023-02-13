@@ -37,6 +37,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -56,11 +57,12 @@ import uk.nhs.hee.tis.trainee.credentials.SignatureTestUtil;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.filter.FilterConfiguration;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
 
 @WebMvcTest(IssueResource.class)
-@ComponentScan(basePackageClasses = CredentialDataMapper.class)
+@ComponentScan(basePackageClasses = {CredentialDataMapper.class, FilterConfiguration.class})
 class IssueResourceTest {
 
   private static final String UNSIGNED_DATA = """
@@ -452,6 +454,8 @@ class IssueResourceTest {
    *
    * <p>@throws Exception If the dataToSign was not valid JSON.
    */
+  @Test
+  @Disabled("Disabled due to issues with the data, see above comment.")
   void shouldAcceptPlacementWhenNpnMissing() throws Exception {
     String signedData = SignatureTestUtil.removeFieldAndSignData(UNSIGNED_PLACEMENT, secretKey,
         "nationalPostNumber");
@@ -461,6 +465,5 @@ class IssueResourceTest {
                 .content(signedData)
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk());
-
   }
 }
