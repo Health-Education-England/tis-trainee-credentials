@@ -9,6 +9,7 @@ application:
     time-to-live:
       verification-request: ${REDIS_TTL_VERIFICATION_REQUEST:300}
       verified-session: ${REDIS_TTL_VERIFIED_SESSION:600}
+      credential-metadata: ${REDIS_TTL_ISSUING_FLOW:600}
   gateway:
     host: https://${GATEWAY_HOST}
     client-id: ${GATEWAY_CLIENT_ID}

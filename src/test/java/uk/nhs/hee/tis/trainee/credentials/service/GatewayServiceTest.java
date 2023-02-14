@@ -75,10 +75,14 @@ class GatewayServiceTest {
   private JwtService jwtService;
   private RestTemplate restTemplate;
 
+  private CachingDelegate cachingDelegate;
+
   @BeforeEach
   void setUp() {
     restTemplate = mock(RestTemplate.class);
     jwtService = mock(JwtService.class);
+    cachingDelegate = mock(CachingDelegate.class);
+
 
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
         "", null, CALLBACK_URI, REDIRECT_URI);
@@ -88,7 +92,7 @@ class GatewayServiceTest {
     GatewayProperties gatewayProperties = new GatewayProperties(HOST, CLIENT_ID, CLIENT_SECRET,
         JWKS_ENDPOINT, issuingProperties, verificationProperties);
 
-    service = new GatewayService(restTemplate, jwtService, gatewayProperties);
+    service = new GatewayService(restTemplate, jwtService, gatewayProperties, cachingDelegate);
   }
 
   @Test

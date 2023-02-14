@@ -46,7 +46,10 @@ public record CacheProperties(String keyPrefix, TimeToLiveProperties timeToLive)
       Duration verificationRequest,
 
       @DurationUnit(ChronoUnit.SECONDS)
-      Duration verifiedSession) {
+      Duration verifiedSession,
+
+      @DurationUnit(ChronoUnit.SECONDS)
+      Duration credentialMetadata) {
 
   }
 }

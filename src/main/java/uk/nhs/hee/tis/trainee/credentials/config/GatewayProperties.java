@@ -52,6 +52,7 @@ public record GatewayProperties(
    * @param callbackUri       The URI to use to log the issuing event outcome.
    * @param redirectUri       The URI to redirect to after issuing a credential.
    */
+  @ConfigurationProperties(prefix = "application.gateway.issuing")
   public record IssuingProperties(
       String parEndpoint,
       String authorizeEndpoint,

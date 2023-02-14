@@ -41,7 +41,7 @@ public class CacheConfiguration {
 
   public static final String VERIFICATION_REQUEST_DATA = "verificationRequestCacheManager";
   public static final String VERIFIED_SESSION_DATA = "verifiedSessionCacheManager";
-  public static final String LOG_EVENT_DATA = "logEventCacheManager";
+  public static final String CREDENTIAL_METADATA = "credentialMetadataCacheManager";
 
   private final CacheProperties properties;
 
@@ -81,6 +81,17 @@ public class CacheConfiguration {
   @Bean
   public CacheManager verifiedSessionCacheManager(RedisConnectionFactory factory) {
     return buildCacheManager(factory, properties.timeToLive().verifiedSession());
+  }
+
+  /**
+   * Create a cache manager for credential metadata caching.
+   *
+   * @param factory The Redis connection factory.
+   * @return The built cache manager.
+   */
+  @Bean
+  public CacheManager credentialMetadataCacheManager(RedisConnectionFactory factory) {
+    return buildCacheManager(factory, properties.timeToLive().credentialMetadata());
   }
 
   /**
