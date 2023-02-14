@@ -21,10 +21,14 @@
 
 package uk.nhs.hee.tis.trainee.credentials.api;
 
+import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.validator.constraints.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,6 +36,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
 import uk.nhs.hee.tis.trainee.credentials.service.VerificationService;
+import uk.nhs.hee.tis.trainee.credentials.validator.ValidScope;
 
 /**
  * API endpoints for verifying trainee digital credentials.
@@ -39,6 +44,7 @@ import uk.nhs.hee.tis.trainee.credentials.service.VerificationService;
 @Slf4j
 @RestController
 @RequestMapping("/api/verify")
+@Validated
 public class VerifyResource {
 
   private final VerificationService service;
@@ -50,11 +56,22 @@ public class VerifyResource {
   @PostMapping("/identity")
   ResponseEntity<String> verifyIdentity(
       @RequestParam(required = false) String state,
-      @Validated @RequestBody IdentityDataDto dto) {
+      @Valid @RequestBody IdentityDataDto dto) {
     log.info("Received request to start identity verification.");
     URI uri = service.startIdentityVerification(dto, state);
 
     log.info("Identity verification successfully started.");
     return ResponseEntity.created(uri).body(uri.toString());
+  }
+
+  @GetMapping("/callback")
+  ResponseEntity<String> handleVerification(@RequestParam String code,
+      @ValidScope @RequestParam String scope,
+      @UUID @RequestParam String state) {
+    log.info("Received callback for credential verification.");
+    URI uri = service.completeVerification(code, scope, state);
+
+    log.info("Credential verification completed.");
+    return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();
   }
 }
