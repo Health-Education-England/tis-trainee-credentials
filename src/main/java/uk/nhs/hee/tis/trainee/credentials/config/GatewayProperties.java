@@ -70,9 +70,14 @@ public record GatewayProperties(
    * A representation of the gateway verification properties.
    *
    * @param authorizeEndpoint The gateway's connect authorize endpoint URI.
+   * @param tokenEndpoint     The gateway's connect token endpoint URI.
+   * @param redirectUri       The URI to redirect to after providing a credential.
    */
   @ConfigurationProperties(prefix = "application.gateway.verification")
-  public record VerificationProperties(String authorizeEndpoint) {
+  public record VerificationProperties(
+      String authorizeEndpoint,
+      String tokenEndpoint,
+      String redirectUri) {
 
   }
 }

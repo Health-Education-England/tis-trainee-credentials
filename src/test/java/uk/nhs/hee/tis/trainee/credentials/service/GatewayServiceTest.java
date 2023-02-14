@@ -73,7 +73,7 @@ class GatewayServiceTest {
 
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
         "", null, REDIRECT_URI);
-    VerificationProperties verificationProperties = new VerificationProperties("");
+    VerificationProperties verificationProperties = new VerificationProperties("", "", "");
     GatewayProperties gatewayProperties = new GatewayProperties(CLIENT_ID, CLIENT_SECRET,
         issuingProperties, verificationProperties);
 
