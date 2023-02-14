@@ -74,6 +74,26 @@ class SignedDataFilterTest {
     filter = new SignedDataFilter(mapper, SIGNATURE_SECRET_KEY);
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"api/issue/callback", "api/verify/callback", "/callback"})
+  void shouldNotFilterCallbacks(String uri) {
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.setRequestURI(uri);
+
+    boolean filterInactive = filter.shouldNotFilter(request);
+    assertThat("Unexpected filter activation.", filterInactive, is(true));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"api/issue/credential", "api/verify/identity", "/not-a-callback"})
+  void shouldFilterNonCallbacks(String uri) {
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.setRequestURI(uri);
+
+    boolean filterInactive = filter.shouldNotFilter(request);
+    assertThat("Unexpected filter deactivation.", filterInactive, is(false));
+  }
+
   @Test
   void shouldBeForbiddenWhenNoDataInRequest() throws Exception {
     MockHttpServletRequest request = new MockHttpServletRequest();

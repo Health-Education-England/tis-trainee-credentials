@@ -87,6 +87,18 @@ public class VerificationService {
   }
 
   /**
+   * Complete the credential verification process.
+   *
+   * @param code  The code provided by the credential gateway.
+   * @param scope The scope set in the initial gateway request.
+   * @param state The state set in the initial gateway request.
+   * @return The built redirect URI for completed verification.
+   */
+  public URI completeVerification(String code, String scope, String state) {
+    return URI.create("/credential-verified");
+  }
+
+  /**
    * Generate a random PKCE code verifier.
    *
    * @return The generated code verifier.

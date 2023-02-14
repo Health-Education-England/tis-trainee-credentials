@@ -27,14 +27,17 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -57,6 +60,13 @@ import uk.nhs.hee.tis.trainee.credentials.service.VerificationService;
 @WebMvcTest(VerifyResource.class)
 @ComponentScan(basePackageClasses = FilterConfiguration.class)
 class VerifyResourceTest {
+
+  private static final String CODE_PARAM = "code";
+  private static final String CODE_VALUE = "not-a-real-code";
+  private static final String SCOPE_PARAM = "scope";
+  private static final String SCOPE_VALUE = "openid Identity";
+  private static final String STATE_PARARM = "state";
+  private static final String STATE_VALUE = UUID.randomUUID().toString();
 
   private static final String UNSIGNED_IDENTITY_DATA = """
       {
@@ -202,5 +212,89 @@ class VerifyResourceTest {
         .andExpect(status().isBadRequest());
 
     verifyNoInteractions(service);
+  }
+
+  @Test
+  void shouldFailValidationWhenScopeNotProvided() throws Exception {
+    mockMvc.perform(
+            get(("/api/verify/callback"))
+                .queryParam(CODE_PARAM, CODE_VALUE)
+                .queryParam(STATE_PARARM, STATE_VALUE))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$").doesNotExist());
+
+    verifyNoInteractions(service);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "not-a-valid-scope"})
+  void shouldFailValidationWhenScopeInvalid(String scope) throws Exception {
+    mockMvc.perform(
+            get(("/api/verify/callback"))
+                .queryParam(CODE_PARAM, CODE_VALUE)
+                .queryParam(SCOPE_PARAM, scope)
+                .queryParam(STATE_PARARM, STATE_VALUE))
+        .andExpect(status().isBadRequest())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.scope").value(is("not a supported scope")));
+
+    verifyNoInteractions(service);
+  }
+
+  @Test
+  void shouldFailValidationWhenStateNotProvided() throws Exception {
+    mockMvc.perform(
+            get(("/api/verify/callback"))
+                .queryParam(CODE_PARAM, CODE_VALUE)
+                .queryParam(SCOPE_PARAM, SCOPE_VALUE))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$").doesNotExist());
+
+    verifyNoInteractions(service);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "not-a-valid-state"})
+  void shouldFailValidationWhenStateInvalid(String state) throws Exception {
+    mockMvc.perform(
+            get(("/api/verify/callback"))
+                .queryParam(CODE_PARAM, CODE_VALUE)
+                .queryParam(SCOPE_PARAM, SCOPE_VALUE)
+                .queryParam(STATE_PARARM, state))
+        .andExpect(status().isBadRequest())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.state").value(is("must be a valid UUID")));
+
+    verifyNoInteractions(service);
+  }
+
+  @Test
+  void shouldFailValidationWhenMultipleParametersInvalid() throws Exception {
+    mockMvc.perform(
+            get(("/api/verify/callback"))
+                .queryParam(CODE_PARAM, CODE_VALUE)
+                .queryParam(SCOPE_PARAM, "")
+                .queryParam(STATE_PARARM, ""))
+        .andExpect(status().isBadRequest())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.scope").value(is("not a supported scope")))
+        .andExpect(jsonPath("$.state").value(is("must be a valid UUID")));
+
+    verifyNoInteractions(service);
+  }
+
+  @Test
+  void shouldRedirectWhenVerificationCompleted() throws Exception {
+    when(service.completeVerification(CODE_VALUE, SCOPE_VALUE, STATE_VALUE)).thenReturn(
+        URI.create("test-redirect"));
+
+    mockMvc.perform(
+            get(("/api/verify/callback"))
+                .queryParam(CODE_PARAM, CODE_VALUE)
+                .queryParam(SCOPE_PARAM, SCOPE_VALUE)
+                .queryParam(STATE_PARARM, STATE_VALUE))
+        .andExpect(status().isFound())
+        .andExpect(header().string(HttpHeaders.LOCATION, "test-redirect"))
+        .andExpect(jsonPath("$").doesNotExist());
   }
 }

@@ -63,6 +63,12 @@ public class SignedDataFilter extends OncePerRequestFilter {
   }
 
   @Override
+  protected boolean shouldNotFilter(HttpServletRequest request) {
+    String requestUri = request.getRequestURI();
+    return requestUri.endsWith("/callback");
+  }
+
+  @Override
   protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
       FilterChain filterChain) throws ServletException, IOException {
     request = new CachedBodyRequestWrapper(request);
@@ -91,7 +97,9 @@ public class SignedDataFilter extends OncePerRequestFilter {
     JsonNode signatureNode = tree.get(SIGNATURE_FIELD);
 
     if (signatureNode != null) {
-      record Signature(String hmac, Instant signedAt, Instant validUntil) {}
+      record Signature(String hmac, Instant signedAt, Instant validUntil) {
+
+      }
 
       Signature signature = mapper.treeToValue(signatureNode, Signature.class);
 
