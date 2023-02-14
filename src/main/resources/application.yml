@@ -22,6 +22,7 @@ application:
         audience: ${application.gateway.host}/issuing
         issuer: ${application.gateway.client-id}
         signing-key: ${GATEWAY_TOKEN_SIGNING_KEY}
+      callback-uri: ${GATEWAY_ISSUING_CALLBACK_URI}
       redirect-uri: ${GATEWAY_ISSUING_REDIRECT_URI}
     verification:
       authorize-endpoint: ${application.gateway.host}/connect/authorize?client_id=${application.gateway.client-id}&response_type=code&redirect_uri=${application.gateway.verification.redirect-uri}&response_mode=query
@@ -36,6 +37,8 @@ sentry:
 
 spring:
   data:
+    mongodb:
+      uri: mongodb://${DB_USER:admin}:${DB_PASSWORD:pwd}@${DB_HOST:localhost}:${DB_PORT:27017}/${DB_NAME:credentials}?authSource=${AUTH_SOURCE:admin}&readPreference=secondaryPreferred
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}

@@ -41,6 +41,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialLogDto;
 
 /**
  * A service providing credential gateway functionality.
@@ -52,6 +53,7 @@ public class GatewayService {
   private final RestTemplate restTemplate;
   private final JwtService jwtService;
   private final GatewayProperties properties;
+  private final CachingDelegate cachingDelegate;
 
   /**
    * Create a service providing credential gateway functionality.
@@ -60,10 +62,12 @@ public class GatewayService {
    * @param jwtService   The service to use to build JWT.
    * @param properties   The gateway application configuration.
    */
-  GatewayService(RestTemplate restTemplate, JwtService jwtService, GatewayProperties properties) {
+  GatewayService(RestTemplate restTemplate, JwtService jwtService, GatewayProperties properties,
+                 CachingDelegate cachingDelegate) {
     this.restTemplate = restTemplate;
     this.jwtService = jwtService;
     this.properties = properties;
+    this.cachingDelegate = cachingDelegate;
   }
 
   /**
@@ -92,7 +96,7 @@ public class GatewayService {
    * @return The built request.
    */
   private HttpEntity<MultiValueMap<String, String>> buildParRequest(CredentialDto dto,
-      String state) {
+                                                                    String state) {
     log.info("Building PAR request.");
     String idTokenHint = jwtService.generateToken(dto);
 
@@ -100,11 +104,17 @@ public class GatewayService {
     MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
     bodyPair.add("client_id", properties.clientId());
     bodyPair.add("client_secret", properties.clientSecret());
-    bodyPair.add("redirect_uri", properties.issuing().redirectUri());
+    if (properties.issuing().callbackUri() != null) {
+      bodyPair.add("redirect_uri", properties.issuing().callbackUri()); //callback for logging
+    } else {
+      bodyPair.add("redirect_uri", properties.issuing().redirectUri());
+    }
     bodyPair.add("scope", dto.getScope());
     bodyPair.add("id_token_hint", idTokenHint);
     bodyPair.add("nonce", nonce);
     bodyPair.add("state", state);
+
+    cacheIssuingRequest(nonce, dto);
 
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(List.of(MediaType.APPLICATION_JSON));
@@ -112,6 +122,22 @@ public class GatewayService {
 
     log.info("Built PAR request.");
     return new HttpEntity<>(bodyPair, headers);
+  }
+
+  /**
+   * Cache details of the issuing request, to be used when logging the issuing outcome.
+   *
+   * @param nonce the key to use for the cached request.
+   * @param dto   the credentials DTO.
+   */
+  private void cacheIssuingRequest(String nonce, CredentialDto dto) {
+
+    String tisId = "TODO"; // TODO: get from ??
+
+    CredentialLogDto credentialLogDto
+        = new CredentialLogDto(null, null, dto.getScope(), tisId, null, null);
+    UUID id = UUID.fromString(nonce);
+    cachingDelegate.cacheCredentialData(id, credentialLogDto);
   }
 
   /**
@@ -141,6 +167,57 @@ public class GatewayService {
     }
 
     return Optional.ofNullable(credentialUri);
+  }
+
+  /**
+   * Get the claims from a token for a recently issued credential.
+   *
+   * @param code  The response code from the Gateway PAR authorization process.
+   * @param state The state to use for the token request.
+   * @return the claims from the token.
+   */
+  public Claims getIssuedTokenClaims(String code, String state) {
+    return getTokenClaims(code, state, properties.issuing().tokenEndpoint(), null,
+        properties.issuing().callbackUri());
+  }
+
+  // TODO: - this is speculative, need to confirm actual usage.
+  public Claims getVerificationTokenClaims(String code, String state) {
+    String codeVerifier = String.valueOf(cachingDelegate.getCodeVerifier(UUID.fromString(state)));
+    return getTokenClaims(code, state, properties.issuing().tokenEndpoint(), codeVerifier,
+        properties.issuing().callbackUri());
+  }
+
+  /**
+   * A generic function to get token claims (from issued credentials or identity verification).
+   *
+   * @param code        The response code from the Gateway process.
+   * @param state       The state to use for the token request.
+   * @param endpoint    The gateway token endpoint.
+   * @param redirectUri The redirect URI to include in the token request (TODO: confirm)
+   * @return the claims from the token.
+   */
+  public Claims getTokenClaims(String code, String state, String endpoint, String codeVerifier,
+                               String redirectUri) {
+    HttpEntity<MultiValueMap<String, String>> request
+        = jwtService.buildTokenRequest(code, state, properties.clientId(),
+        properties.clientSecret(), codeVerifier, redirectUri);
+
+    log.info("Sending Token request.");
+    ResponseEntity<TokenResponse> response = restTemplate.postForEntity(
+        endpoint, request, TokenResponse.class);
+    // TODO: check in the redirectUri here
+    log.info("Received Token response.");
+
+    // TODO: check response codes etc.
+    // TODO: verify with public key
+    String signedToken = response.getBody().idToken();
+    String unsignedToken = signedToken.substring(0, signedToken.lastIndexOf('.') + 1);
+    return Jwts.parserBuilder().build().parseClaimsJwt(unsignedToken).getBody();
+  }
+
+  record TokenResponse(@JsonProperty("id_token") String idToken) {
+
   }
 
   /**

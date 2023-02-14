@@ -29,10 +29,16 @@ import io.jsonwebtoken.security.Keys;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties.TokenProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 
@@ -115,5 +121,41 @@ public class JwtService {
     } else {
       return parser.parseClaimsJws(token).getBody();
     }
+  }
+
+  /**
+   * Helper function to build a token request.
+   *
+   * @param code         The response code from the Gateway process.
+   * @param state        The state to use for the token request.
+   * @param clientId     The Gateway client ID.
+   * @param clientSecret The Gateway client secret.
+   * @param redirectUri  The redirect URI to receive the Gateway response.
+   * @return an HttpEntity with the appropriate body and headers.
+   */
+  public HttpEntity<MultiValueMap<String, String>> buildTokenRequest(String code, String state,
+                                                                     String clientId,
+                                                                     String clientSecret,
+                                                                     String codeVerifier,
+                                                                     String redirectUri) {
+    log.info("Building Token request.");
+
+    MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
+    bodyPair.add("client_id", clientId);
+    bodyPair.add("client_secret", clientSecret);
+    bodyPair.add("redirect_uri", redirectUri);
+    bodyPair.add("grant_type", "authorization_code");
+    bodyPair.add("code", code);
+    if (codeVerifier != null) {
+      bodyPair.add("code_verifier", codeVerifier);
+    }
+    bodyPair.add("state", state);
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+    log.info("Built Token request.");
+    return new HttpEntity<>(bodyPair, headers);
   }
 }

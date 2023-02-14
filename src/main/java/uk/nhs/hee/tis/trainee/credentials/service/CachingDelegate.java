@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.service;
 
+import static uk.nhs.hee.tis.trainee.credentials.config.CacheConfiguration.LOG_EVENT_DATA;
 import static uk.nhs.hee.tis.trainee.credentials.config.CacheConfiguration.VERIFICATION_REQUEST_DATA;
 import static uk.nhs.hee.tis.trainee.credentials.config.CacheConfiguration.VERIFIED_SESSION_DATA;
 
@@ -31,6 +32,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialLogDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
 
 /**
@@ -44,7 +46,9 @@ class CachingDelegate {
   private static final String CODE_VERIFIER = "CodeVerifier";
   private static final String IDENTITY_DATA = "IdentityData";
   private static final String PUBLIC_KEY = "PublicKey";
-  private static final String UNVERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Unverified";
+  private static final String CREDENTIAL_LOG_DATA = "CredentialLogData";
+  public static final String SESSION_IDENTIFIER = "SessionIdentifier";
+  public static final String UNVERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Unverified";
   private static final String VERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Verified";
 
   /**
@@ -187,6 +191,30 @@ class CachingDelegate {
    */
   @Cacheable(cacheNames = VERIFIED_SESSION_IDENTIFIER, cacheManager = VERIFIED_SESSION_DATA)
   public Optional<String> getVerifiedSessionIdentifier(String sessionId) {
+    return Optional.empty();
+  }
+
+  /**
+   * Cache a credential log dto for later retrieval.
+   *
+   * @param key The cache key.
+   * @param dto The credential log data to cache.
+   * @return The cached credential log data.
+   */
+  @CachePut(cacheNames = CREDENTIAL_LOG_DATA, cacheManager = LOG_EVENT_DATA, key = "#key")
+  public CredentialLogDto cacheCredentialData(UUID key, CredentialLogDto dto) {
+    return dto;
+  }
+
+  /**
+   * Get the credential log data associated with the given key, any cached value will be removed.
+   *
+   * @param key The cache key.
+   * @return The cached credential log data, or an empty optional if not found.
+   */
+  @Cacheable(cacheNames = CREDENTIAL_LOG_DATA, cacheManager = LOG_EVENT_DATA)
+  @CacheEvict(CREDENTIAL_LOG_DATA)
+  public Optional<CredentialLogDto> getCredentialLogData(UUID key) {
     return Optional.empty();
   }
 }
