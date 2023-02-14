@@ -34,7 +34,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
 
-@SpringBootTest
+@SpringBootTest(properties = "embedded.containers.enabled=true")
 @ActiveProfiles("redis")
 @Testcontainers(disabledWithoutDocker = true)
 class CachingDelegateIntegrationTest {
