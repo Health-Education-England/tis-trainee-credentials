@@ -21,13 +21,19 @@
 
 package uk.nhs.hee.tis.trainee.credentials.api;
 
+import io.jsonwebtoken.Claims;
+import java.io.IOException;
 import java.net.URI;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,7 +42,10 @@ import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
+import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialMetadataMapper;
+import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
+import uk.nhs.hee.tis.trainee.credentials.service.IssuedResourceService;
 
 /**
  * API endpoints for issuing trainee digital credentials.
@@ -48,10 +57,16 @@ public class IssueResource {
 
   private final GatewayService service;
   private final CredentialDataMapper mapper;
+  private final IssuedResourceService issuedResourceService;
+  private final CredentialMetadataMapper credentialMetadataMapper;
 
-  IssueResource(GatewayService service, CredentialDataMapper mapper) {
+  IssueResource(GatewayService service, CredentialDataMapper mapper,
+                IssuedResourceService issuedResourceService,
+                CredentialMetadataMapper credentialMetadataMapper) {
     this.service = service;
     this.mapper = mapper;
+    this.issuedResourceService = issuedResourceService;
+    this.credentialMetadataMapper = credentialMetadataMapper;
   }
 
   @PostMapping("/programme-membership")
