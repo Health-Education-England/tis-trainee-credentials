@@ -67,6 +67,7 @@ class GatewayServiceTest {
   private static final String PAR_ENDPOINT = "https://credential.gateway/par/endpoint";
   private static final String TOKEN_ENDPOINT = "https://credential.gateway/token/endpoint";
   private static final String REDIRECT_URI = "https://redirect.uri";
+  private static final String CALLBACK_URI = "https://callback.uri";
 
   private static final String STATE = "some-client-state";
 
@@ -80,6 +81,8 @@ class GatewayServiceTest {
     jwtService = mock(JwtService.class);
 
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
+        "", null, CALLBACK_URI, REDIRECT_URI);
+    VerificationProperties verificationProperties = new VerificationProperties("");
         "", null, REDIRECT_URI);
     VerificationProperties verificationProperties = new VerificationProperties("", "", "");
     GatewayProperties gatewayProperties = new GatewayProperties(HOST, CLIENT_ID, CLIENT_SECRET,

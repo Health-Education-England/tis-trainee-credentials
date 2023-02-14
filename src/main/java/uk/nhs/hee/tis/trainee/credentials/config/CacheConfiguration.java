@@ -41,6 +41,7 @@ public class CacheConfiguration {
 
   public static final String VERIFICATION_REQUEST_DATA = "verificationRequestCacheManager";
   public static final String VERIFIED_SESSION_DATA = "verifiedSessionCacheManager";
+  public static final String LOG_EVENT_DATA = "logEventCacheManager";
 
   private final CacheProperties properties;
 
