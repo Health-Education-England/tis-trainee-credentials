@@ -26,8 +26,9 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
-import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
-import uk.nhs.hee.tis.trainee.credentials.dto.CredentialLogDto;
+import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties;
+import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
+import uk.nhs.hee.tis.trainee.credentials.repository.CredentialMetadataRepository;
 
 /**
  * A service providing credential verification functionality.
@@ -35,16 +36,22 @@ import uk.nhs.hee.tis.trainee.credentials.dto.CredentialLogDto;
 @Service
 public class IssuedResourceService {
 
+  private final CredentialMetadataRepository credentialMetadataRepository;
+
   private final CachingDelegate cachingDelegate;
-  private final GatewayProperties.IssuingProperties properties;
+  private final IssuingProperties properties;
 
   /**
    * Create a service providing credential verification functionality.
    *
-   * @param cachingDelegate The caching delegate for caching data between requests.
-   * @param properties      The application's gateway verification configuration.
+   * @param credentialMetadataRepository The credential log repository.
+   * @param cachingDelegate              The caching delegate for caching data between requests.
+   * @param properties                   The application's gateway verification configuration.
    */
-  IssuedResourceService(CachingDelegate cachingDelegate, GatewayProperties.IssuingProperties properties) {
+  IssuedResourceService(CredentialMetadataRepository credentialMetadataRepository,
+                        CachingDelegate cachingDelegate,
+                        IssuingProperties properties) {
+    this.credentialMetadataRepository = credentialMetadataRepository;
     this.cachingDelegate = cachingDelegate;
     this.properties = properties;
   }
@@ -52,13 +59,15 @@ public class IssuedResourceService {
   /**
    * Log the issued credential, and get the redirect.
    *
-   * @param dto         The credential log data.
+   * @param credentialMetadata The credential metadata.
    * @return The redirect URI
    */
-  public URI logIssuedResource(CredentialLogDto dto, String code, String state,
-                                 String error, String errorDescription) {
+  public URI logIssuedResource(CredentialMetadata credentialMetadata, String code, String state,
+                               String error, String errorDescription) {
 
-    // TODO: if dto != null then add to database
+    if (credentialMetadata != null) {
+      credentialMetadataRepository.save(credentialMetadata);
+    }
 
     // Build and return the redirect_uri
     return UriComponentsBuilder.fromUriString(properties.redirectUri())
@@ -70,8 +79,8 @@ public class IssuedResourceService {
         .toUri();
   }
 
-  public Optional<CredentialLogDto> getFromCache(UUID id) {
-    return cachingDelegate.getCredentialLogData(id);
+  public Optional<CredentialMetadata> getFromCache(UUID id) {
+    return cachingDelegate.getCredentialMetadata(id);
   }
 
 }

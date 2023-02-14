@@ -19,21 +19,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.dto;
+package uk.nhs.hee.tis.trainee.credentials.repository;
 
-import java.time.LocalDateTime;
+import java.util.Optional;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 
-/**
- * A DTO representing the details logged for a credential.
- *
- * @param credentialId    credential serial number.
- * @param traineeId       the ID of the trainee who issued the credential.
- * @param credentialType  the credential type or scope.
- * @param tisId           the ID of the record in TIS.
- * @param issuedAt        the date and time the credential was issued.
- * @param expiresAt       the date and time the credential expires.
- */
-public record CredentialLogDto(String credentialId, String traineeId, String credentialType,
-                               String tisId, LocalDateTime issuedAt, LocalDateTime expiresAt) {
+@Repository
+public interface CredentialMetadataRepository extends MongoRepository<CredentialMetadata, String> {
+  @Override
+  Optional<CredentialMetadata> findById(String id);
 
+  @Override
+  <T extends CredentialMetadata> T save(T entity);
+
+  @Override
+  void deleteById(String id);
 }

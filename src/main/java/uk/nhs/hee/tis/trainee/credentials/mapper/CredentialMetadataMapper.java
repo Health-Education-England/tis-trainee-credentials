@@ -31,33 +31,38 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import uk.nhs.hee.tis.trainee.credentials.dto.CredentialLogDto;
+import org.springframework.context.annotation.Bean;
+import org.springframework.data.crossstore.ChangeSetPersister;
+import org.springframework.stereotype.Component;
+import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 import uk.nhs.hee.tis.trainee.credentials.service.IssuedResourceService;
 
 /**
  * A mapper to map between Claims data and Credential Log Data.
  */
 
-public class CredentialLogMapper {
+@Component
+public class CredentialMetadataMapper {
 
   private final IssuedResourceService issuedResourceService;
   private final ObjectMapper objectMapper;
   private static final String TIS_ID_ATTRIBUTE = "custom:tisId";
 
-  CredentialLogMapper(IssuedResourceService issuedResourceService, ObjectMapper objectMapper) {
+  CredentialMetadataMapper(IssuedResourceService issuedResourceService, ObjectMapper objectMapper) {
     this.issuedResourceService = issuedResourceService;
     this.objectMapper = objectMapper;
   }
 
   /**
-   * Map a claim to the equivalent credential log DTO, and supplement with cached details.
+   * Map a claim to the equivalent credential metadata, and supplement with cached details and
+   * trainee user ID from the authorization token.
    *
    * @param claims    The Claims data to map.
    * @param authToken The user's authorization token.
    * @return The mapped credential log entry.
    */
 
-  public CredentialLogDto toCredentialLogDto(Claims claims, String authToken) throws IOException {
+  public CredentialMetadata toCredentialMetadata(Claims claims, String authToken) throws IOException {
 
     String[] tokenSections = authToken.split("\\.");
     byte[] payloadBytes = Base64.getUrlDecoder()
@@ -72,19 +77,17 @@ public class CredentialLogMapper {
         Long.parseLong(claims.get("exp", String.class))));
 
     UUID id = UUID.fromString(claims.get("nonce", String.class));
-    Optional<CredentialLogDto> credentialLogDtoCached = issuedResourceService.getFromCache(id);
+    Optional<CredentialMetadata> credentialMetadataCached = issuedResourceService.getFromCache(id);
 
-    // TODO: is this valid? Or rather throw error?
-    return credentialLogDtoCached.map(credentialLogDto -> new CredentialLogDto(credentialId,
-        traineeTisId,
-        credentialLogDto.credentialType(),
-        credentialLogDto.tisId(),
-        issuedAt,
-        expiresAt)).orElseGet(() -> new CredentialLogDto(credentialId,
-        traineeTisId,
-        null,
-        null,
-        issuedAt,
-        expiresAt));
+    if (credentialMetadataCached.isPresent()) {
+      credentialMetadataCached.get().setCredentialId(credentialId);
+      credentialMetadataCached.get().setTraineeId(traineeTisId);
+      credentialMetadataCached.get().setIssuedAt(issuedAt);
+      credentialMetadataCached.get().setExpiresAt(expiresAt);
+      return credentialMetadataCached.get();
+    } else {
+      // TODO: is this valid? Or rather throw error?
+      return null;
+    }
   }
 }

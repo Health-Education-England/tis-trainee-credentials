@@ -23,16 +23,19 @@ package uk.nhs.hee.tis.trainee.credentials.model;
 
 import static org.springframework.beans.factory.config.BeanDefinition.SCOPE_PROTOTYPE;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
+import lombok.Data;
 import org.springframework.context.annotation.Scope;
 import org.springframework.data.annotation.Id;
 import org.springframework.stereotype.Component;
 
-@Component(CredentialLog.ENTITY_NAME)
+@Component(CredentialMetadata.ENTITY_NAME)
 @Scope(SCOPE_PROTOTYPE)
-public class CredentialLog {
+@Data
+public class CredentialMetadata implements Serializable {
 
-  public static final String ENTITY_NAME = "CredentialLog";
+  public static final String ENTITY_NAME = "CredentialMetadata";
 
   @Id
   private String credentialId;
@@ -42,8 +45,4 @@ public class CredentialLog {
   private String tisId;
   private LocalDateTime issuedAt;
   private LocalDateTime expiresAt;
-
-  public CredentialLog(String credentialId, String traineeId, String credentialType, String tisId,
-                       LocalDateTime issuedAt, LocalDateTime expiresAt) {
-  }
 }

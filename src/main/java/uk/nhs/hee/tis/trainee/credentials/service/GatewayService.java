@@ -41,7 +41,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.CredentialLogDto;
+import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 
 /**
  * A service providing credential gateway functionality.
@@ -134,10 +134,11 @@ public class GatewayService {
 
     String tisId = "TODO"; // TODO: get from ??
 
-    CredentialLogDto credentialLogDto
-        = new CredentialLogDto(null, null, dto.getScope(), tisId, null, null);
+    CredentialMetadata credentialMetadata = new CredentialMetadata();
+    credentialMetadata.setCredentialType(dto.getScope());
+    credentialMetadata.setTisId(tisId);
     UUID id = UUID.fromString(nonce);
-    cachingDelegate.cacheCredentialData(id, credentialLogDto);
+    cachingDelegate.cacheCredentialData(id, credentialMetadata);
   }
 
   /**
