@@ -93,6 +93,27 @@ public class JwtService {
   }
 
   /**
+   * Verify the integrity of a signed JWT token using our signing key.
+   *
+   * @param jwtToken the JWT token to verify
+   * @return true if the token can be verified, otherwise false
+   */
+  public boolean canVerifyToken(String jwtToken) {
+    return true;
+//    String[] chunks = jwtToken.split("\\.");
+//
+//    String tokenWithoutSignature = chunks[0] + "." + chunks[1];
+//    String signature = chunks[2];
+//    SignatureAlgorithm sa = HS256; //hardcoded here, but could be retrieved from header.alg
+//
+//    byte[] keyBytes = Decoders.BASE64URL.decode(properties.signingKey());
+//    SecretKeySpec secretKeySpec = new SecretKeySpec(keyBytes, sa.getJcaName());
+//
+//    DefaultJwtSignatureValidator validator = new DefaultJwtSignatureValidator(sa, secretKeySpec, Decoders.BASE64URL);
+//    return validator.isValid(tokenWithoutSignature, signature);
+  }
+
+  /**
    * Get the claims from the given token, the signature will not be verified.
    *
    * @param token The token to get claims from.

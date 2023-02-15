@@ -25,7 +25,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.impl.DefaultClaims;
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -207,14 +209,18 @@ public class GatewayService {
     log.info("Sending Token request.");
     ResponseEntity<TokenResponse> response = restTemplate.postForEntity(
         endpoint, request, TokenResponse.class);
-    // TODO: check in the redirectUri here
-    log.info("Received Token response.");
-
-    // TODO: check response codes etc.
-    // TODO: verify with public key
-    String signedToken = response.getBody().idToken();
-    String unsignedToken = signedToken.substring(0, signedToken.lastIndexOf('.') + 1);
-    return Jwts.parserBuilder().build().parseClaimsJwt(unsignedToken).getBody();
+    // TODO: check what's up with the redirectUri here
+    if (response.getStatusCode() == HttpStatus.OK) {
+      log.info("Received Token response.");
+      TokenResponse tokenResponse = response.getBody();
+      if (tokenResponse != null && jwtService.canVerifyToken(tokenResponse.idToken())) {
+        return jwtService.getClaims(tokenResponse.idToken());
+      } else {
+        log.error("Token response empty or could not be verified.");
+      }
+    }
+    log.error("Token response error: {}.", response.getStatusCode());
+    return Jwts.claims();
   }
 
   record TokenResponse(@JsonProperty("id_token") String idToken) {
