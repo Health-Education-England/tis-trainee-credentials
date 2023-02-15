@@ -61,6 +61,7 @@ import uk.nhs.hee.tis.trainee.credentials.service.VerificationService;
 @ComponentScan(basePackageClasses = FilterConfiguration.class)
 class VerifyResourceTest {
 
+  private static final String AUTH_TOKEN = "auth-token";
   private static final String CODE_PARAM = "code";
   private static final String CODE_VALUE = "not-a-real-code";
   private static final String SCOPE_PARAM = "scope";
@@ -108,10 +109,12 @@ class VerifyResourceTest {
 
     String uriString = "the-uri";
     URI uri = URI.create(uriString);
-    when(service.startIdentityVerification(any(IdentityDataDto.class), any())).thenReturn(uri);
+    when(service.startIdentityVerification(any(), any(IdentityDataDto.class), any())).thenReturn(
+        uri);
 
     mockMvc.perform(
             post("/api/verify/identity")
+                .header(HttpHeaders.AUTHORIZATION, AUTH_TOKEN)
                 .content(signedData)
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isCreated())
@@ -120,15 +123,34 @@ class VerifyResourceTest {
   }
 
   @Test
+  void shouldPassAuthTokenDownstream() throws Exception {
+    String signedData = SignatureTestUtil.signData(UNSIGNED_IDENTITY_DATA, secretKey);
+
+    ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
+    when(service.startIdentityVerification(tokenCaptor.capture(), any(IdentityDataDto.class),
+        any())).thenReturn(URI.create(""));
+
+    mockMvc.perform(
+        post("/api/verify/identity")
+            .header(HttpHeaders.AUTHORIZATION, "some-auth-token")
+            .content(signedData)
+            .contentType(MediaType.APPLICATION_JSON));
+
+    String token = tokenCaptor.getValue();
+    assertThat("Unexpected token.", token, is("some-auth-token"));
+  }
+
+  @Test
   void shouldPassStateDownstreamWhenStateGiven() throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_IDENTITY_DATA, secretKey);
 
     ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
-    when(service.startIdentityVerification(any(IdentityDataDto.class),
+    when(service.startIdentityVerification(any(), any(IdentityDataDto.class),
         stateCaptor.capture())).thenReturn(URI.create(""));
 
     mockMvc.perform(
         post("/api/verify/identity")
+            .header(HttpHeaders.AUTHORIZATION, AUTH_TOKEN)
             .queryParam("state", "some-state-value")
             .content(signedData)
             .contentType(MediaType.APPLICATION_JSON));
@@ -142,11 +164,12 @@ class VerifyResourceTest {
     String signedData = SignatureTestUtil.signData(UNSIGNED_IDENTITY_DATA, secretKey);
 
     ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
-    when(service.startIdentityVerification(any(IdentityDataDto.class),
+    when(service.startIdentityVerification(any(), any(IdentityDataDto.class),
         stateCaptor.capture())).thenReturn(URI.create(""));
 
     mockMvc.perform(
         post("/api/verify/identity")
+            .header(HttpHeaders.AUTHORIZATION, AUTH_TOKEN)
             .content(signedData)
             .contentType(MediaType.APPLICATION_JSON));
 
@@ -159,10 +182,12 @@ class VerifyResourceTest {
     String signedData = SignatureTestUtil.signData(UNSIGNED_IDENTITY_DATA, secretKey);
 
     ArgumentCaptor<IdentityDataDto> dtoCaptor = ArgumentCaptor.forClass(IdentityDataDto.class);
-    when(service.startIdentityVerification(dtoCaptor.capture(), any())).thenReturn(URI.create(""));
+    when(service.startIdentityVerification(any(), dtoCaptor.capture(), any())).thenReturn(
+        URI.create(""));
 
     mockMvc.perform(
         post("/api/verify/identity")
+            .header(HttpHeaders.AUTHORIZATION, AUTH_TOKEN)
             .content(signedData)
             .contentType(MediaType.APPLICATION_JSON));
 

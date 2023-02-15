@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.service;
 
+import io.jsonwebtoken.Claims;
 import java.net.URI;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -38,16 +39,22 @@ import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
 @Service
 public class VerificationService {
 
+  private static final String CLAIM_TOKEN_IDENTIFIER = "origin_jti";
+
+  private final JwtService jwtService;
   private final CachingDelegate cachingDelegate;
   private final VerificationProperties properties;
 
   /**
    * Create a service providing credential verification functionality.
    *
+   * @param jwtService      The JWT service to use.
    * @param cachingDelegate The caching delegate for caching data between requests.
    * @param properties      The application's gateway verification configuration.
    */
-  VerificationService(CachingDelegate cachingDelegate, VerificationProperties properties) {
+  VerificationService(JwtService jwtService,
+      CachingDelegate cachingDelegate, VerificationProperties properties) {
+    this.jwtService = jwtService;
     this.cachingDelegate = cachingDelegate;
     this.properties = properties;
   }
@@ -56,15 +63,21 @@ public class VerificationService {
    * Start the identity credential verification process, the result will direct the user to provide
    * an identity credential using the credential gateway.
    *
+   * @param authToken   The request's authorization token.
    * @param dto         The user's identity data.
    * @param clientState The state sent by client when making the request to start verification.
    * @return A URI to a credential gateway prompt for an identity credential.
    */
-  public URI startIdentityVerification(IdentityDataDto dto,
+  public URI startIdentityVerification(String authToken, IdentityDataDto dto,
       @Nullable String clientState) {
     // Cache the provided identity data against the nonce.
     UUID nonce = UUID.randomUUID();
     cachingDelegate.cacheIdentityData(nonce, dto);
+
+    // Cache an ID from the token to represent the session.
+    Claims authClaims = jwtService.getClaims(authToken);
+    String sessionId = authClaims.get(CLAIM_TOKEN_IDENTIFIER, String.class);
+    cachingDelegate.cacheUnverifiedSessionIdentifier(nonce, sessionId);
 
     // Generate new state for the internal request/callback and cache the client state.
     UUID internalState = UUID.randomUUID();

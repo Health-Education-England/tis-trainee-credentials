@@ -27,9 +27,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import io.jsonwebtoken.impl.DefaultClaims;
 import java.net.URI;
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -50,21 +53,29 @@ class VerificationServiceTest {
   private static final String TOKEN_ENDPOINT = "https://credential.gateway/token/endpoint";
   private static final String REDIRECT_URI = "https://credential.service/redirect-uri";
 
-  private VerificationService service;
+  private static final String AUTH_TOKEN = "dummy-auth-token";
+
+  private VerificationService verificationService;
+  private GatewayService gatewayService;
+  private JwtService jwtService;
   private CachingDelegate cachingDelegate;
 
   @BeforeEach
   void setUp() {
+    gatewayService = mock(GatewayService.class);
+    jwtService = mock(JwtService.class);
     cachingDelegate = spy(CachingDelegate.class);
     var properties = new VerificationProperties(AUTHORIZE_ENDPOINT, TOKEN_ENDPOINT, REDIRECT_URI);
-    service = new VerificationService(cachingDelegate, properties);
+    verificationService = new VerificationService(jwtService, cachingDelegate, properties);
   }
 
   @Test
   void shouldCacheIdentityDataWhenStartingVerification() {
     IdentityDataDto dto = new IdentityDataDto("Anthony", "Gilliam", LocalDate.now());
 
-    URI uri = service.startIdentityVerification(dto, null);
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims());
+
+    URI uri = verificationService.startIdentityVerification(AUTH_TOKEN, dto, null);
 
     ArgumentCaptor<UUID> uuidCaptor = ArgumentCaptor.forClass(UUID.class);
     verify(cachingDelegate).cacheIdentityData(uuidCaptor.capture(), eq(dto));
@@ -76,7 +87,9 @@ class VerificationServiceTest {
 
   @Test
   void shouldCacheClientStateWhenStartingVerification() {
-    URI uri = service.startIdentityVerification(null, "some-client-state");
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims());
+
+    URI uri = verificationService.startIdentityVerification(AUTH_TOKEN, null, "some-client-state");
 
     ArgumentCaptor<UUID> uuidCaptor = ArgumentCaptor.forClass(UUID.class);
     verify(cachingDelegate).cacheClientState(uuidCaptor.capture(), eq("some-client-state"));
@@ -88,7 +101,9 @@ class VerificationServiceTest {
 
   @Test
   void shouldCacheCodeVerifierWhenStartingVerification() {
-    URI uri = service.startIdentityVerification(null, null);
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims());
+
+    URI uri = verificationService.startIdentityVerification(AUTH_TOKEN, null, null);
 
     ArgumentCaptor<UUID> uuidCaptor = ArgumentCaptor.forClass(UUID.class);
     verify(cachingDelegate).cacheCodeVerifier(uuidCaptor.capture(), any());
@@ -99,8 +114,28 @@ class VerificationServiceTest {
   }
 
   @Test
+  void shouldCacheUnverifiedSessionIdWhenStartingVerification() {
+    DefaultClaims claims = new DefaultClaims(Map.of(
+        "origin_jti", "session-id-1"
+    ));
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(claims);
+
+    URI uri = verificationService.startIdentityVerification(AUTH_TOKEN, null, "some-client-state");
+
+    ArgumentCaptor<UUID> uuidCaptor = ArgumentCaptor.forClass(UUID.class);
+    verify(cachingDelegate).cacheUnverifiedSessionIdentifier(uuidCaptor.capture(),
+        eq("session-id-1"));
+
+    String uuid = uuidCaptor.getValue().toString();
+    Map<String, String> queryParams = splitQueryParams(uri);
+    assertThat("Unexpected cache key.", uuid, is(queryParams.get("nonce")));
+  }
+
+  @Test
   void shouldUseAuthorizeEndpointWhenStartingVerification() {
-    URI uri = service.startIdentityVerification(null, null);
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims());
+
+    URI uri = verificationService.startIdentityVerification(AUTH_TOKEN, null, null);
 
     URI relativeUri = uri.relativize(URI.create(AUTHORIZE_ENDPOINT));
     assertThat("Unexpected relative URI.", relativeUri, is(URI.create("")));
@@ -108,7 +143,8 @@ class VerificationServiceTest {
 
   @Test
   void shouldIncludeNonceWhenStartingVerification() {
-    URI uri = service.startIdentityVerification(null, null);
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims());
+    URI uri = verificationService.startIdentityVerification(AUTH_TOKEN, null, null);
 
     Map<String, String> queryParams = splitQueryParams(uri);
     String nonce = queryParams.get("nonce");
@@ -117,7 +153,9 @@ class VerificationServiceTest {
 
   @Test
   void shouldIncludeStateWhenStartingVerification() {
-    URI uri = service.startIdentityVerification(null, null);
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims());
+
+    URI uri = verificationService.startIdentityVerification(AUTH_TOKEN, null, null);
 
     Map<String, String> queryParams = splitQueryParams(uri);
     String state = queryParams.get("state");
@@ -126,7 +164,9 @@ class VerificationServiceTest {
 
   @Test
   void shouldIncludeCodeChallengeMethodWhenStartingVerification() {
-    URI uri = service.startIdentityVerification(null, null);
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims());
+
+    URI uri = verificationService.startIdentityVerification(AUTH_TOKEN, null, null);
 
     Map<String, String> queryParams = splitQueryParams(uri);
     String codeChallengeMethod = queryParams.get("code_challenge_method");
@@ -135,7 +175,9 @@ class VerificationServiceTest {
 
   @Test
   void shouldIncludeCodeChallengeWhenStartingVerification() {
-    URI uri = service.startIdentityVerification(null, null);
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims());
+
+    URI uri = verificationService.startIdentityVerification(AUTH_TOKEN, null, null);
 
     Map<String, String> queryParams = splitQueryParams(uri);
     String codeChallenge = queryParams.get("code_challenge");
@@ -144,7 +186,9 @@ class VerificationServiceTest {
 
   @Test
   void shouldIncludeScopeWhenStartingVerification() {
-    URI uri = service.startIdentityVerification(null, null);
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims());
+
+    URI uri = verificationService.startIdentityVerification(AUTH_TOKEN, null, null);
 
     Map<String, String> queryParams = splitQueryParams(uri);
     String scope = queryParams.get("scope");
@@ -153,7 +197,9 @@ class VerificationServiceTest {
 
   @Test
   void shouldUsePkceChallengeWhenStartingVerification() {
-    URI uri = service.startIdentityVerification(null, null);
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims());
+
+    URI uri = verificationService.startIdentityVerification(AUTH_TOKEN, null, null);
 
     ArgumentCaptor<String> codeVerifierCaptor = ArgumentCaptor.forClass(String.class);
     verify(cachingDelegate).cacheCodeVerifier(any(), codeVerifierCaptor.capture());
