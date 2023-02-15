@@ -35,7 +35,6 @@ import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
 
@@ -87,23 +86,6 @@ public class IssueResource {
       return ResponseEntity.created(uri).body(uri.toString());
     } else {
       log.error("Could not issue Placement credential.");
-      return ResponseEntity.internalServerError().build();
-    }
-  }
-
-  @PostMapping("/test")
-  ResponseEntity<String> issueTestCredential(
-      @Validated @RequestBody TestCredentialDto dto,
-      @RequestParam(required = false) String state) {
-    log.info("Received request to issue Test credential.");
-    Optional<URI> credentialUri = service.getCredentialUri(dto, state);
-
-    if (credentialUri.isPresent()) {
-      URI uri = credentialUri.get();
-      log.info("Test credential successfully issued.");
-      return ResponseEntity.created(uri).body(uri.toString());
-    } else {
-      log.error("Could not issue Test credential.");
       return ResponseEntity.internalServerError().build();
     }
   }

@@ -54,9 +54,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.nhs.hee.tis.trainee.credentials.SignatureTestUtil;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.filter.FilterConfiguration;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
@@ -76,26 +76,11 @@ class IssueResourceTest {
             "site": "placement site",
             "startDate": "2022-01-01",
             "endDate": "2022-12-31",
-            "givenName": "Anthony",
-            "familyName": "Gilliam",
-            "birthDate": "1991-11-11",
             "signature": {
               "signedAt": "%s",
               "validUntil": "%s"
             }
           }
-      """.formatted(Instant.MIN, Instant.MAX);
-
-  private static final String UNSIGNED_TEST_CREDENTIAL = """
-      {
-        "givenName": "Anthony",
-        "familyName": "Gilliam",
-        "birthDate": "1991-11-11",
-        "signature": {
-          "signedAt": "%s",
-          "validUntil": "%s"
-        }
-      }
       """.formatted(Instant.MIN, Instant.MAX);
 
   private static final String UNSIGNED_PROGRAMME_MEMBERSHIP = """
@@ -157,10 +142,9 @@ class IssueResourceTest {
   @CsvSource(delimiter = '|', textBlock = """
       programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto
       placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
-      test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
   void shouldReturnErrorWhenCredentialUriNotAvailable(String mapping,
-      Class<? extends TestCredentialDto> dtoClass)
+      Class<? extends CredentialDto> dtoClass)
       throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
@@ -177,10 +161,9 @@ class IssueResourceTest {
   @CsvSource(delimiter = '|', textBlock = """
       programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto
       placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
-      test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
   void shouldReturnCreatedWhenCredentialUriAvailable(String mapping,
-      Class<? extends TestCredentialDto> dtoClass)
+      Class<? extends CredentialDto> dtoClass)
       throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
@@ -201,10 +184,9 @@ class IssueResourceTest {
   @CsvSource(delimiter = '|', textBlock = """
       programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto
       placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
-      test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
   void shouldPassStateDownstreamWhenStateGiven(String mapping,
-      Class<? extends TestCredentialDto> dtoClass) throws Exception {
+      Class<? extends CredentialDto> dtoClass) throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
     mockMvc.perform(
@@ -224,10 +206,9 @@ class IssueResourceTest {
   @CsvSource(delimiter = '|', textBlock = """
       programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto
       placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
-      test                 | uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto
       """)
   void shouldNotPassStateDownstreamWhenNoStateGiven(String mapping,
-      Class<? extends TestCredentialDto> dtoClass) throws Exception {
+      Class<? extends CredentialDto> dtoClass) throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
     mockMvc.perform(
@@ -240,67 +221,6 @@ class IssueResourceTest {
 
     String state = stateCaptor.getValue();
     assertThat("Unexpected state.", state, nullValue());
-  }
-
-  @Test
-  void shouldUseTestCredentialDtoFromRequestBody() throws Exception {
-    String signedData = SignatureTestUtil.signData(UNSIGNED_TEST_CREDENTIAL, secretKey);
-
-    mockMvc.perform(
-        post("/api/issue/test")
-            .content(signedData)
-            .contentType(MediaType.APPLICATION_JSON));
-
-    ArgumentCaptor<TestCredentialDto> dtoCaptor = ArgumentCaptor.forClass(TestCredentialDto.class);
-    verify(service).getCredentialUri(dtoCaptor.capture(), any());
-
-    TestCredentialDto dto = dtoCaptor.getValue();
-    assertThat("Unexpected given name.", dto.givenName(), is("Anthony"));
-    assertThat("Unexpected family name.", dto.familyName(), is("Gilliam"));
-    assertThat("Unexpected birth date.", dto.birthDate(), is(LocalDate.of(1991, 11, 11)));
-  }
-
-  @ParameterizedTest
-  @CsvSource(delimiter = '|', textBlock = """
-          givenName  | ''
-          givenName  |
-          familyName | ''
-          familyName |
-          birthDate  | ''
-          birthDate  |
-      """)
-  void shouldRejectTestCredentialWhenPropertiesInvalid(String fieldName, String fieldValue)
-      throws Exception {
-    String signedData = SignatureTestUtil.overwriteFieldAndSignData(UNSIGNED_TEST_CREDENTIAL,
-        secretKey, fieldName,
-        fieldValue);
-
-    mockMvc.perform(
-            post("/api/issue/test")
-                .content(signedData)
-                .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isBadRequest());
-
-    verifyNoInteractions(service);
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {
-      "givenName",
-      "familyName",
-      "birthDate"
-  })
-  void shouldRejectTestCredentialWhenPropertiesMissing(String fieldName) throws Exception {
-    String signedData = SignatureTestUtil.removeFieldAndSignData(UNSIGNED_TEST_CREDENTIAL,
-        secretKey, fieldName);
-
-    mockMvc.perform(
-            post("/api/issue/test")
-                .content(signedData)
-                .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isBadRequest());
-
-    verifyNoInteractions(service);
   }
 
   @Test

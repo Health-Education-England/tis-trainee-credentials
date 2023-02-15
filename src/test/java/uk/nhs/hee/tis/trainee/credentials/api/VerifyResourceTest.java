@@ -70,9 +70,9 @@ class VerifyResourceTest {
 
   private static final String UNSIGNED_IDENTITY_DATA = """
       {
-            "givenName": "Anthony",
-            "familyName": "Gilliam",
-            "birthDate": "1991-11-11",
+            "forenames": "Anthony",
+            "surname": "Gilliam",
+            "dateOfBirth": "1991-11-11",
             "signature": {
               "signedAt": "%s",
               "validUntil": "%s"
@@ -167,19 +167,19 @@ class VerifyResourceTest {
             .contentType(MediaType.APPLICATION_JSON));
 
     IdentityDataDto dto = dtoCaptor.getValue();
-    assertThat("Unexpected given name.", dto.givenName(), is("Anthony"));
-    assertThat("Unexpected family name.", dto.familyName(), is("Gilliam"));
-    assertThat("Unexpected birth date.", dto.birthDate(), is(LocalDate.of(1991, 11, 11)));
+    assertThat("Unexpected forenames.", dto.forenames(), is("Anthony"));
+    assertThat("Unexpected surname.", dto.surname(), is("Gilliam"));
+    assertThat("Unexpected date of birth.", dto.dateOfBirth(), is(LocalDate.of(1991, 11, 11)));
   }
 
   @ParameterizedTest
   @CsvSource(delimiter = '|', textBlock = """
-          givenName  | ''
-          givenName  |
-          familyName | ''
-          familyName |
-          birthDate  | ''
-          birthDate  |
+          forenames    | ''
+          forenames    |
+          surname      | ''
+          surname      |
+          dateOfBirth  | ''
+          dateOfBirth  |
       """)
   void shouldRejectIdentityDataWhenPropertiesInvalid(String fieldName, String fieldValue)
       throws Exception {
@@ -197,9 +197,9 @@ class VerifyResourceTest {
 
   @ParameterizedTest
   @ValueSource(strings = {
-      "givenName",
-      "familyName",
-      "birthDate"
+      "forenames",
+      "surname",
+      "dateOfBirth"
   })
   void shouldRejectIdentityDataWhenPropertiesMissing(String fieldName) throws Exception {
     String signedData = SignatureTestUtil.removeFieldAndSignData(UNSIGNED_IDENTITY_DATA, secretKey,

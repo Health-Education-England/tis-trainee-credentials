@@ -22,7 +22,6 @@
 package uk.nhs.hee.tis.trainee.credentials.service;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,7 +47,6 @@ import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProper
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 
 class JwtServiceTest {
 
@@ -61,10 +59,6 @@ class JwtServiceTest {
   private static final String PLACEMENT_NATIONAL_POST_NUMBER = "placement NPN";
   private static final String PLACEMENT_EMPLOYING_BODY = "placement employing body";
   private static final String PLACEMENT_SITE = "placement site";
-
-  private static final String GIVEN_NAME = "Anthony";
-  private static final String FAMILY_NAME = "Gilliam";
-  private static final LocalDate BIRTH_DATE = LocalDate.now();
 
   private static final String AUDIENCE = "https://test.tis.nhs.uk/audience";
   private static final String ISSUER = "some-identifier";
@@ -181,23 +175,32 @@ class JwtServiceTest {
   }
 
   @Test
-  void shouldGenerateTokenWithTestCredentialClaims() {
-    TestCredentialDto dto = new TestCredentialDto(GIVEN_NAME, FAMILY_NAME, BIRTH_DATE);
+  void shouldGetClaimsFromSignedToken() throws NoSuchAlgorithmException {
+    byte[] keyBytes = new byte[32];
+    SecureRandom.getInstanceStrong().nextBytes(keyBytes);
+    SecretKey key = Keys.hmacShaKeyFor(keyBytes);
 
-    String tokenString = service.generateToken(dto);
+    String token = Jwts.builder().signWith(key)
+        .claim("claim1", "value1")
+        .claim("claim2", "value2")
+        .compact();
 
-    Jwt<?, Claims> token = parser.parse(tokenString);
-    Claims tokenClaims = token.getBody();
+    Claims claims = service.getClaims(token);
+    assertThat("Unexpected claim count.", claims.size(), is(2));
+    assertThat("Unexpected claim value.", claims.get("claim1"), is("value1"));
+    assertThat("Unexpected claim value.", claims.get("claim2"), is("value2"));
+  }
 
-    assertThat("Unexpected number of claims.", tokenClaims.size(), is(DEFAULT_CLAIM_COUNT + 3));
-    assertThat("Unexpected given name.", tokenClaims.get("givenName"), is(GIVEN_NAME));
-    assertThat("Unexpected family name.", tokenClaims.get("familyName"),
-        is(FAMILY_NAME));
-    assertThat("Unexpected birth date.", tokenClaims.get("birthDate"), is(BIRTH_DATE.toString()));
+  @Test
+  void shouldGetClaimsFromUnsignedToken() {
+    String token = Jwts.builder()
+        .claim("claim1", "value1")
+        .claim("claim2", "value2")
+        .compact();
 
-    Instant issuedAt = tokenClaims.getIssuedAt().toInstant();
-    Instant expectedExpiration = dto.getExpiration(issuedAt).truncatedTo(ChronoUnit.SECONDS);
-    Instant expiration = tokenClaims.getExpiration().toInstant();
-    assertThat("Unexpected token exp.", expiration, is(expectedExpiration));
+    Claims claims = service.getClaims(token);
+    assertThat("Unexpected claim count.", claims.size(), is(2));
+    assertThat("Unexpected claim value.", claims.get("claim1"), is("value1"));
+    assertThat("Unexpected claim value.", claims.get("claim2"), is("value2"));
   }
 }

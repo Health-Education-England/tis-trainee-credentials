@@ -24,7 +24,8 @@ application:
       redirect-uri: ${GATEWAY_ISSUING_REDIRECT_URI}
     verification:
       authorize-endpoint: https://${application.gateway.host}/connect/authorize?client_id=${application.gateway.client-id}&response_type=code&redirect_uri=${application.gateway.verification.redirect-uri}&response_mode=query
-      redirect-uri: ${GATEWAY_VERIFICATION_REDIRECT_URI:https://jwt.ms}
+      token-endpoint: https://${application.gateway.host}/connect/token
+      redirect-uri: ${GATEWAY_VERIFICATION_REDIRECT_URI}
   signature:
     secret-key: ${SIGNATURE_SECRET_KEY}
 

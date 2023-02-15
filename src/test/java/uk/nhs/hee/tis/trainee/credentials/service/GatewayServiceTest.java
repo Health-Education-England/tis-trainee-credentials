@@ -49,7 +49,6 @@ import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.VerificationP
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService.ParResponse;
 
 class GatewayServiceTest {
@@ -73,7 +72,7 @@ class GatewayServiceTest {
 
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
         "", null, REDIRECT_URI);
-    VerificationProperties verificationProperties = new VerificationProperties("");
+    VerificationProperties verificationProperties = new VerificationProperties("", "", "");
     GatewayProperties gatewayProperties = new GatewayProperties(CLIENT_ID, CLIENT_SECRET,
         issuingProperties, verificationProperties);
 
@@ -192,21 +191,6 @@ class GatewayServiceTest {
     MultiValueMap<String, String> requestBody = request.getBody();
     assertThat("Unexpected scope.", requestBody.get("scope"),
         is(List.of("issue.TrainingPlacement")));
-  }
-
-  @Test
-  void shouldIncludeTestScopeInParRequest() {
-    TestCredentialDto dto = new TestCredentialDto("", "", LocalDate.now());
-
-    var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
-    when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
-        eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
-
-    service.getCredentialUri(dto, STATE);
-
-    var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
-    MultiValueMap<String, String> requestBody = request.getBody();
-    assertThat("Unexpected scope.", requestBody.get("scope"), is(List.of("issue.TestCredential")));
   }
 
   @Test

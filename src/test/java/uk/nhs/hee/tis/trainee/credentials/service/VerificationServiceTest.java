@@ -47,6 +47,8 @@ import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
 class VerificationServiceTest {
 
   private static final String AUTHORIZE_ENDPOINT = "https://credential.gateway/authorize/endpoint";
+  private static final String TOKEN_ENDPOINT = "https://credential.gateway/token/endpoint";
+  private static final String REDIRECT_URI = "https://credential.service/redirect-uri";
 
   private VerificationService service;
   private CachingDelegate cachingDelegate;
@@ -54,7 +56,7 @@ class VerificationServiceTest {
   @BeforeEach
   void setUp() {
     cachingDelegate = spy(CachingDelegate.class);
-    VerificationProperties properties = new VerificationProperties(AUTHORIZE_ENDPOINT);
+    var properties = new VerificationProperties(AUTHORIZE_ENDPOINT, TOKEN_ENDPOINT, REDIRECT_URI);
     service = new VerificationService(cachingDelegate, properties);
   }
 

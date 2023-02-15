@@ -42,7 +42,8 @@ class CachingDelegate {
   private static final String CLIENT_STATE = "ClientState";
   private static final String CODE_VERIFIER = "CodeVerifier";
   public static final String IDENTITY_DATA = "IdentityData";
-  public static final String SESSION_IDENTIFIER = "SessionIdentifier";
+  public static final String UNVERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Unverified";
+  public static final String VERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Verified";
 
   /**
    * Cache a PKCE code verifier for later retrieval.
@@ -117,25 +118,50 @@ class CachingDelegate {
   }
 
   /**
-   * Cache a verified session for later retrieval.
+   * Cache an unverified session identifier for later retrieval.
    *
-   * @param key               The cache key.
-   * @param verifiedSessionId The ID of the verified session to cache.
-   * @return The cached session id.
+   * @param key       The cache key.
+   * @param sessionId The session identifier to cache.
+   * @return The cached session identifier.
    */
-  @CachePut(cacheNames = SESSION_IDENTIFIER, cacheManager = VERIFIED_SESSION_DATA, key = "#key")
-  public String cacheVerifiedSession(UUID key, String verifiedSessionId) {
-    return verifiedSessionId;
+  @CachePut(cacheNames = UNVERIFIED_SESSION_IDENTIFIER,
+      cacheManager = VERIFICATION_REQUEST_DATA, key = "#key")
+  public String cacheUnverifiedSessionIdentifier(UUID key, String sessionId) {
+    return sessionId;
   }
 
   /**
-   * Get the verified session associated with the given key.
+   * Get the unverified session identifier associated with the given key, any cached value will be
+   * removed.
    *
    * @param key The cache key.
-   * @return The cached session id, or an empty optional if not found.
+   * @return The cached session identifier, or an empty optional if not found.
    */
-  @Cacheable(cacheNames = SESSION_IDENTIFIER, cacheManager = VERIFIED_SESSION_DATA)
-  public Optional<String> getVerifiedSession(UUID key) {
+  @Cacheable(cacheNames = UNVERIFIED_SESSION_IDENTIFIER, cacheManager = VERIFICATION_REQUEST_DATA)
+  @CacheEvict(UNVERIFIED_SESSION_IDENTIFIER)
+  public Optional<String> getUnverifiedSessionIdentifier(UUID key) {
+    return Optional.empty();
+  }
+
+  /**
+   * Cache a verified session identifier for later retrieval.
+   *
+   * @param sessionId The identifier of the verified session to cache.
+   * @return The cached session identifier.
+   */
+  @CachePut(cacheNames = VERIFIED_SESSION_IDENTIFIER, cacheManager = VERIFIED_SESSION_DATA)
+  public String cacheVerifiedSessionIdentifier(String sessionId) {
+    return sessionId;
+  }
+
+  /**
+   * Get the verified session identifier.
+   *
+   * @param sessionId The identifier of the verified session.
+   * @return The cached session identifier, or an empty optional if not found.
+   */
+  @Cacheable(cacheNames = VERIFIED_SESSION_IDENTIFIER, cacheManager = VERIFIED_SESSION_DATA)
+  public Optional<String> getVerifiedSessionIdentifier(String sessionId) {
     return Optional.empty();
   }
 }
