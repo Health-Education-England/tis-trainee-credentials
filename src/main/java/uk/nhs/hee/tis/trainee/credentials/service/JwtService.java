@@ -22,6 +22,10 @@
 package uk.nhs.hee.tis.trainee.credentials.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
+import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.time.Instant;
@@ -79,5 +83,21 @@ public class JwtService {
 
     log.info("Generated id_token_hint JWT.");
     return jwt;
+  }
+
+  /**
+   * Get the claims from the given token, the signature will not be verified.
+   *
+   * @param token The token to get claims from.
+   * @return The extracted claims.
+   */
+  public Claims getClaims(String token) {
+    JwtParser jwtParser = Jwts.parserBuilder().build();
+
+    // The signing key is not known, strip the signature so the parser can continue.
+    token = token.substring(0, token.lastIndexOf(JwtParser.SEPARATOR_CHAR) + 1);
+    Jwt<Header, Claims> headerClaimsJwt = jwtParser.parseClaimsJwt(token);
+
+    return headerClaimsJwt.getBody();
   }
 }

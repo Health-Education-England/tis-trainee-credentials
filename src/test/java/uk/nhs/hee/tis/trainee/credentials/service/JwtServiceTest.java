@@ -173,4 +173,34 @@ class JwtServiceTest {
     Instant expiration = tokenClaims.getExpiration().toInstant();
     assertThat("Unexpected token exp.", expiration, is(expectedExpiration));
   }
+
+  @Test
+  void shouldGetClaimsFromSignedToken() throws NoSuchAlgorithmException {
+    byte[] keyBytes = new byte[32];
+    SecureRandom.getInstanceStrong().nextBytes(keyBytes);
+    SecretKey key = Keys.hmacShaKeyFor(keyBytes);
+
+    String token = Jwts.builder().signWith(key)
+        .claim("claim1", "value1")
+        .claim("claim2", "value2")
+        .compact();
+
+    Claims claims = service.getClaims(token);
+    assertThat("Unexpected claim count.", claims.size(), is(2));
+    assertThat("Unexpected claim value.", claims.get("claim1"), is("value1"));
+    assertThat("Unexpected claim value.", claims.get("claim2"), is("value2"));
+  }
+
+  @Test
+  void shouldGetClaimsFromUnsignedToken() {
+    String token = Jwts.builder()
+        .claim("claim1", "value1")
+        .claim("claim2", "value2")
+        .compact();
+
+    Claims claims = service.getClaims(token);
+    assertThat("Unexpected claim count.", claims.size(), is(2));
+    assertThat("Unexpected claim value.", claims.get("claim1"), is("value1"));
+    assertThat("Unexpected claim value.", claims.get("claim2"), is("value2"));
+  }
 }
