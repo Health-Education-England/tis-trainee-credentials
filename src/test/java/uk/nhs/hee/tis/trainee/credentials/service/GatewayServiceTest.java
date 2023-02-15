@@ -24,15 +24,20 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.impl.DefaultClaims;
 import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -50,6 +55,7 @@ import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService.ParResponse;
+import uk.nhs.hee.tis.trainee.credentials.service.GatewayService.TokenResponse;
 
 class GatewayServiceTest {
 
@@ -57,6 +63,7 @@ class GatewayServiceTest {
   private static final String CLIENT_SECRET = "no-very-secret";
   private static final String AUTHORIZE_ENDPOINT = "https://credential.gateway/authorize/endpoint";
   private static final String PAR_ENDPOINT = "https://credential.gateway/par/endpoint";
+  private static final String TOKEN_ENDPOINT = "https://credential.gateway/token/endpoint";
   private static final String REDIRECT_URI = "https://redirect.uri";
 
   private static final String STATE = "some-client-state";
@@ -283,5 +290,148 @@ class GatewayServiceTest {
     URI relativeUri = credentialUri.relativize(URI.create(AUTHORIZE_ENDPOINT));
     assertThat("Unexpected relative URI.", relativeUri, is(URI.create("")));
     assertThat("Unexpected URI query.", credentialUri.getQuery(), is("request_uri=" + requestUri));
+  }
+
+  @Test
+  void shouldReturnEmptyClaimsWhenTokenResponseNotOk() {
+    URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
+
+    when(restTemplate.postForEntity(eq(tokenEndpoint), any(), eq(TokenResponse.class))).thenReturn(
+        ResponseEntity.notFound().build());
+
+    Claims claims = service.getTokenClaims(tokenEndpoint, URI.create(REDIRECT_URI), "", "");
+
+    assertThat("Unexpected claim count.", claims.size(), is(0));
+  }
+
+  @Test
+  void shouldReturnTokenClaimsWhenTokenResponseOk() {
+    URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
+
+    String token = "tokenString";
+    var response = ResponseEntity.ok().body(new TokenResponse(token));
+    when(restTemplate.postForEntity(eq(tokenEndpoint), any(), eq(TokenResponse.class))).thenReturn(
+        response);
+    when(jwtService.getClaims(token)).thenReturn(new DefaultClaims(Map.of(
+        "claim1", "value1",
+        "claim2", "value2"
+    )));
+
+    Claims claims = service.getTokenClaims(tokenEndpoint, URI.create(REDIRECT_URI), "", "");
+
+    assertThat("Unexpected claim count.", claims.size(), is(2));
+    assertThat("Unexpected claim value.", claims.get("claim1"), is("value1"));
+    assertThat("Unexpected claim value.", claims.get("claim2"), is("value2"));
+  }
+
+  @Test
+  void shouldIncludeClientIdInTokenRequest() {
+    URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
+
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(tokenEndpoint), requestCaptor.capture(),
+        eq(TokenResponse.class))).thenReturn(ResponseEntity.notFound().build());
+
+    service.getTokenClaims(tokenEndpoint, URI.create(REDIRECT_URI), "", "");
+
+    var request = (HttpEntity<MultiValueMap<String, String>>) requestCaptor.getValue();
+    MultiValueMap<String, String> requestBody = request.getBody();
+    assertThat("Unexpected client id.", requestBody.get("client_id"), is(List.of(CLIENT_ID)));
+  }
+
+  @Test
+  void shouldIncludeClientSecretInTokenRequest() {
+    URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
+
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(tokenEndpoint), requestCaptor.capture(),
+        eq(TokenResponse.class))).thenReturn(ResponseEntity.notFound().build());
+
+    service.getTokenClaims(tokenEndpoint, URI.create(REDIRECT_URI), "", "");
+
+    var request = (HttpEntity<MultiValueMap<String, String>>) requestCaptor.getValue();
+    MultiValueMap<String, String> requestBody = request.getBody();
+    assertThat("Unexpected client secret.", requestBody.get("client_secret"),
+        is(List.of(CLIENT_SECRET)));
+  }
+
+  @Test
+  void shouldIncludeRedirectUriInTokenRequest() {
+    URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
+
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(tokenEndpoint), requestCaptor.capture(),
+        eq(TokenResponse.class))).thenReturn(ResponseEntity.notFound().build());
+
+    service.getTokenClaims(tokenEndpoint, URI.create(REDIRECT_URI), "", "");
+
+    var request = (HttpEntity<MultiValueMap<String, String>>) requestCaptor.getValue();
+    MultiValueMap<String, String> requestBody = request.getBody();
+    assertThat("Unexpected redirect uri.", requestBody.get("redirect_uri"),
+        is(List.of(REDIRECT_URI)));
+  }
+
+  @Test
+  void shouldIncludeGrantTypeInTokenRequest() {
+    URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
+
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(tokenEndpoint), requestCaptor.capture(),
+        eq(TokenResponse.class))).thenReturn(ResponseEntity.notFound().build());
+
+    service.getTokenClaims(tokenEndpoint, URI.create(REDIRECT_URI), "", "");
+
+    var request = (HttpEntity<MultiValueMap<String, String>>) requestCaptor.getValue();
+    MultiValueMap<String, String> requestBody = request.getBody();
+    assertThat("Unexpected grant type.", requestBody.get("grant_type"),
+        is(List.of("authorization_code")));
+  }
+
+  @Test
+  void shouldIncludeCodeInTokenRequest() {
+    URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
+
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(tokenEndpoint), requestCaptor.capture(),
+        eq(TokenResponse.class))).thenReturn(ResponseEntity.notFound().build());
+
+    service.getTokenClaims(tokenEndpoint, URI.create(REDIRECT_URI), "code123", "");
+
+    var request = (HttpEntity<MultiValueMap<String, String>>) requestCaptor.getValue();
+    MultiValueMap<String, String> requestBody = request.getBody();
+    assertThat("Unexpected code.", requestBody.get("code"), is(List.of("code123")));
+  }
+
+  @Test
+  void shouldIncludeCodeVerifierInTokenRequest() {
+    URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
+
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(tokenEndpoint), requestCaptor.capture(),
+        eq(TokenResponse.class))).thenReturn(ResponseEntity.notFound().build());
+
+    service.getTokenClaims(tokenEndpoint, URI.create(REDIRECT_URI), "", "codeVerifier123");
+
+    var request = (HttpEntity<MultiValueMap<String, String>>) requestCaptor.getValue();
+    MultiValueMap<String, String> requestBody = request.getBody();
+    assertThat("Unexpected code verifier.", requestBody.get("code_verifier"),
+        is(List.of("codeVerifier123")));
+  }
+
+  @Test
+  void shouldIncludeStateInTokenRequest() {
+    URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
+
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(tokenEndpoint), requestCaptor.capture(),
+        eq(TokenResponse.class))).thenReturn(ResponseEntity.notFound().build());
+
+    service.getTokenClaims(tokenEndpoint, URI.create(REDIRECT_URI), "code123", "");
+
+    var request = (HttpEntity<MultiValueMap<String, String>>) requestCaptor.getValue();
+    MultiValueMap<String, String> requestBody = request.getBody();
+    List<String> state = requestBody.get("state");
+    assertThat("Unexpected state count.", state.size(), is(1));
+    assertDoesNotThrow(() -> UUID.fromString(state.get(0)), "Unexpected state format.");
   }
 }

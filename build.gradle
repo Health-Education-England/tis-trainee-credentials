@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "uk.nhs.tis.trainee"
-version = "0.6.0"
+version = "0.7.0"
 
 configurations {
   compileOnly {
@@ -49,8 +49,7 @@ dependencies {
 
   ext.jjwtVersion = "0.11.5"
   implementation "io.jsonwebtoken:jjwt-api:$jjwtVersion"
-  runtimeOnly "io.jsonwebtoken:jjwt-impl:$jjwtVersion"
-  testImplementation "io.jsonwebtoken:jjwt-impl:$jjwtVersion"
+  implementation "io.jsonwebtoken:jjwt-impl:$jjwtVersion"
   runtimeOnly "io.jsonwebtoken:jjwt-jackson:$jjwtVersion"
 
   testImplementation "org.springframework.cloud:spring-cloud-starter-bootstrap"

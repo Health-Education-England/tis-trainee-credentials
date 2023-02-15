@@ -24,8 +24,11 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 import io.jsonwebtoken.Claims;
 import java.net.URI;
 import java.security.SecureRandom;
+import java.time.LocalDate;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -36,11 +39,20 @@ import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
 /**
  * A service providing credential verification functionality.
  */
+@Slf4j
 @Service
 public class VerificationService {
 
+  private static final String CREDENTIAL_PREFIX = "openid ";
+  private static final String CREDENTIAL_TYPE_IDENTITY = "Identity";
+
+  private static final String CLAIM_NONCE = "nonce";
+  private static final String CLAIM_FIRST_NAME = "Identity.ID-LegalFirstName";
+  private static final String CLAIM_FAMILY_NAME = "Identity.ID-LegalSurname";
+  private static final String CLAIM_BIRTH_DATE = "Identity.ID-BirthDate";
   private static final String CLAIM_TOKEN_IDENTIFIER = "origin_jti";
 
+  private final GatewayService gatewayService;
   private final JwtService jwtService;
   private final CachingDelegate cachingDelegate;
   private final VerificationProperties properties;
@@ -48,12 +60,14 @@ public class VerificationService {
   /**
    * Create a service providing credential verification functionality.
    *
+   * @param gatewayService  The service to handle all credential gateway interactions.
    * @param jwtService      The JWT service to use.
    * @param cachingDelegate The caching delegate for caching data between requests.
    * @param properties      The application's gateway verification configuration.
    */
-  VerificationService(JwtService jwtService,
+  VerificationService(GatewayService gatewayService, JwtService jwtService,
       CachingDelegate cachingDelegate, VerificationProperties properties) {
+    this.gatewayService = gatewayService;
     this.jwtService = jwtService;
     this.cachingDelegate = cachingDelegate;
     this.properties = properties;
@@ -100,18 +114,6 @@ public class VerificationService {
   }
 
   /**
-   * Complete the credential verification process.
-   *
-   * @param code  The code provided by the credential gateway.
-   * @param scope The scope set in the initial gateway request.
-   * @param state The state set in the initial gateway request.
-   * @return The built redirect URI for completed verification.
-   */
-  public URI completeVerification(String code, String scope, String state) {
-    return URI.create("/credential-verified");
-  }
-
-  /**
    * Generate a random PKCE code verifier.
    *
    * @return The generated code verifier.
@@ -132,5 +134,82 @@ public class VerificationService {
   private String generateCodeChallenge(String codeVerifier) {
     byte[] codeChallenge = DigestUtils.sha256(codeVerifier);
     return Base64.getUrlEncoder().withoutPadding().encodeToString(codeChallenge);
+  }
+
+  /**
+   * Complete the credential verification process.
+   *
+   * @param code  The code provided by the credential gateway.
+   * @param scope The scope set in the initial gateway request.
+   * @param state The state set in the initial gateway request.
+   * @return The built redirect URI for completed verification.
+   */
+  public URI completeCredentialVerification(String code, String scope, String state) {
+    UUID stateUuid = UUID.fromString(state);
+    Optional<String> codeVerifier = cachingDelegate.getCodeVerifier(stateUuid);
+    String failureCode;
+
+    if (codeVerifier.isEmpty()) {
+      failureCode = "no_code_verifier";
+    } else {
+      URI tokenEndpoint = URI.create(properties.tokenEndpoint());
+      URI redirectEndpoint = URI.create(properties.redirectUri());
+      Claims claims = gatewayService.getTokenClaims(tokenEndpoint, redirectEndpoint, code,
+          codeVerifier.get());
+      String credentialType = scope.replace(CREDENTIAL_PREFIX, "");
+
+      if (credentialType.equals(CREDENTIAL_TYPE_IDENTITY)) {
+        failureCode = verifyIdentity(claims) ? null : "identity_verification_failed";
+      } else {
+        // Should never get here as the scope is pre-validated.
+        log.error("Unsupported credential type '{}'.", credentialType);
+        failureCode = "unsupported_scope";
+      }
+    }
+
+    UriComponentsBuilder uriBuilder;
+
+    if (failureCode == null) {
+      uriBuilder = UriComponentsBuilder.fromUriString("/credential-verified");
+    } else {
+      uriBuilder = UriComponentsBuilder.fromUriString("/invalid-credential")
+          .queryParam("reason", failureCode);
+    }
+
+    Optional<String> clientState = cachingDelegate.getClientState(stateUuid);
+    clientState.ifPresent(s -> uriBuilder.queryParam("state", s));
+    return uriBuilder.build().toUri();
+  }
+
+  /**
+   * Check the identity claims against the cached identity data for the user.
+   *
+   * @param claims The credential gateway token claims.
+   * @return true if identity matches, else false.
+   */
+  private boolean verifyIdentity(Claims claims) {
+    UUID nonce = UUID.fromString(claims.get(CLAIM_NONCE, String.class));
+    Optional<IdentityDataDto> optionalIdentityData = cachingDelegate.getIdentityData(nonce);
+
+    if (optionalIdentityData.isPresent()) {
+      IdentityDataDto identityData = optionalIdentityData.get();
+
+      String claimFirstName = claims.get(CLAIM_FIRST_NAME, String.class);
+      String claimFamilyName = claims.get(CLAIM_FAMILY_NAME, String.class);
+      LocalDate claimBirthDate = LocalDate.parse(claims.get(CLAIM_BIRTH_DATE, String.class));
+
+      if (identityData.forenames().equals(claimFirstName) && identityData.surname()
+          .equals(claimFamilyName) && identityData.dateOfBirth().equals(claimBirthDate)) {
+        Optional<String> sessionIdentifier = cachingDelegate.getUnverifiedSessionIdentifier(nonce);
+
+        // If the unverified session is cached, move it to the verified session cache.
+        if (sessionIdentifier.isPresent()) {
+          cachingDelegate.cacheVerifiedSessionIdentifier(sessionIdentifier.get());
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 }

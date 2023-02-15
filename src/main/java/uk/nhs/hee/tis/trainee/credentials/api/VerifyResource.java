@@ -71,7 +71,7 @@ public class VerifyResource {
       @ValidScope @RequestParam String scope,
       @UUID @RequestParam String state) {
     log.info("Received callback for credential verification.");
-    URI uri = service.completeVerification(code, scope, state);
+    URI uri = service.completeCredentialVerification(code, scope, state);
 
     log.info("Credential verification completed.");
     return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();
