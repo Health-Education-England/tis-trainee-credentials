@@ -177,8 +177,15 @@ public class GatewayService {
     }
     log.info("Received token response.");
 
+    TokenResponse body = tokenResponse.getBody();
+
+    if (body == null) {
+      log.error("Token response was empty.");
+      return new DefaultClaims();
+    }
+
     // TODO: verify token against public key
-    String signedToken = tokenResponse.getBody().idToken();
+    String signedToken = body.idToken();
     return jwtService.getClaims(signedToken);
   }
 

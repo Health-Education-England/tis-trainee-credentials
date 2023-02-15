@@ -104,7 +104,7 @@ public class VerificationService {
 
     // Build and return the URI at which the user can provide an identity credential.
     return UriComponentsBuilder.fromUriString(properties.authorizeEndpoint())
-        .queryParam("nonce", nonce)
+        .queryParam(CLAIM_NONCE, nonce)
         .queryParam("state", internalState)
         .queryParam("code_challenge_method", "S256")
         .queryParam("code_challenge", codeChallenge)

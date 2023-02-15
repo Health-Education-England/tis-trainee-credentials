@@ -305,6 +305,18 @@ class GatewayServiceTest {
   }
 
   @Test
+  void shouldReturnEmptyClaimsWhenTokenResponseEmpty() {
+    URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
+
+    when(restTemplate.postForEntity(eq(tokenEndpoint), any(), eq(TokenResponse.class))).thenReturn(
+        ResponseEntity.ok().build());
+
+    Claims claims = service.getTokenClaims(tokenEndpoint, URI.create(REDIRECT_URI), "", "");
+
+    assertThat("Unexpected claim count.", claims.size(), is(0));
+  }
+
+  @Test
   void shouldReturnTokenClaimsWhenTokenResponseOk() {
     URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
 
