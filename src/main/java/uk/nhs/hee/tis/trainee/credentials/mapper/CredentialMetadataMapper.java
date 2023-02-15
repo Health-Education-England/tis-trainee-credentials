@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
@@ -71,10 +72,10 @@ public class CredentialMetadataMapper {
     String traineeTisId = (String) payload.get(TIS_ID_ATTRIBUTE);
 
     String credentialId = claims.get("SerialNumber", String.class);
-    LocalDateTime issuedAt = LocalDateTime.from(Instant.ofEpochSecond(
-        Long.parseLong(claims.get("iat", String.class))));
-    LocalDateTime expiresAt = LocalDateTime.from(Instant.ofEpochSecond(
-        Long.parseLong(claims.get("exp", String.class))));
+    LocalDateTime issuedAt = LocalDateTime.ofInstant(
+        Instant.ofEpochSecond(claims.get("iat", Long.class)), ZoneOffset.UTC);
+    LocalDateTime expiresAt = LocalDateTime.ofInstant(
+        Instant.ofEpochSecond(claims.get("exp", Long.class)), ZoneOffset.UTC);
 
     UUID id = UUID.fromString(claims.get("nonce", String.class));
     Optional<CredentialMetadata> credentialMetadataCached = issuedResourceService.getFromCache(id);
@@ -86,8 +87,7 @@ public class CredentialMetadataMapper {
       credentialMetadataCached.get().setExpiresAt(expiresAt);
       return credentialMetadataCached.get();
     } else {
-      // TODO: is this valid? Or rather throw error?
-      return null;
+      throw new IllegalStateException("Credential not in cache");
     }
   }
 }
