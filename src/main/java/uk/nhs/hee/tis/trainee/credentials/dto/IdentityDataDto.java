@@ -29,13 +29,13 @@ import java.time.LocalDate;
 /**
  * A DTO representing identity data.
  *
- * @param givenName  The user's given name.
- * @param familyName The user's family name.
- * @param birthDate  The user's birthdate.
+ * @param forenames   The user's forenames.
+ * @param surname     The user's surname.
+ * @param dateOfBirth The user's date of birth.
  */
 public record IdentityDataDto(
-    @NotEmpty String givenName,
-    @NotEmpty String familyName,
-    @NotNull LocalDate birthDate) implements Serializable {
+    @NotEmpty String forenames,
+    @NotEmpty String surname,
+    @NotNull LocalDate dateOfBirth) implements Serializable {
 
 }
