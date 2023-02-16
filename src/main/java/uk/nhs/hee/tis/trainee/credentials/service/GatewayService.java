@@ -133,12 +133,9 @@ public class GatewayService {
    * @param dto   the credentials DTO.
    */
   private void cacheIssuingRequest(String nonce, CredentialDto dto) {
-
-    String tisId = "TODO"; // TODO: get from ??
-
     CredentialMetadata credentialMetadata = new CredentialMetadata();
     credentialMetadata.setCredentialType(dto.getScope());
-    credentialMetadata.setTisId(tisId);
+    credentialMetadata.setTisId(dto.getTisId());
     UUID id = UUID.fromString(nonce);
     cachingDelegate.cacheCredentialData(id, credentialMetadata);
   }
@@ -218,8 +215,9 @@ public class GatewayService {
       } else {
         log.error("Token response empty or could not be verified.");
       }
+    } else {
+      log.error("Token response error: {}.", response.getStatusCode());
     }
-    log.error("Token response error: {}.", response.getStatusCode());
     return Jwts.claims();
   }
 

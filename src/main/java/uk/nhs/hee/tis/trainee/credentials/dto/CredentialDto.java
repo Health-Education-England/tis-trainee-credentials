@@ -30,6 +30,13 @@ import java.time.Instant;
 public interface CredentialDto {
 
   /**
+   * Get the TIS ID of the record, which is recorded in the credential metadata, not the credential
+   * itself.
+   */
+  @JsonIgnore
+  String getTisId();
+
+  /**
    * Get the expiry instant for the credential.
    *
    * @param issuedAt The time the credential is being issued.
