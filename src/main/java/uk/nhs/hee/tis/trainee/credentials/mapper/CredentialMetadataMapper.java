@@ -63,7 +63,8 @@ public class CredentialMetadataMapper {
    * @return The mapped credential log entry.
    */
 
-  public CredentialMetadata toCredentialMetadata(Claims claims, String authToken) throws IOException {
+  public CredentialMetadata toCredentialMetadata(Claims claims, String authToken)
+      throws IOException {
 
     String[] tokenSections = authToken.split("\\.");
     byte[] payloadBytes = Base64.getUrlDecoder()

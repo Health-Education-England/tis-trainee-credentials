@@ -93,27 +93,6 @@ public class JwtService {
   }
 
   /**
-   * Verify the integrity of a signed JWT token using our signing key.
-   *
-   * @param jwtToken the JWT token to verify
-   * @return true if the token can be verified, otherwise false
-   */
-  public boolean canVerifyToken(String jwtToken) {
-    return true;
-//    String[] chunks = jwtToken.split("\\.");
-//
-//    String tokenWithoutSignature = chunks[0] + "." + chunks[1];
-//    String signature = chunks[2];
-//    SignatureAlgorithm sa = HS256; //hardcoded here, but could be retrieved from header.alg
-//
-//    byte[] keyBytes = Decoders.BASE64URL.decode(properties.signingKey());
-//    SecretKeySpec secretKeySpec = new SecretKeySpec(keyBytes, sa.getJcaName());
-//
-//    DefaultJwtSignatureValidator validator = new DefaultJwtSignatureValidator(sa, secretKeySpec, Decoders.BASE64URL);
-//    return validator.isValid(tokenWithoutSignature, signature);
-  }
-
-  /**
    * Get the claims from the given token, the signature will not be verified.
    *
    * @param token The token to get claims from.
@@ -142,41 +121,5 @@ public class JwtService {
     } else {
       return parser.parseClaimsJws(token).getBody();
     }
-  }
-
-  /**
-   * Helper function to build a token request.
-   *
-   * @param code         The response code from the Gateway process.
-   * @param state        The state to use for the token request.
-   * @param clientId     The Gateway client ID.
-   * @param clientSecret The Gateway client secret.
-   * @param redirectUri  The redirect URI to receive the Gateway response.
-   * @return an HttpEntity with the appropriate body and headers.
-   */
-  public HttpEntity<MultiValueMap<String, String>> buildTokenRequest(String code, String state,
-                                                                     String clientId,
-                                                                     String clientSecret,
-                                                                     String codeVerifier,
-                                                                     String redirectUri) {
-    log.info("Building Token request.");
-
-    MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
-    bodyPair.add("client_id", clientId);
-    bodyPair.add("client_secret", clientSecret);
-    bodyPair.add("redirect_uri", redirectUri);
-    bodyPair.add("grant_type", "authorization_code");
-    bodyPair.add("code", code);
-    if (codeVerifier != null) {
-      bodyPair.add("code_verifier", codeVerifier);
-    }
-    bodyPair.add("state", state);
-
-    HttpHeaders headers = new HttpHeaders();
-    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-    log.info("Built Token request.");
-    return new HttpEntity<>(bodyPair, headers);
   }
 }
