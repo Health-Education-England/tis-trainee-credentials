@@ -25,12 +25,14 @@ import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.validator.constraints.UUID;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -54,11 +56,11 @@ public class VerifyResource {
   }
 
   @PostMapping("/identity")
-  ResponseEntity<String> verifyIdentity(
+  ResponseEntity<String> verifyIdentity(@RequestHeader(HttpHeaders.AUTHORIZATION) String authToken,
       @RequestParam(required = false) String state,
       @Valid @RequestBody IdentityDataDto dto) {
     log.info("Received request to start identity verification.");
-    URI uri = service.startIdentityVerification(dto, state);
+    URI uri = service.startIdentityVerification(authToken, dto, state);
 
     log.info("Identity verification successfully started.");
     return ResponseEntity.created(uri).body(uri.toString());
@@ -69,7 +71,7 @@ public class VerifyResource {
       @ValidScope @RequestParam String scope,
       @UUID @RequestParam String state) {
     log.info("Received callback for credential verification.");
-    URI uri = service.completeVerification(code, scope, state);
+    URI uri = service.completeCredentialVerification(code, scope, state);
 
     log.info("Credential verification completed.");
     return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();

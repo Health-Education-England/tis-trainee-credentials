@@ -22,6 +22,8 @@
 package uk.nhs.hee.tis.trainee.credentials.service;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.impl.DefaultClaims;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -147,6 +149,78 @@ public class GatewayService {
    * @param requestUri The returned request_uri value.
    */
   record ParResponse(@JsonProperty("request_uri") String requestUri) {
+
+  }
+
+  /**
+   * Call a token code endpoint and extract the claims from the resulting token.
+   *
+   * @param endpoint     The token endpoint.
+   * @param redirectUri  The redirect endpoint sent with the initial request.
+   * @param code         The code resulting from the initial request.
+   * @param codeVerifier The code PKCE code verifier matching the challenge sent with the initial
+   *                     request.
+   * @return The extracted claims.
+   */
+  public Claims getTokenClaims(URI endpoint, URI redirectUri, String code, String codeVerifier) {
+    String state = UUID.randomUUID().toString();
+    HttpEntity<MultiValueMap<String, String>> request = buildTokenRequest(redirectUri, code,
+        codeVerifier, state);
+
+    log.info("Sending token request.");
+    ResponseEntity<TokenResponse> tokenResponse = restTemplate.postForEntity(endpoint, request,
+        TokenResponse.class);
+
+    if (tokenResponse.getStatusCode().isError()) {
+      log.error("Token request failed with code {}.", tokenResponse.getStatusCode());
+      return new DefaultClaims();
+    }
+    log.info("Received token response.");
+
+    TokenResponse body = tokenResponse.getBody();
+
+    if (body == null) {
+      log.error("Token response was empty.");
+      return new DefaultClaims();
+    }
+
+    // TODO: verify token against public key
+    String signedToken = body.idToken();
+    return jwtService.getClaims(signedToken);
+  }
+
+  /**
+   * Build a request to get a token for the given code.
+   *
+   * @param redirectUri  The redirect endpoint sent with the initial request.
+   * @param code         The code resulting from the initial request.
+   * @param codeVerifier The code PKCE code verifier matching the challenge sent with the initial
+   *                     request.
+   * @param state        The state to include in the request.
+   * @return The built token request.
+   */
+  private HttpEntity<MultiValueMap<String, String>> buildTokenRequest(URI redirectUri, String code,
+      String codeVerifier, String state) {
+    log.info("Building Token request.");
+
+    MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
+    bodyPair.add("client_id", properties.clientId());
+    bodyPair.add("client_secret", properties.clientSecret());
+    bodyPair.add("redirect_uri", redirectUri.toString());
+    bodyPair.add("grant_type", "authorization_code");
+    bodyPair.add("code", code);
+    bodyPair.add("code_verifier", codeVerifier);
+    bodyPair.add("state", state);
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+    log.info("Built Token request.");
+    return new HttpEntity<>(bodyPair, headers);
+  }
+
+  record TokenResponse(@JsonProperty("id_token") String idToken) {
 
   }
 }
