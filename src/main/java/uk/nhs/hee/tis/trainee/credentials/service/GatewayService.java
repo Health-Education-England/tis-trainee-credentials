@@ -177,52 +177,9 @@ public class GatewayService {
    * @return the claims from the token.
    */
   public Claims getIssuedTokenClaims(String code, String state) {
-    return getTokenClaims(code, state, properties.issuing().tokenEndpoint(), null,
-        properties.issuing().callbackUri());
-  }
-
-  // TODO: - this is speculative, need to confirm actual usage.
-  public Claims getVerificationTokenClaims(String code, String state) {
-    String codeVerifier = String.valueOf(cachingDelegate.getCodeVerifier(UUID.fromString(state)));
-    return getTokenClaims(code, state, properties.issuing().tokenEndpoint(), codeVerifier,
-        properties.issuing().callbackUri());
-  }
-
-  /**
-   * A generic function to get token claims (from issued credentials or identity verification).
-   *
-   * @param code        The response code from the Gateway process.
-   * @param state       The state to use for the token request.
-   * @param endpoint    The gateway token endpoint.
-   * @param redirectUri The redirect URI to include in the token request (TODO: confirm)
-   * @return the claims from the token.
-   */
-  public Claims getTokenClaims(String code, String state, String endpoint, String codeVerifier,
-                               String redirectUri) {
-    HttpEntity<MultiValueMap<String, String>> request
-        = jwtService.buildTokenRequest(code, state, properties.clientId(),
-        properties.clientSecret(), codeVerifier, redirectUri);
-
-    log.info("Sending Token request.");
-    ResponseEntity<TokenResponse> response = restTemplate.postForEntity(
-        endpoint, request, TokenResponse.class);
-    // TODO: check what's up with the redirectUri here
-    if (response.getStatusCode() == HttpStatus.OK) {
-      log.info("Received Token response.");
-      TokenResponse tokenResponse = response.getBody();
-      if (tokenResponse != null && jwtService.canVerifyToken(tokenResponse.idToken())) {
-        return jwtService.getClaims(tokenResponse.idToken());
-      } else {
-        log.error("Token response empty or could not be verified.");
-      }
-    } else {
-      log.error("Token response error: {}.", response.getStatusCode());
-    }
-    return Jwts.claims();
-  }
-
-  record TokenResponse(@JsonProperty("id_token") String idToken) {
-
+    URI tokenEndpoint = URI.create(properties.issuing().tokenEndpoint());
+    URI redirectEndpoint = URI.create(properties.issuing().callbackUri());
+    return getTokenClaims(tokenEndpoint, redirectEndpoint, code, null);
   }
 
   /**

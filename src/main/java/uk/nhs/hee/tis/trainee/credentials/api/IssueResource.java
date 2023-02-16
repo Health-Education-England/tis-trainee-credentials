@@ -21,8 +21,6 @@
 
 package uk.nhs.hee.tis.trainee.credentials.api;
 
-import io.jsonwebtoken.Claims;
-import java.io.IOException;
 import java.net.URI;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -58,15 +56,12 @@ public class IssueResource {
   private final GatewayService service;
   private final CredentialDataMapper mapper;
   private final IssuedResourceService issuedResourceService;
-  private final CredentialMetadataMapper credentialMetadataMapper;
 
   IssueResource(GatewayService service, CredentialDataMapper mapper,
-                IssuedResourceService issuedResourceService,
-                CredentialMetadataMapper credentialMetadataMapper) {
+                IssuedResourceService issuedResourceService) {
     this.service = service;
     this.mapper = mapper;
     this.issuedResourceService = issuedResourceService;
-    this.credentialMetadataMapper = credentialMetadataMapper;
   }
 
   @PostMapping("/programme-membership")
@@ -113,6 +108,7 @@ public class IssueResource {
    * @param state            The internal state returned from the gateway.
    * @param error            The error text, if the credential was not issued.
    * @param errorDescription The error description, if the credential was not issued.
+   * @param token            The user's authorization token.
    * @return The response entity redirecting to the issuing redirect_uri.
    */
   @GetMapping("/callback")
@@ -123,21 +119,10 @@ public class IssueResource {
       @RequestParam(required = false, value = "error_description") String errorDescription,
       @RequestHeader(HttpHeaders.AUTHORIZATION) String token) {
 
-    CredentialMetadata credentialMetadata = null;
-    if (error == null) {
-      log.info("Credential was issued successfully.");
-      Claims claims = service.getIssuedTokenClaims(code, state);
-      try {
-        credentialMetadata = credentialMetadataMapper.toCredentialMetadata(claims, token);
-      } catch (IOException e) {
-        log.warn("Unable to read trainee tisId from token.", e);
-        // TODO - allow to continue? or return ResponseEntity.badRequest().build();
-      }
-    } else {
-      log.info("Credential was not issued.");
-    }
-    URI redirectUri = issuedResourceService.logIssuedResource(credentialMetadata, code, state,
-        error, errorDescription);
+    log.info("Receiving callback for credential issuing.");
+
+    URI redirectUri = issuedResourceService.logIssuedResource(token, code, state, error,
+        errorDescription);
 
     log.info("Redirecting after credential issuing process.");
     return ResponseEntity.status(HttpStatus.OK).location(redirectUri).build();

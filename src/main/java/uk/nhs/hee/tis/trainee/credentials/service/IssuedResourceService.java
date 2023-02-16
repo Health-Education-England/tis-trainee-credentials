@@ -21,12 +21,16 @@
 
 package uk.nhs.hee.tis.trainee.credentials.service;
 
+import io.jsonwebtoken.Claims;
+import java.io.IOException;
 import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties;
+import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialMetadataMapper;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 import uk.nhs.hee.tis.trainee.credentials.repository.CredentialMetadataRepository;
 
@@ -34,24 +38,32 @@ import uk.nhs.hee.tis.trainee.credentials.repository.CredentialMetadataRepositor
  * A service providing credential verification functionality.
  */
 @Service
+@Slf4j
 public class IssuedResourceService {
 
+  private final GatewayService service;
   private final CredentialMetadataRepository credentialMetadataRepository;
 
+  private final CredentialMetadataMapper credentialMetadataMapper;
   private final CachingDelegate cachingDelegate;
   private final IssuingProperties properties;
 
   /**
    * Create a service providing credential verification functionality.
    *
+   * @param service                      The gateway service.
    * @param credentialMetadataRepository The credential log repository.
+   * @param credentialMetadataMapper     The mapper for credential metadata.
    * @param cachingDelegate              The caching delegate for caching data between requests.
    * @param properties                   The application's gateway verification configuration.
    */
-  IssuedResourceService(CredentialMetadataRepository credentialMetadataRepository,
-                        CachingDelegate cachingDelegate,
-                        IssuingProperties properties) {
+  IssuedResourceService(GatewayService service,
+                        CredentialMetadataRepository credentialMetadataRepository,
+                        CredentialMetadataMapper credentialMetadataMapper,
+                        CachingDelegate cachingDelegate, IssuingProperties properties) {
+    this.service = service;
     this.credentialMetadataRepository = credentialMetadataRepository;
+    this.credentialMetadataMapper = credentialMetadataMapper;
     this.cachingDelegate = cachingDelegate;
     this.properties = properties;
   }
@@ -59,11 +71,30 @@ public class IssuedResourceService {
   /**
    * Log the issued credential, and get the redirect.
    *
-   * @param credentialMetadata The credential metadata.
+   * @param authToken        The user's authorization token.
+   * @param code             The PAR response code.
+   * @param state            The PAR response state.
+   * @param error            The PAR response error.
+   * @param errorDescription The PAR response error description.
    * @return The redirect URI
    */
-  public URI logIssuedResource(CredentialMetadata credentialMetadata, String code, String state,
-                               String error, String errorDescription) {
+  public URI logIssuedResource(String authToken, String code, String state, String error,
+                               String errorDescription) {
+
+    CredentialMetadata credentialMetadata = null;
+    if (error == null) {
+      log.info("Credential was issued successfully.");
+      URI tokenEndpoint = URI.create(properties.tokenEndpoint());
+      URI redirectEndpoint = URI.create(properties.callbackUri());
+      Claims claims = service.getTokenClaims(tokenEndpoint, redirectEndpoint, code, null);
+      try {
+        credentialMetadata = credentialMetadataMapper.toCredentialMetadata(claims, authToken);
+      } catch (IOException e) {
+        log.error("Unable to retrieve cached metadata, could not log issued credential.", e);
+      }
+    } else {
+      log.info("Credential was not issued.");
+    }
 
     if (credentialMetadata != null) {
       credentialMetadataRepository.save(credentialMetadata);
@@ -82,5 +113,4 @@ public class IssuedResourceService {
   public Optional<CredentialMetadata> getFromCache(UUID id) {
     return cachingDelegate.getCredentialMetadata(id);
   }
-
 }
