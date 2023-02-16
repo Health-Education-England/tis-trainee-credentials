@@ -26,14 +26,19 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * A representation of the credential gateway properties.
  *
+ * @param host         The gateway host.
  * @param clientId     The gateway client ID.
  * @param clientSecret The gateway client secret.
+ * @param jwksEndpoint The endpoint for JWKS document.
  * @param issuing      The issuing child properties.
+ * @param verification The verification child properties.
  */
 @ConfigurationProperties(prefix = "application.gateway")
 public record GatewayProperties(
+    String host,
     String clientId,
     String clientSecret,
+    String jwksEndpoint,
     IssuingProperties issuing,
     VerificationProperties verification) {
 

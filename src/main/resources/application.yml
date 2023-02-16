@@ -10,21 +10,22 @@ application:
       verification-request: ${REDIS_TTL_VERIFICATION_REQUEST:300}
       verified-session: ${REDIS_TTL_VERIFIED_SESSION:600}
   gateway:
-    host: ${GATEWAY_HOST}
+    host: https://${GATEWAY_HOST}
     client-id: ${GATEWAY_CLIENT_ID}
     client-secret: ${GATEWAY_CLIENT_SECRET}
+    jwks-endpoint: ${application.gateway.host}/issuing/.well-known/openid-configuration/jwks
     issuing:
-      par-endpoint: https://${application.gateway.host}/issuing/par
-      authorize-endpoint: https://${application.gateway.host}/issuing/authorize?client_id=${application.gateway.client-id}
-      token-endpoint: https://${application.gateway.host}/issuing/token
+      par-endpoint: ${application.gateway.host}/issuing/par
+      authorize-endpoint: ${application.gateway.host}/issuing/authorize?client_id=${application.gateway.client-id}
+      token-endpoint: ${application.gateway.host}/issuing/token
       token:
-        audience: https://${application.gateway.host}/issuing
+        audience: ${application.gateway.host}/issuing
         issuer: ${application.gateway.client-id}
         signing-key: ${GATEWAY_TOKEN_SIGNING_KEY}
       redirect-uri: ${GATEWAY_ISSUING_REDIRECT_URI}
     verification:
-      authorize-endpoint: https://${application.gateway.host}/connect/authorize?client_id=${application.gateway.client-id}&response_type=code&redirect_uri=${application.gateway.verification.redirect-uri}&response_mode=query
-      token-endpoint: https://${application.gateway.host}/connect/token
+      authorize-endpoint: ${application.gateway.host}/connect/authorize?client_id=${application.gateway.client-id}&response_type=code&redirect_uri=${application.gateway.verification.redirect-uri}&response_mode=query
+      token-endpoint: ${application.gateway.host}/connect/token
       redirect-uri: ${GATEWAY_VERIFICATION_REDIRECT_URI}
   signature:
     secret-key: ${SIGNATURE_SECRET_KEY}

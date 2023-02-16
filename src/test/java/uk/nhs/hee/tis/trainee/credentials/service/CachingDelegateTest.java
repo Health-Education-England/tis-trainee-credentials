@@ -23,8 +23,9 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.spy;
 
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import java.security.PublicKey;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -75,7 +76,7 @@ class CachingDelegateTest {
 
   @Test
   void shouldReturnCachedPublicKey() {
-    PublicKey publicKey = spy(PublicKey.class);
+    PublicKey publicKey = Keys.keyPairFor(SignatureAlgorithm.RS256).getPublic();
     PublicKey cachedPublicKey = delegate.cachePublicKey("certThumb", publicKey);
     assertThat("Unexpected public key.", cachedPublicKey, is(publicKey));
   }

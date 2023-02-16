@@ -61,7 +61,9 @@ class GatewayServiceTest {
 
   private static final String CLIENT_ID = "client-id";
   private static final String CLIENT_SECRET = "no-very-secret";
+  private static final String HOST = "https://credential.gateway";
   private static final String AUTHORIZE_ENDPOINT = "https://credential.gateway/authorize/endpoint";
+  private static final String JWKS_ENDPOINT = "https://credential.gateway/jwks/endpoint";
   private static final String PAR_ENDPOINT = "https://credential.gateway/par/endpoint";
   private static final String TOKEN_ENDPOINT = "https://credential.gateway/token/endpoint";
   private static final String REDIRECT_URI = "https://redirect.uri";
@@ -80,8 +82,8 @@ class GatewayServiceTest {
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
         "", null, REDIRECT_URI);
     VerificationProperties verificationProperties = new VerificationProperties("", "", "");
-    GatewayProperties gatewayProperties = new GatewayProperties(CLIENT_ID, CLIENT_SECRET,
-        issuingProperties, verificationProperties);
+    GatewayProperties gatewayProperties = new GatewayProperties(HOST, CLIENT_ID, CLIENT_SECRET,
+        JWKS_ENDPOINT, issuingProperties, verificationProperties);
 
     service = new GatewayService(restTemplate, jwtService, gatewayProperties);
   }
@@ -324,7 +326,7 @@ class GatewayServiceTest {
     var response = ResponseEntity.ok().body(new TokenResponse(token));
     when(restTemplate.postForEntity(eq(tokenEndpoint), any(), eq(TokenResponse.class))).thenReturn(
         response);
-    when(jwtService.getClaims(token)).thenReturn(new DefaultClaims(Map.of(
+    when(jwtService.getClaims(token, true)).thenReturn(new DefaultClaims(Map.of(
         "claim1", "value1",
         "claim2", "value2"
     )));

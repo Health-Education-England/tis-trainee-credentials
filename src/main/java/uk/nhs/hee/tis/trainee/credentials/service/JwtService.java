@@ -23,8 +23,6 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Header;
-import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -48,15 +46,18 @@ public class JwtService {
   private final ObjectMapper mapper;
   private final TokenProperties properties;
 
+  private final PublicKeyResolver publicKeyResolver;
+
   /**
    * Create a service providing JWT token functionality.
    *
    * @param mapper     The mapper to convert data.
    * @param properties The token properties.
    */
-  JwtService(ObjectMapper mapper, TokenProperties properties) {
+  JwtService(ObjectMapper mapper, TokenProperties properties, PublicKeyResolver publicKeyResolver) {
     this.mapper = mapper;
     this.properties = properties;
+    this.publicKeyResolver = publicKeyResolver;
   }
 
   /**
@@ -92,12 +93,24 @@ public class JwtService {
    * @return The extracted claims.
    */
   public Claims getClaims(String token) {
-    JwtParser jwtParser = Jwts.parserBuilder().build();
+    return getClaims(token, false);
+  }
 
-    // The signing key is not known, strip the signature so the parser can continue.
-    token = token.substring(0, token.lastIndexOf(JwtParser.SEPARATOR_CHAR) + 1);
-    Jwt<Header, Claims> headerClaimsJwt = jwtParser.parseClaimsJwt(token);
+  /**
+   * Get the claims from the given token.
+   *
+   * @param token           The token to get claims from.
+   * @param verifySignature Whether the token signature should be verified.
+   * @return The extracted claims.
+   */
+  public Claims getClaims(String token, boolean verifySignature) {
+    JwtParser parser = Jwts.parserBuilder().setSigningKeyResolver(publicKeyResolver).build();
 
-    return headerClaimsJwt.getBody();
+    if (!verifySignature) {
+      token = token.substring(0, token.lastIndexOf(JwtParser.SEPARATOR_CHAR) + 1);
+      return parser.parseClaimsJwt(token).getBody();
+    } else {
+      return parser.parseClaimsJws(token).getBody();
+    }
   }
 }

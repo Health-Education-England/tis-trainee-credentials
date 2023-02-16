@@ -24,6 +24,8 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import java.security.PublicKey;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -179,7 +181,7 @@ class CachingDelegateIntegrationTest {
   @Test
   void shouldReturnCachedPublicKeyAfterCaching() {
     String certificateThumbprint = UUID.randomUUID().toString();
-    PublicKey publicKey = new TestPublicKey();
+    PublicKey publicKey = Keys.keyPairFor(SignatureAlgorithm.RS256).getPublic();
     PublicKey cachedKey = delegate.cachePublicKey(certificateThumbprint, publicKey);
     assertThat("Unexpected cached value.", cachedKey, is(publicKey));
   }
@@ -187,7 +189,7 @@ class CachingDelegateIntegrationTest {
   @Test
   void shouldGetCachedPublicKeyWhenCached() {
     String certificateThumbprint = UUID.randomUUID().toString();
-    PublicKey publicKey = new TestPublicKey();
+    PublicKey publicKey = Keys.keyPairFor(SignatureAlgorithm.RS256).getPublic();
     delegate.cachePublicKey(certificateThumbprint, publicKey);
 
     Optional<PublicKey> cachedOptional = delegate.getPublicKey(certificateThumbprint);
@@ -197,7 +199,7 @@ class CachingDelegateIntegrationTest {
   @Test
   void shouldNotRemovePublicKeyWhenRetrieved() {
     String certificateThumbprint = UUID.randomUUID().toString();
-    PublicKey publicKey = new TestPublicKey();
+    PublicKey publicKey = Keys.keyPairFor(SignatureAlgorithm.RS256).getPublic();
     delegate.cachePublicKey(certificateThumbprint, publicKey);
 
     // Ignore this result, the cached value should not be evicted.
@@ -282,33 +284,5 @@ class CachingDelegateIntegrationTest {
 
     Optional<String> cachedOptional = delegate.getVerifiedSessionIdentifier(verifiedSession);
     assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(verifiedSession)));
-  }
-
-  /**
-   * A {@link PublicKey} implementation to use for testing.
-   */
-  private static class TestPublicKey implements PublicKey {
-
-    private final UUID uuid = UUID.randomUUID();
-
-    @Override
-    public String getAlgorithm() {
-      return null;
-    }
-
-    @Override
-    public String getFormat() {
-      return null;
-    }
-
-    @Override
-    public byte[] getEncoded() {
-      return new byte[0];
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      return obj instanceof TestPublicKey && this.uuid.equals(((TestPublicKey) obj).uuid);
-    }
   }
 }

@@ -23,6 +23,11 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -31,7 +36,9 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -67,6 +74,8 @@ class JwtServiceTest {
 
   private JwtService service;
   private JwtParser parser;
+  private PublicKeyResolver signingKeyResolver;
+  private SecretKey signingKey;
 
   @BeforeEach
   void setUp() throws NoSuchAlgorithmException {
@@ -76,12 +85,13 @@ class JwtServiceTest {
 
     byte[] keyBytes = new byte[32];
     SecureRandom.getInstanceStrong().nextBytes(keyBytes);
-    String keyString = Base64.getEncoder().encodeToString(keyBytes);
-    SecretKey key = Keys.hmacShaKeyFor(keyBytes);
-    parser = Jwts.parserBuilder().setSigningKey(key).build();
+    signingKey = Keys.hmacShaKeyFor(keyBytes);
+    parser = Jwts.parserBuilder().setSigningKey(signingKey).build();
 
+    signingKeyResolver = mock(PublicKeyResolver.class);
+    String keyString = Base64.getEncoder().encodeToString(keyBytes);
     TokenProperties properties = new TokenProperties(AUDIENCE, ISSUER, keyString);
-    service = new JwtService(mapper, properties);
+    service = new JwtService(mapper, properties, signingKeyResolver);
   }
 
   @Test
@@ -175,7 +185,7 @@ class JwtServiceTest {
   }
 
   @Test
-  void shouldGetClaimsFromSignedToken() throws NoSuchAlgorithmException {
+  void shouldGetClaimsFromSignedTokenByDefault() throws NoSuchAlgorithmException {
     byte[] keyBytes = new byte[32];
     SecureRandom.getInstanceStrong().nextBytes(keyBytes);
     SecretKey key = Keys.hmacShaKeyFor(keyBytes);
@@ -189,10 +199,12 @@ class JwtServiceTest {
     assertThat("Unexpected claim count.", claims.size(), is(2));
     assertThat("Unexpected claim value.", claims.get("claim1"), is("value1"));
     assertThat("Unexpected claim value.", claims.get("claim2"), is("value2"));
+
+    verifyNoInteractions(signingKeyResolver);
   }
 
   @Test
-  void shouldGetClaimsFromUnsignedToken() {
+  void shouldGetClaimsFromUnsignedTokenByDefault() {
     String token = Jwts.builder()
         .claim("claim1", "value1")
         .claim("claim2", "value2")
@@ -202,5 +214,80 @@ class JwtServiceTest {
     assertThat("Unexpected claim count.", claims.size(), is(2));
     assertThat("Unexpected claim value.", claims.get("claim1"), is("value1"));
     assertThat("Unexpected claim value.", claims.get("claim2"), is("value2"));
+
+    verifyNoInteractions(signingKeyResolver);
+  }
+
+  @Test
+  void shouldGetClaimsFromSignedTokenWhenVerifySignatureAndSignatureValid() {
+    String token = Jwts.builder().signWith(signingKey)
+        .claim("claim1", "value1")
+        .claim("claim2", "value2")
+        .compact();
+
+    when(signingKeyResolver.resolveSigningKey(any(), any(Claims.class))).thenReturn(signingKey);
+
+    Claims claims = service.getClaims(token, true);
+    assertThat("Unexpected claim count.", claims.size(), is(2));
+    assertThat("Unexpected claim value.", claims.get("claim1"), is("value1"));
+    assertThat("Unexpected claim value.", claims.get("claim2"), is("value2"));
+  }
+
+  @Test
+  void shouldThrowExceptionGettingClaimsFromSignedTokenWhenVerifySignatureAndSignatureInvalid()
+      throws NoSuchAlgorithmException {
+    byte[] keyBytes = new byte[32];
+    SecureRandom.getInstanceStrong().nextBytes(keyBytes);
+    SecretKey key = Keys.hmacShaKeyFor(keyBytes);
+
+    String token = Jwts.builder().signWith(key)
+        .claim("claim1", "value1")
+        .claim("claim2", "value2")
+        .compact();
+
+    when(signingKeyResolver.resolveSigningKey(any(), any(Claims.class))).thenReturn(signingKey);
+
+    assertThrows(SignatureException.class, () -> service.getClaims(token, true));
+  }
+
+  @Test
+  void shouldThrowExceptionGettingClaimsFromUnsignedTokenWhenVerifySignature() {
+    String token = Jwts.builder()
+        .claim("claim1", "value1")
+        .claim("claim2", "value2")
+        .compact();
+
+    assertThrows(UnsupportedJwtException.class, () -> service.getClaims(token, true));
+
+    verifyNoInteractions(signingKeyResolver);
+  }
+
+  @Test
+  void shouldGetClaimsFromSignedTokenWhenNotVerifySignature() {
+    String token = Jwts.builder().signWith(signingKey)
+        .claim("claim1", "value1")
+        .claim("claim2", "value2")
+        .compact();
+
+    Claims claims = service.getClaims(token, false);
+    assertThat("Unexpected claim count.", claims.size(), is(2));
+    assertThat("Unexpected claim value.", claims.get("claim1"), is("value1"));
+    assertThat("Unexpected claim value.", claims.get("claim2"), is("value2"));
+
+    verifyNoInteractions(signingKeyResolver);
+  }
+
+  @Test
+  void shouldGetClaimsFromUnsignedTokenWhenNotVerifySignature() {
+    String token = Jwts.builder()
+        .claim("claim1", "value1")
+        .claim("claim2", "value2")
+        .compact();
+    Claims claims = service.getClaims(token, false);
+    assertThat("Unexpected claim count.", claims.size(), is(2));
+    assertThat("Unexpected claim value.", claims.get("claim1"), is("value1"));
+    assertThat("Unexpected claim value.", claims.get("claim2"), is("value2"));
+
+    verifyNoInteractions(signingKeyResolver);
   }
 }
