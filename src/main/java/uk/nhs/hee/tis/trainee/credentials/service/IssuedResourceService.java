@@ -119,10 +119,10 @@ public class IssuedResourceService {
 
     // Build and return the redirect_uri
     return UriComponentsBuilder.fromUriString(properties.redirectUri())
-        .queryParam("code", code)
-        .queryParam("state", state)
-        .queryParam("error", error)
-        .queryParam("error_description", errorDescription)
+        .queryParamIfPresent("code", Optional.ofNullable(code))
+        .queryParamIfPresent("state", Optional.ofNullable(state))
+        .queryParamIfPresent("error", Optional.ofNullable(error))
+        .queryParamIfPresent("error_description", Optional.ofNullable(errorDescription))
         .build()
         .toUri();
   }
