@@ -93,6 +93,20 @@ class GatewayServiceTest {
     service = new GatewayService(restTemplate, jwtService, gatewayProperties, cachingDelegate);
   }
 
+  void setUpWithoutCallbackUri() {
+    restTemplate = mock(RestTemplate.class);
+    jwtService = mock(JwtService.class);
+    cachingDelegate = mock(CachingDelegate.class);
+
+    IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
+        "", null, null, REDIRECT_URI);
+    VerificationProperties verificationProperties = new VerificationProperties("", "", "");
+    GatewayProperties gatewayProperties = new GatewayProperties(CLIENT_ID, CLIENT_SECRET,
+        issuingProperties, verificationProperties);
+
+    service = new GatewayService(restTemplate, jwtService, gatewayProperties, cachingDelegate);
+  }
+
   @Test
   void shouldIncludeAcceptHeaderInParRequest() {
     CredentialDto dto = mock(CredentialDto.class);
@@ -159,7 +173,8 @@ class GatewayServiceTest {
   }
 
   @Test
-  void shouldIncludeRedirectUriInParRequest() {
+  void shouldIncludeRedirectUriInParRequestIfNoCallbackUri() {
+    setUpWithoutCallbackUri();
     CredentialDto dto = mock(CredentialDto.class);
 
     var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
@@ -172,6 +187,22 @@ class GatewayServiceTest {
     MultiValueMap<String, String> requestBody = request.getBody();
     assertThat("Unexpected redirect URI.", requestBody.get("redirect_uri"),
         is(List.of(REDIRECT_URI)));
+  }
+
+  @Test
+  void shouldIncludeCallbackUriInParRequest() {
+    CredentialDto dto = mock(CredentialDto.class);
+
+    var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
+        eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
+
+    service.getCredentialUri(dto, STATE);
+
+    var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
+    MultiValueMap<String, String> requestBody = request.getBody();
+    assertThat("Unexpected redirect URI.", requestBody.get("redirect_uri"),
+        is(List.of(CALLBACK_URI)));
   }
 
   @Test
