@@ -117,8 +117,9 @@ public class IssueResource {
       @RequestHeader(HttpHeaders.AUTHORIZATION) String token) {
 
     log.info("Receiving callback for credential issuing.");
-    URI redirectUri = issuedResourceService.logIssuedResource(token, code, state, error,
-        errorDescription);
+
+    URI redirectUri = issuedResourceService.logIssuedResource(code, state, error,
+        errorDescription, token);
 
     log.info("Redirecting after credential issuing process.");
     return ResponseEntity.status(HttpStatus.OK).location(redirectUri).build();

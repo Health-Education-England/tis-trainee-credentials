@@ -28,9 +28,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.net.URI;
@@ -67,6 +69,16 @@ import uk.nhs.hee.tis.trainee.credentials.service.VerificationService;
 @WebMvcTest(IssueResource.class)
 @ComponentScan(basePackageClasses = {CredentialDataMapper.class, FilterConfiguration.class})
 class IssueResourceTest {
+
+  private static final String AUTH_TOKEN = "auth-token";
+  private static final String CODE_PARAM = "code";
+  private static final String CODE_VALUE = "some-code";
+  private static final String STATE_PARAM = "state";
+  private static final String STATE_VALUE = "some-state";
+  private static final String ERROR_PARAM = "error";
+  private static final String ERROR_VALUE = "some-error";
+  private static final String ERROR_DESCRIPTION_PARAM = "error_description";
+  private static final String ERROR_DESCRIPTION_VALUE = "some-error-description";
 
   private static final String UNSIGNED_DATA = """
       {
@@ -175,7 +187,7 @@ class IssueResourceTest {
       placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
       """)
   void shouldReturnErrorWhenCredentialUriNotAvailable(String mapping,
-      Class<? extends CredentialDto> dtoClass)
+                                                      Class<? extends CredentialDto> dtoClass)
       throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
@@ -194,7 +206,7 @@ class IssueResourceTest {
       placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
       """)
   void shouldReturnCreatedWhenCredentialUriAvailable(String mapping,
-      Class<? extends CredentialDto> dtoClass)
+                                                     Class<? extends CredentialDto> dtoClass)
       throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
@@ -218,7 +230,7 @@ class IssueResourceTest {
       placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
       """)
   void shouldPassStateDownstreamWhenStateGiven(String mapping,
-      Class<? extends CredentialDto> dtoClass) throws Exception {
+                                               Class<? extends CredentialDto> dtoClass) throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
     mockMvc.perform(
@@ -240,7 +252,7 @@ class IssueResourceTest {
       placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
       """)
   void shouldNotPassStateDownstreamWhenNoStateGiven(String mapping,
-      Class<? extends CredentialDto> dtoClass) throws Exception {
+                                                    Class<? extends CredentialDto> dtoClass) throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
     mockMvc.perform(
@@ -417,5 +429,21 @@ class IssueResourceTest {
                 .content(signedData)
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk());
+  }
+
+  @Test
+  void shouldRedirectWhenIssuingCallbackCompleted() throws Exception {
+    when(issuedResourceService
+        .logIssuedResource(CODE_VALUE, STATE_VALUE, null, null, AUTH_TOKEN))
+        .thenReturn(URI.create("test-redirect"));
+
+    mockMvc.perform(
+            get(("/api/issue/callback"))
+                .header(HttpHeaders.AUTHORIZATION, AUTH_TOKEN)
+                .queryParam(CODE_PARAM, CODE_VALUE)
+                .queryParam(STATE_PARAM, STATE_VALUE))
+        .andExpect(status().isOk())
+        .andExpect(header().string(HttpHeaders.LOCATION, "test-redirect"))
+        .andExpect(jsonPath("$").doesNotExist());
   }
 }
