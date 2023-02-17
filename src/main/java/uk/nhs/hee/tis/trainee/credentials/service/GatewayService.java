@@ -50,6 +50,7 @@ import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
 @Service
 public class GatewayService {
 
+  private static final String REDIRECT_URI = "redirect_uri";
   private final RestTemplate restTemplate;
   private final JwtService jwtService;
   private final GatewayProperties properties;
@@ -98,16 +99,16 @@ public class GatewayService {
   private HttpEntity<MultiValueMap<String, String>> buildParRequest(CredentialDto dto,
                                                                     String state) {
     log.info("Building PAR request.");
-    String idTokenHint = jwtService.generateToken(dto);
+    final String idTokenHint = jwtService.generateToken(dto);
+    final String nonce = UUID.randomUUID().toString();
 
-    String nonce = UUID.randomUUID().toString();
     MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
     bodyPair.add("client_id", properties.clientId());
     bodyPair.add("client_secret", properties.clientSecret());
     if (properties.issuing().callbackUri() != null) {
-      bodyPair.add("redirect_uri", properties.issuing().callbackUri()); //callback for logging
+      bodyPair.add(REDIRECT_URI, properties.issuing().callbackUri()); //callback for logging
     } else {
-      bodyPair.add("redirect_uri", properties.issuing().redirectUri());
+      bodyPair.add(REDIRECT_URI, properties.issuing().redirectUri());
     }
     bodyPair.add("scope", dto.getScope());
     bodyPair.add("id_token_hint", idTokenHint);
@@ -227,7 +228,7 @@ public class GatewayService {
     MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
     bodyPair.add("client_id", properties.clientId());
     bodyPair.add("client_secret", properties.clientSecret());
-    bodyPair.add("redirect_uri", redirectUri.toString());
+    bodyPair.add(REDIRECT_URI, redirectUri.toString());
     bodyPair.add("grant_type", "authorization_code");
     bodyPair.add("code", code);
     bodyPair.add("code_verifier", codeVerifier);
