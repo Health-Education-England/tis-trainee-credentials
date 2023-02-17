@@ -63,7 +63,7 @@ public class IssuedResourceService {
    * @param credentialMetadataMapper     The mapper for credential metadata.
    * @param cachingDelegate              The caching delegate for caching data between requests.
    * @param properties                   The application's gateway issuing configuration.
-   * @param jwtService
+   * @param jwtService                   The JWT helper service.
    */
   IssuedResourceService(GatewayService service,
                         CredentialMetadataRepository credentialMetadataRepository,
@@ -86,13 +86,14 @@ public class IssuedResourceService {
    * @param state            The internal state returned from the gateway.
    * @param error            The error text, if the credential was not issued.
    * @param errorDescription The error description, if the credential was not issued.
+   * @param authToken        The user's authorization token.
    * @return The redirect URI
    */
-  public URI logIssuedResource(String authToken, String code, String state, String error,
-                               String errorDescription) {
+  public URI logIssuedResource(String code, String state, String error, String errorDescription,
+                               String authToken) {
 
     CredentialMetadata credentialMetadata = null;
-    if (error == null) {
+    if (error == null && code != null) {
       log.info("Credential was issued successfully.");
       URI tokenEndpoint = URI.create(properties.tokenEndpoint());
       URI redirectEndpoint = URI.create(properties.callbackUri());
