@@ -25,9 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.impl.DefaultClaims;
 import java.net.URI;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +41,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
-import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
+import uk.nhs.hee.tis.trainee.credentials.dto.IssueStartDto;
 
 /**
  * A service providing credential gateway functionality.
@@ -133,11 +131,9 @@ public class GatewayService {
    * @param dto   the credentials DTO.
    */
   private void cacheIssuingRequest(String nonce, CredentialDto dto) {
-    CredentialMetadata credentialMetadata = new CredentialMetadata();
-    credentialMetadata.setCredentialType(dto.getScope());
-    credentialMetadata.setTisId(dto.getTisId());
+    IssueStartDto issueStartDto = new IssueStartDto(dto.getScope(), dto.getTisId());
     UUID id = UUID.fromString(nonce);
-    cachingDelegate.cacheCredentialData(id, credentialMetadata);
+    cachingDelegate.cacheCredentialData(id, issueStartDto);
   }
 
   /**
@@ -167,19 +163,6 @@ public class GatewayService {
     }
 
     return Optional.ofNullable(credentialUri);
-  }
-
-  /**
-   * Get the claims from a token for a recently issued credential.
-   *
-   * @param code  The response code from the Gateway PAR authorization process.
-   * @param state The state to use for the token request.
-   * @return the claims from the token.
-   */
-  public Claims getIssuedTokenClaims(String code, String state) {
-    URI tokenEndpoint = URI.create(properties.issuing().tokenEndpoint());
-    URI redirectEndpoint = URI.create(properties.issuing().callbackUri());
-    return getTokenClaims(tokenEndpoint, redirectEndpoint, code, null);
   }
 
   /**
