@@ -41,7 +41,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.IssueStartDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
 
 /**
  * A service providing credential gateway functionality.
@@ -131,9 +131,9 @@ public class GatewayService {
    * @param dto   the credentials DTO.
    */
   private void cacheIssuingRequest(String nonce, CredentialDto dto) {
-    IssueStartDto issueStartDto = new IssueStartDto(dto.getScope(), dto.getTisId());
+    IssueRequestDto issueRequestDto = new IssueRequestDto(dto.getScope(), dto.getTisId());
     UUID id = UUID.fromString(nonce);
-    cachingDelegate.cacheCredentialData(id, issueStartDto);
+    cachingDelegate.cacheCredentialData(id, issueRequestDto);
   }
 
   /**
