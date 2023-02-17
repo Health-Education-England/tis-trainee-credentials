@@ -110,7 +110,9 @@ class JwtServiceTest {
       }
 
       @Override
-      public String getTisId() { return ""; }
+      public String getTisId() {
+        return "";
+      }
     }
 
     final Instant now = Instant.now();

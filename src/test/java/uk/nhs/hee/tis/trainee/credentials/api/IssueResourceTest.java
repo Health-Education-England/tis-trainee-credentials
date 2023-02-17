@@ -230,7 +230,8 @@ class IssueResourceTest {
       placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
       """)
   void shouldPassStateDownstreamWhenStateGiven(String mapping,
-                                               Class<? extends CredentialDto> dtoClass) throws Exception {
+                                               Class<? extends CredentialDto> dtoClass)
+      throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
     mockMvc.perform(
@@ -252,7 +253,8 @@ class IssueResourceTest {
       placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
       """)
   void shouldNotPassStateDownstreamWhenNoStateGiven(String mapping,
-                                                    Class<? extends CredentialDto> dtoClass) throws Exception {
+                                                    Class<? extends CredentialDto> dtoClass)
+      throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
     mockMvc.perform(

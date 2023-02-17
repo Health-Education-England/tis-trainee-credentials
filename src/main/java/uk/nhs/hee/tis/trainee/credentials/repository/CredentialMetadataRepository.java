@@ -26,6 +26,9 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 
+/**
+ * A repository for credential metadata log records.
+ */
 @Repository
 public interface CredentialMetadataRepository extends MongoRepository<CredentialMetadata, String> {
   @Override

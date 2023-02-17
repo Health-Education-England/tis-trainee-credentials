@@ -34,8 +34,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties;
-import uk.nhs.hee.tis.trainee.credentials.dto.IssueResponseDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.IssueResponseDto;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialMetadataMapper;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 import uk.nhs.hee.tis.trainee.credentials.repository.CredentialMetadataRepository;
@@ -103,8 +103,8 @@ public class IssuedResourceService {
         Optional<IssueRequestDto> issueRequestDto = cachingDelegate.getCredentialMetadata(id);
         IssueResponseDto issueResponseDto = fromIssuedResponse(claims, authToken);
         if (issueRequestDto.isPresent()) {
-          credentialMetadata
-              = credentialMetadataMapper.toCredentialMetadata(issueRequestDto.get(), issueResponseDto);
+          credentialMetadata = credentialMetadataMapper
+              .toCredentialMetadata(issueRequestDto.get(), issueResponseDto);
         }
       } catch (IOException e) {
         log.error("Unable to retrieve cached metadata, could not log issued credential.", e);
