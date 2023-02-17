@@ -4,5 +4,6 @@ application:
     time-to-live:
       verification-request: 60
       verified-session: 60
+      credential-metadata: 60
   signature:
     secret-key: test-secret-key
