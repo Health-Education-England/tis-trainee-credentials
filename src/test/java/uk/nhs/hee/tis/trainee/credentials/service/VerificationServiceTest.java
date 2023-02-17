@@ -34,6 +34,8 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.impl.DefaultClaims;
 import java.net.URI;
 import java.time.LocalDate;
@@ -47,6 +49,8 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.mock.web.MockHttpServletRequest;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.VerificationProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
 
@@ -68,6 +72,7 @@ class VerificationServiceTest {
   private static final String CLAIM_FIRST_NAME = "Identity.ID-LegalFirstName";
   private static final String CLAIM_FAMILY_NAME = "Identity.ID-LegalSurname";
   private static final String CLAIM_BIRTH_DATE = "Identity.ID-BirthDate";
+  private static final String CLAIM_TOKEN_IDENTIFIER = "origin_jti";
 
   private static final String IDENTITY_FORENAMES = "Anthony";
   private static final String IDENTITY_SURNAME = "Gilliam";
@@ -136,7 +141,7 @@ class VerificationServiceTest {
   @Test
   void shouldCacheUnverifiedSessionIdWhenStartingVerification() {
     DefaultClaims claims = new DefaultClaims(Map.of(
-        "origin_jti", "session-id-1"
+        CLAIM_TOKEN_IDENTIFIER, "session-id-1"
     ));
     when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(claims);
 
@@ -492,6 +497,40 @@ class VerificationServiceTest {
     Map<String, String> queryParams = splitQueryParams(uri);
     assertThat("Unexpected client state presence.", queryParams.keySet(),
         not(hasItem(QUERY_PARAM_STATE)));
+  }
+
+  @Test
+  void shouldHaveVerifiedSessionWhenVerifiedSessionIsCached() {
+    String tokenIdentifier = UUID.randomUUID().toString();
+    Claims claims = new DefaultClaims(Map.of(CLAIM_TOKEN_IDENTIFIER, tokenIdentifier));
+    String token = Jwts.builder().setClaims(claims).compact();
+
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.addHeader(HttpHeaders.AUTHORIZATION, token);
+
+    when(jwtService.getClaims(token)).thenReturn(claims);
+    when(cachingDelegate.getVerifiedSessionIdentifier(tokenIdentifier)).thenReturn(
+        Optional.of(tokenIdentifier));
+
+    boolean hasVerifiedSession = verificationService.hasVerifiedSession(request);
+    assertThat("Unexpected verified session state.", hasVerifiedSession, is(true));
+  }
+
+  @Test
+  void shouldNotHaveVerifiedSessionWhenVerifiedSessionNotCached() {
+    String tokenIdentifier = UUID.randomUUID().toString();
+    Claims claims = new DefaultClaims(Map.of(CLAIM_TOKEN_IDENTIFIER, tokenIdentifier));
+    String token = Jwts.builder().setClaims(claims).compact();
+
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.addHeader(HttpHeaders.AUTHORIZATION, token);
+
+    when(jwtService.getClaims(token)).thenReturn(claims);
+    when(cachingDelegate.getVerifiedSessionIdentifier(tokenIdentifier)).thenReturn(
+        Optional.empty());
+
+    boolean hasVerifiedSession = verificationService.hasVerifiedSession(request);
+    assertThat("Unexpected verified session state.", hasVerifiedSession, is(false));
   }
 
   /**

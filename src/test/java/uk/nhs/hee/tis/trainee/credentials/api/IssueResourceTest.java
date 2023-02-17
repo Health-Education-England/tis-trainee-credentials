@@ -37,6 +37,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -60,6 +61,7 @@ import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.filter.FilterConfiguration;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
+import uk.nhs.hee.tis.trainee.credentials.service.VerificationService;
 
 @WebMvcTest(IssueResource.class)
 @ComponentScan(basePackageClasses = {CredentialDataMapper.class, FilterConfiguration.class})
@@ -118,7 +120,10 @@ class IssueResourceTest {
   private MockMvc mockMvc;
 
   @MockBean
-  private GatewayService service;
+  private GatewayService gatewayService;
+
+  @MockBean
+  private VerificationService verificationService;
 
   @MockBean
   private RestTemplateBuilder restTemplateBuilder;
@@ -129,13 +134,35 @@ class IssueResourceTest {
   @Value("${application.signature.secret-key}")
   private String secretKey;
 
-  @Test
-  void shouldForbidUnsignedRequests() throws Exception {
+  @BeforeEach
+  void setUp() {
+    when(verificationService.hasVerifiedSession(any())).thenReturn(true);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"placement", "programme-membership", "non-existent"})
+  void shouldForbidUnsignedRequests(String path) throws Exception {
     mockMvc.perform(
-            post("/api/issue/test")
+            post("/api/issue/" + path)
                 .content(UNSIGNED_DATA)
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isForbidden());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"placement", "programme-membership", "non-existent"})
+  void shouldNotAuthoriseRequestsWithoutVerifiedSession(String path) throws Exception {
+    String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
+
+    when(verificationService.hasVerifiedSession(any())).thenReturn(false);
+
+    mockMvc.perform(
+            post("/api/issue/" + path)
+                .content(signedData)
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isUnauthorized())
+        .andExpect(header().string(HttpHeaders.WWW_AUTHENTICATE,
+            "IdentityVerification realm=\"/api/verify/identity\""));
   }
 
   @ParameterizedTest
@@ -148,7 +175,7 @@ class IssueResourceTest {
       throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
-    when(service.getCredentialUri(any(dtoClass), any())).thenReturn(Optional.empty());
+    when(gatewayService.getCredentialUri(any(dtoClass), any())).thenReturn(Optional.empty());
 
     mockMvc.perform(
             post("/api/issue/" + mapping)
@@ -169,7 +196,8 @@ class IssueResourceTest {
 
     String credentialUriString = "the-credential-uri";
     URI credentialUri = URI.create(credentialUriString);
-    when(service.getCredentialUri(any(dtoClass), any())).thenReturn(Optional.of(credentialUri));
+    when(gatewayService.getCredentialUri(any(dtoClass), any())).thenReturn(
+        Optional.of(credentialUri));
 
     mockMvc.perform(
             post("/api/issue/" + mapping)
@@ -196,7 +224,7 @@ class IssueResourceTest {
             .contentType(MediaType.APPLICATION_JSON));
 
     ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
-    verify(service).getCredentialUri(any(dtoClass), stateCaptor.capture());
+    verify(gatewayService).getCredentialUri(any(dtoClass), stateCaptor.capture());
 
     String state = stateCaptor.getValue();
     assertThat("Unexpected state.", state, is("some-state-value"));
@@ -217,7 +245,7 @@ class IssueResourceTest {
             .contentType(MediaType.APPLICATION_JSON));
 
     ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
-    verify(service).getCredentialUri(any(dtoClass), stateCaptor.capture());
+    verify(gatewayService).getCredentialUri(any(dtoClass), stateCaptor.capture());
 
     String state = stateCaptor.getValue();
     assertThat("Unexpected state.", state, nullValue());
@@ -234,7 +262,7 @@ class IssueResourceTest {
 
     ArgumentCaptor<ProgrammeMembershipCredentialDto> dtoCaptor = ArgumentCaptor.forClass(
         ProgrammeMembershipCredentialDto.class);
-    verify(service).getCredentialUri(dtoCaptor.capture(), any());
+    verify(gatewayService).getCredentialUri(dtoCaptor.capture(), any());
 
     ProgrammeMembershipCredentialDto dto = dtoCaptor.getValue();
     assertThat("Unexpected programme name.", dto.programmeName(), is("programme one"));
@@ -265,7 +293,7 @@ class IssueResourceTest {
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isBadRequest());
 
-    verifyNoInteractions(service);
+    verifyNoInteractions(gatewayService);
   }
 
   @ParameterizedTest
@@ -285,7 +313,7 @@ class IssueResourceTest {
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isBadRequest());
 
-    verifyNoInteractions(service);
+    verifyNoInteractions(gatewayService);
   }
 
   @Test
@@ -299,7 +327,7 @@ class IssueResourceTest {
 
     ArgumentCaptor<PlacementCredentialDto> dtoCaptor = ArgumentCaptor.forClass(
         PlacementCredentialDto.class);
-    verify(service).getCredentialUri(dtoCaptor.capture(), any());
+    verify(gatewayService).getCredentialUri(dtoCaptor.capture(), any());
 
     PlacementCredentialDto dto = dtoCaptor.getValue();
     assertThat("Unexpected specialty.", dto.specialty(), is("placement specialty"));
@@ -340,7 +368,7 @@ class IssueResourceTest {
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isBadRequest());
 
-    verifyNoInteractions(service);
+    verifyNoInteractions(gatewayService);
   }
 
   @ParameterizedTest
@@ -363,7 +391,7 @@ class IssueResourceTest {
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isBadRequest());
 
-    verifyNoInteractions(service);
+    verifyNoInteractions(gatewayService);
   }
 
   /**

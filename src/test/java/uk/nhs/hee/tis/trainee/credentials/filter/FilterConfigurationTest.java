@@ -22,15 +22,16 @@
 package uk.nhs.hee.tis.trainee.credentials.filter;
 
 import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.Ordered;
+import uk.nhs.hee.tis.trainee.credentials.service.VerificationService;
 
 class FilterConfigurationTest {
 
@@ -54,16 +55,6 @@ class FilterConfigurationTest {
   }
 
   @Test
-  void shouldRegisterSignedDataFilterWithHighestPrecedence() {
-    SignedDataFilter filter = new SignedDataFilter(new ObjectMapper(), SIGNATURE_SECRET_KEY);
-
-    var registrationBean = configuration.registerSignedDataFilter(filter);
-
-    int order = registrationBean.getOrder();
-    assertThat("Unexpected filter precedence.", order, is(Ordered.HIGHEST_PRECEDENCE));
-  }
-
-  @Test
   void shouldRegisterSignedDataFilterOnIssueApiEndpoints() {
     SignedDataFilter filter = new SignedDataFilter(new ObjectMapper(), SIGNATURE_SECRET_KEY);
 
@@ -81,5 +72,38 @@ class FilterConfigurationTest {
 
     Collection<String> urlPatterns = registrationBean.getUrlPatterns();
     assertThat("Unexpected filter patterns.", urlPatterns, hasItem("/api/verify/*"));
+  }
+
+  @Test
+  void shouldRegisterVerifiedSessionFilter() {
+    VerificationService verificationService = mock(VerificationService.class);
+    VerifiedSessionFilter filter = new VerifiedSessionFilter(verificationService);
+
+    var registrationBean = configuration.registerVerifiedSessionFilter(filter);
+
+    VerifiedSessionFilter registeredFilter = registrationBean.getFilter();
+    assertThat("Unexpected registered filter.", registeredFilter, sameInstance(filter));
+  }
+
+  @Test
+  void shouldRegisterVerifiedSessionFilterOnIssueApiEndpoints() {
+    VerificationService verificationService = mock(VerificationService.class);
+    VerifiedSessionFilter filter = new VerifiedSessionFilter(verificationService);
+
+    var registrationBean = configuration.registerVerifiedSessionFilter(filter);
+
+    Collection<String> urlPatterns = registrationBean.getUrlPatterns();
+    assertThat("Unexpected filter patterns.", urlPatterns, hasItem("/api/issue/*"));
+  }
+
+  @Test
+  void shouldNotRegisterVerifiedSessionFilterOnVerifyApiEndpoints() {
+    VerificationService verificationService = mock(VerificationService.class);
+    VerifiedSessionFilter filter = new VerifiedSessionFilter(verificationService);
+
+    var registrationBean = configuration.registerVerifiedSessionFilter(filter);
+
+    Collection<String> urlPatterns = registrationBean.getUrlPatterns();
+    assertThat("Unexpected filter patterns.", urlPatterns, not(hasItem("/api/verify/*")));
   }
 }

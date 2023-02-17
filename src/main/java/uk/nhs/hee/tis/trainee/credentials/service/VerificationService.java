@@ -22,6 +22,7 @@
 package uk.nhs.hee.tis.trainee.credentials.service;
 
 import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.security.SecureRandom;
 import java.time.LocalDate;
@@ -30,6 +31,7 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -211,5 +213,20 @@ public class VerificationService {
     }
 
     return false;
+  }
+
+  /**
+   * Check whether there is a verified session for the given request.
+   *
+   * @param request The request to check the session for.
+   * @return true if verified, otherwise false.
+   */
+  public boolean hasVerifiedSession(HttpServletRequest request) {
+    String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
+    Claims authClaims = jwtService.getClaims(authorization);
+    String sessionId = authClaims.get(CLAIM_TOKEN_IDENTIFIER, String.class);
+    Optional<String> verifiedSession = cachingDelegate.getVerifiedSessionIdentifier(sessionId);
+
+    return verifiedSession.isPresent();
   }
 }
