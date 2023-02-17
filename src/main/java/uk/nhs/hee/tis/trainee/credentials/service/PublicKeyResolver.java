@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.Optional;
+import lombok.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
@@ -74,8 +75,8 @@ public class PublicKeyResolver extends SigningKeyResolverAdapter {
 
     Jwks jwks = getJwks(claims);
 
-    PublicKey publicKey = Arrays.stream(jwks.keys())
-        .filter(key -> key.x5t().equals(tokenThumbprint))
+    PublicKey publicKey = Arrays.stream(jwks.getKeys())
+        .filter(key -> key.getX5t().equals(tokenThumbprint))
         .map(this::getPublicKey)
         .findFirst()
         .orElseThrow(
@@ -112,7 +113,7 @@ public class PublicKeyResolver extends SigningKeyResolverAdapter {
    * @return The public key.
    */
   private PublicKey getPublicKey(Jwk key) {
-    byte[] keyBytes = Base64.getDecoder().decode(key.x5c[0]);
+    byte[] keyBytes = Base64.getDecoder().decode(key.getX5c()[0]);
 
     try {
       CertificateFactory certificateFactory = CertificateFactory.getInstance(CERTIFICATE_TYPE);
@@ -126,26 +127,20 @@ public class PublicKeyResolver extends SigningKeyResolverAdapter {
 
   /**
    * A JWKs document, with an array of JWK keys.
-   *
-   * @param keys The JWKs
    */
-  record Jwks(Jwk[] keys) {
+  @Value
+  static class Jwks {
+
+    Jwk[] keys;
 
     /**
-     * A representation of a JWK.
-     *
-     * @param kty The key type, identifies the cryptographic algorithm family used with the key.
-     * @param use Public key use, identifies the intended use of the public key.
-     * @param alg The algorithm, identifies the algorithm intended for use with the key.
-     * @param kid The key identifier, used to match a specific key.
-     * @param x5c X.509 certificate chain.
-     * @param x5t X.509 certificate SHA-1 thumbprint.
-     * @param e   The "e" (exponent) parameter, contains the exponent value for the RSA public key.
-     * @param n   The "n" (modulus) parameter, contains the modulus value for the RSA public key.
+     * A representation of a JWK, unused fields have been excluded for simplicity.
      */
-    record Jwk(String kty, String use, String alg, String kid, String[] x5c, String x5t, String e,
-               String n) {
+    @Value
+    static class Jwk {
 
+      String[] x5c; // X.509 certificate chain.
+      String x5t; // X.509 certificate SHA-1 thumbprint.
     }
   }
 }

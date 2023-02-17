@@ -120,8 +120,8 @@ class PublicKeyResolverTest {
     Claims claims = new DefaultClaims().setIssuer(HOST);
 
     KeyPair keyPair = Keys.keyPairFor(SignatureAlgorithm.RS256);
-    String x5c = generateValidX5c(keyPair, SignatureAlgorithm.RS256);
-    Jwk jwk = new Jwk("", "", "", "", new String[]{x5c}, CERTIFICATE_THUMBPRINT, "", "");
+    String x5c = generateValidX5c(keyPair);
+    Jwk jwk = new Jwk(new String[]{x5c}, CERTIFICATE_THUMBPRINT);
     when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(new Jwks(new Jwk[]{jwk}));
 
     Key resolvedKey = resolver.resolveSigningKey(header, claims);
@@ -136,8 +136,8 @@ class PublicKeyResolverTest {
     Claims claims = new DefaultClaims().setIssuer(HOST);
 
     KeyPair keyPair = Keys.keyPairFor(SignatureAlgorithm.RS256);
-    String x5c = generateValidX5c(keyPair, SignatureAlgorithm.RS256);
-    Jwk jwk = new Jwk("", "", "", "", new String[]{x5c}, CERTIFICATE_THUMBPRINT, "", "");
+    String x5c = generateValidX5c(keyPair);
+    Jwk jwk = new Jwk(new String[]{x5c}, CERTIFICATE_THUMBPRINT);
     when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(new Jwks(new Jwk[]{jwk}));
 
     resolver.resolveSigningKey(header, claims);
@@ -184,7 +184,7 @@ class PublicKeyResolverTest {
         JwsHeader.X509_CERT_SHA1_THUMBPRINT, CERTIFICATE_THUMBPRINT));
     Claims claims = new DefaultClaims().setIssuer(HOST);
 
-    Jwk jwk = new Jwk("", "", "", "", null, "not-cert-thumb", "", "");
+    Jwk jwk = new Jwk(null, "not-cert-thumb");
     when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(new Jwks(new Jwk[]{jwk}));
 
     assertThrows(IllegalArgumentException.class, () -> resolver.resolveSigningKey(header, claims));
@@ -198,7 +198,7 @@ class PublicKeyResolverTest {
 
     String x5c = Base64.getEncoder()
         .encodeToString("invalid-certificate".getBytes(StandardCharsets.UTF_8));
-    Jwk jwk = new Jwk("", "", "", "", new String[]{x5c}, CERTIFICATE_THUMBPRINT, "", "");
+    Jwk jwk = new Jwk(new String[]{x5c}, CERTIFICATE_THUMBPRINT);
     when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(new Jwks(new Jwk[]{jwk}));
 
     Throwable cause = assertThrows(IllegalArgumentException.class,
@@ -211,15 +211,14 @@ class PublicKeyResolverTest {
    * Generate a valid self-signed certificate to use as a JWKs x5c cert.
    *
    * @param keyPair The key pair to use for generating a x5c certificate.
-   * @param alg     The algorithm used to generate the {@link KeyPair}.
    * @return The generated certificate.
    */
-  private String generateValidX5c(KeyPair keyPair, SignatureAlgorithm alg)
+  private String generateValidX5c(KeyPair keyPair)
       throws OperatorCreationException, IOException {
     ASN1Sequence asn1Sequence = ASN1Sequence.getInstance(keyPair.getPublic().getEncoded());
     SubjectPublicKeyInfo subjectPublicKeyInfo = SubjectPublicKeyInfo.getInstance(asn1Sequence);
 
-    ContentSigner sigGen = new JcaContentSignerBuilder(alg.getJcaName())
+    ContentSigner sigGen = new JcaContentSignerBuilder(SignatureAlgorithm.RS256.getJcaName())
         .build(keyPair.getPrivate());
 
     X509v1CertificateBuilder certBuilder = new X509v1CertificateBuilder(
