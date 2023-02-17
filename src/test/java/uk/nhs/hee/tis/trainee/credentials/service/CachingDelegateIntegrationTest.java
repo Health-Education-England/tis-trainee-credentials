@@ -24,6 +24,9 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import java.security.PublicKey;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
@@ -169,6 +172,44 @@ class CachingDelegateIntegrationTest {
   }
 
   @Test
+  void shouldReturnEmptyPublicKeyWhenNotCached() {
+    String certificateThumbprint = UUID.randomUUID().toString();
+    Optional<PublicKey> cachedOptional = delegate.getPublicKey(certificateThumbprint);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
+  }
+
+  @Test
+  void shouldReturnCachedPublicKeyAfterCaching() {
+    String certificateThumbprint = UUID.randomUUID().toString();
+    PublicKey publicKey = Keys.keyPairFor(SignatureAlgorithm.RS256).getPublic();
+    PublicKey cachedKey = delegate.cachePublicKey(certificateThumbprint, publicKey);
+    assertThat("Unexpected cached value.", cachedKey, is(publicKey));
+  }
+
+  @Test
+  void shouldGetCachedPublicKeyWhenCached() {
+    String certificateThumbprint = UUID.randomUUID().toString();
+    PublicKey publicKey = Keys.keyPairFor(SignatureAlgorithm.RS256).getPublic();
+    delegate.cachePublicKey(certificateThumbprint, publicKey);
+
+    Optional<PublicKey> cachedOptional = delegate.getPublicKey(certificateThumbprint);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(publicKey)));
+  }
+
+  @Test
+  void shouldNotRemovePublicKeyWhenRetrieved() {
+    String certificateThumbprint = UUID.randomUUID().toString();
+    PublicKey publicKey = Keys.keyPairFor(SignatureAlgorithm.RS256).getPublic();
+    delegate.cachePublicKey(certificateThumbprint, publicKey);
+
+    // Ignore this result, the cached value should not be evicted.
+    delegate.getPublicKey(certificateThumbprint);
+
+    Optional<PublicKey> cachedOptional = delegate.getPublicKey(certificateThumbprint);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(publicKey)));
+  }
+
+  @Test
   void shouldReturnEmptyUnverifiedSessionWhenNotCached() {
     UUID key = UUID.randomUUID();
 
@@ -238,7 +279,7 @@ class CachingDelegateIntegrationTest {
     String verifiedSession = UUID.randomUUID().toString();
     delegate.cacheVerifiedSessionIdentifier(verifiedSession);
 
-    // Ignore this result, the cached value should be evicted.
+    // Ignore this result, the cached value should not be evicted.
     delegate.getVerifiedSessionIdentifier(verifiedSession);
 
     Optional<String> cachedOptional = delegate.getVerifiedSessionIdentifier(verifiedSession);

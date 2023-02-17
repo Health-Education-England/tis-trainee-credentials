@@ -24,6 +24,7 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 import static uk.nhs.hee.tis.trainee.credentials.config.CacheConfiguration.VERIFICATION_REQUEST_DATA;
 import static uk.nhs.hee.tis.trainee.credentials.config.CacheConfiguration.VERIFIED_SESSION_DATA;
 
+import java.security.PublicKey;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.cache.annotation.CacheEvict;
@@ -41,9 +42,10 @@ class CachingDelegate {
 
   private static final String CLIENT_STATE = "ClientState";
   private static final String CODE_VERIFIER = "CodeVerifier";
-  public static final String IDENTITY_DATA = "IdentityData";
-  public static final String UNVERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Unverified";
-  public static final String VERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Verified";
+  private static final String IDENTITY_DATA = "IdentityData";
+  private static final String PUBLIC_KEY = "PublicKey";
+  private static final String UNVERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Unverified";
+  private static final String VERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Verified";
 
   /**
    * Cache a PKCE code verifier for later retrieval.
@@ -114,6 +116,29 @@ class CachingDelegate {
   @Cacheable(cacheNames = CLIENT_STATE, cacheManager = VERIFICATION_REQUEST_DATA)
   @CacheEvict(CLIENT_STATE)
   public Optional<String> getClientState(UUID key) {
+    return Optional.empty();
+  }
+
+  /**
+   * Cache a public key for later retrieval.
+   *
+   * @param certificateThumbprint The certificate thumbprint.
+   * @param publicKey             The public key to cache.
+   * @return The cached public key.
+   */
+  @CachePut(cacheNames = PUBLIC_KEY, key = "#certificateThumbprint")
+  public PublicKey cachePublicKey(String certificateThumbprint, PublicKey publicKey) {
+    return publicKey;
+  }
+
+  /**
+   * Get the public key associated with the give certificate thumbprint.
+   *
+   * @param certificateThumbprint The certificate thumbprint.
+   * @return The cached public key, or an empty optional if not found.
+   */
+  @Cacheable(cacheNames = PUBLIC_KEY)
+  public Optional<PublicKey> getPublicKey(String certificateThumbprint) {
     return Optional.empty();
   }
 

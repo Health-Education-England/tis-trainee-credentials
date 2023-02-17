@@ -184,9 +184,8 @@ public class GatewayService {
       return new DefaultClaims();
     }
 
-    // TODO: verify token against public key
     String signedToken = body.idToken();
-    return jwtService.getClaims(signedToken);
+    return jwtService.getClaims(signedToken, true);
   }
 
   /**

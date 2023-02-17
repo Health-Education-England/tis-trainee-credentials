@@ -24,6 +24,9 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import java.security.PublicKey;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
@@ -69,6 +72,19 @@ class CachingDelegateTest {
     IdentityDataDto identityData = new IdentityDataDto("Anthony", "Gilliam", LocalDate.now());
     IdentityDataDto returnValue = delegate.cacheIdentityData(UUID.randomUUID(), identityData);
     assertThat("Unexpected identity data.", returnValue, is(identityData));
+  }
+
+  @Test
+  void shouldReturnCachedPublicKey() {
+    PublicKey publicKey = Keys.keyPairFor(SignatureAlgorithm.RS256).getPublic();
+    PublicKey cachedPublicKey = delegate.cachePublicKey("certThumb", publicKey);
+    assertThat("Unexpected public key.", cachedPublicKey, is(publicKey));
+  }
+
+  @Test
+  void shouldGetEmptyPublicKey() {
+    Optional<PublicKey> publicKey = delegate.getPublicKey("certThumb");
+    assertThat("Unexpected public key.", publicKey, is(Optional.empty()));
   }
 
   @Test
