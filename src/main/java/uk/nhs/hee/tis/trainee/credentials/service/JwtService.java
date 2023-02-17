@@ -26,19 +26,15 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties.TokenProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 
@@ -121,5 +117,19 @@ public class JwtService {
     } else {
       return parser.parseClaimsJws(token).getBody();
     }
+  }
+
+  /**
+   * Get the mapped token body, the header or signature will not be verified.
+   *
+   * @param token The token to retrieve body values from.
+   * @return The extracted map of body values.
+   */
+  public Map<String, String> getTokenBodyMap(String token) throws IOException {
+    String[] tokenSections = token.split("\\.");
+    byte[] payloadBytes = Base64.getUrlDecoder()
+        .decode(tokenSections[1].getBytes(StandardCharsets.UTF_8));
+
+    return mapper.readValue(payloadBytes, Map.class);
   }
 }

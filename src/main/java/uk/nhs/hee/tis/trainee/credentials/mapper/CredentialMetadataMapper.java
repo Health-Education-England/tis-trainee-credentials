@@ -24,8 +24,8 @@ package uk.nhs.hee.tis.trainee.credentials.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants.ComponentModel;
-import uk.nhs.hee.tis.trainee.credentials.dto.IssueFinishDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.IssueStartDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.IssueResponseDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 
 /**
@@ -35,18 +35,18 @@ import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 public interface CredentialMetadataMapper {
 
   /**
-   * Map a issue start data DTO to the equivalent credential metadata.
+   * Map the issue request and response data DTOs to the equivalent credential metadata.
    *
-   * @param startDto The issue start data to map.
-   * @param finishDto The issue finish data to map.
+   * @param requestDto  The issue request data to map.
+   * @param responseDto The issue response data to map.
    * @return The mapped credential metadata.
    */
-  @Mapping(source = "startDto.credentialType", target="credentialType")
-  @Mapping(source = "startDto.tisId", target="tisId")
-  @Mapping(source = "finishDto.credentialId", target="credentialId")
-  @Mapping(source = "finishDto.traineeId", target="traineeId")
-  @Mapping(source = "finishDto.issuedAt", target="issuedAt")
-  @Mapping(source = "finishDto.expiresAt", target="expiresAt")
-  CredentialMetadata toCredentialMetadata(IssueStartDto startDto, IssueFinishDto finishDto);
+  @Mapping(source = "requestDto.credentialType", target = "credentialType")
+  @Mapping(source = "requestDto.tisId", target = "tisId")
+  @Mapping(source = "responseDto.credentialId", target = "credentialId")
+  @Mapping(source = "responseDto.traineeId", target = "traineeId")
+  @Mapping(source = "responseDto.issuedAt", target = "issuedAt")
+  @Mapping(source = "responseDto.expiresAt", target = "expiresAt")
+  CredentialMetadata toCredentialMetadata(IssueRequestDto requestDto, IssueResponseDto responseDto);
 
 }

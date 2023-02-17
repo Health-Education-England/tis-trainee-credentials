@@ -40,8 +40,6 @@ import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
-import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialMetadataMapper;
-import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
 import uk.nhs.hee.tis.trainee.credentials.service.IssuedResourceService;
 
@@ -101,8 +99,7 @@ public class IssueResource {
   }
 
   /**
-   * Used as a callback from PAR to log the outcome of the issued resource, and then to
-   * redirect to the redirect_uri.
+   * A callback to log the outcome of the issued resource, and redirect to the redirect_uri.
    *
    * @param code             The code returned from the gateway.
    * @param state            The internal state returned from the gateway.
@@ -120,7 +117,6 @@ public class IssueResource {
       @RequestHeader(HttpHeaders.AUTHORIZATION) String token) {
 
     log.info("Receiving callback for credential issuing.");
-
     URI redirectUri = issuedResourceService.logIssuedResource(token, code, state, error,
         errorDescription);
 

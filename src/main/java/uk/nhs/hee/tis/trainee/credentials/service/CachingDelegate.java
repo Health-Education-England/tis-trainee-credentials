@@ -33,7 +33,7 @@ import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.IssueStartDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
 
 /**
  * Caching annotations do not work within the same class, this delegate provides a lightweight
@@ -47,7 +47,6 @@ class CachingDelegate {
   private static final String IDENTITY_DATA = "IdentityData";
   private static final String PUBLIC_KEY = "PublicKey";
   private static final String CREDENTIAL_LOG_DATA = "CredentialLogData";
-  public static final String SESSION_IDENTIFIER = "SessionIdentifier";
   public static final String UNVERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Unverified";
   private static final String VERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Verified";
 
@@ -195,26 +194,27 @@ class CachingDelegate {
   }
 
   /**
-   * Cache a credential log dto for later retrieval.
+   * Cache a credential issuing request dto for later retrieval.
    *
    * @param key The cache key.
-   * @param data The credential metadata to cache.
+   * @param data The credential issue request metadata to cache.
    * @return The cached credential log data.
    */
   @CachePut(cacheNames = CREDENTIAL_LOG_DATA, cacheManager = CREDENTIAL_METADATA, key = "#key")
-  public IssueStartDto cacheCredentialData(UUID key, IssueStartDto data) {
+  public IssueRequestDto cacheCredentialData(UUID key, IssueRequestDto data) {
     return data;
   }
 
   /**
-   * Get the credential metadata associated with the given key, any cached value will be removed.
+   * Get the credential issue request metadata associated with the given key, any cached value
+   * will be removed.
    *
    * @param key The cache key.
-   * @return The cached credential metadata, or an empty optional if not found.
+   * @return The cached credential issue request metadata, or an empty optional if not found.
    */
   @Cacheable(cacheNames = CREDENTIAL_LOG_DATA, cacheManager = CREDENTIAL_METADATA)
   @CacheEvict(CREDENTIAL_LOG_DATA)
-  public Optional<IssueStartDto> getCredentialMetadata(UUID key) {
+  public Optional<IssueRequestDto> getCredentialMetadata(UUID key) {
     return Optional.empty();
   }
 }

@@ -21,15 +21,12 @@
 
 package uk.nhs.hee.tis.trainee.credentials.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,14 +34,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties;
-import uk.nhs.hee.tis.trainee.credentials.dto.IssueFinishDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.IssueStartDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.IssueResponseDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialMetadataMapper;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 import uk.nhs.hee.tis.trainee.credentials.repository.CredentialMetadataRepository;
 
 /**
- * A service providing credential verification functionality.
+ * A service providing functionality to manage issued credentials.
  */
 @Service
 @Slf4j
@@ -52,48 +49,49 @@ public class IssuedResourceService {
   private static final String TIS_ID_ATTRIBUTE = "custom:tisId";
   private final GatewayService service;
   private final CredentialMetadataRepository credentialMetadataRepository;
-  private final ObjectMapper objectMapper;
   private final CredentialMetadataMapper credentialMetadataMapper;
   private final CachingDelegate cachingDelegate;
   private final IssuingProperties properties;
 
+  private final JwtService jwtService;
+
   /**
-   * Create a service providing credential verification functionality.
+   * Create a service to manage issued credentials.
    *
    * @param service                      The gateway service.
    * @param credentialMetadataRepository The credential log repository.
-   * @param objectMapper                 The object mapper.
    * @param credentialMetadataMapper     The mapper for credential metadata.
    * @param cachingDelegate              The caching delegate for caching data between requests.
-   * @param properties                   The application's gateway verification configuration.
+   * @param properties                   The application's gateway issuing configuration.
+   * @param jwtService
    */
   IssuedResourceService(GatewayService service,
                         CredentialMetadataRepository credentialMetadataRepository,
-                        ObjectMapper objectMapper, CredentialMetadataMapper credentialMetadataMapper,
-                        CachingDelegate cachingDelegate, IssuingProperties properties) {
+                        CredentialMetadataMapper credentialMetadataMapper,
+                        CachingDelegate cachingDelegate, IssuingProperties properties,
+                        JwtService jwtService) {
     // TODO: this has a lot of dependencies, consider refactoring.
     this.service = service;
     this.credentialMetadataRepository = credentialMetadataRepository;
-    this.objectMapper = objectMapper;
     this.credentialMetadataMapper = credentialMetadataMapper;
     this.cachingDelegate = cachingDelegate;
     this.properties = properties;
+    this.jwtService = jwtService;
   }
 
   /**
    * Log the issued credential, and get the redirect.
    *
-   * @param authToken        The user's authorization token.
-   * @param code             The PAR response code.
-   * @param state            The PAR response state.
-   * @param error            The PAR response error.
-   * @param errorDescription The PAR response error description.
+   * @param code             The code returned from the gateway.
+   * @param state            The internal state returned from the gateway.
+   * @param error            The error text, if the credential was not issued.
+   * @param errorDescription The error description, if the credential was not issued.
    * @return The redirect URI
    */
   public URI logIssuedResource(String authToken, String code, String state, String error,
                                String errorDescription) {
 
-    CredentialMetadata credentialMetadataCombined = null;
+    CredentialMetadata credentialMetadata = null;
     if (error == null) {
       log.info("Credential was issued successfully.");
       URI tokenEndpoint = URI.create(properties.tokenEndpoint());
@@ -101,11 +99,11 @@ public class IssuedResourceService {
       Claims claims = service.getTokenClaims(tokenEndpoint, redirectEndpoint, code, null);
       UUID id = UUID.fromString(claims.get("nonce", String.class));
       try {
-        Optional<IssueStartDto> issueStartDto = cachingDelegate.getCredentialMetadata(id);
-        IssueFinishDto issueFinishDto = fromIssuedResponse(claims, authToken);
-        if (issueStartDto.isPresent()) {
-          credentialMetadataCombined
-              = credentialMetadataMapper.toCredentialMetadata(issueStartDto.get(), issueFinishDto);
+        Optional<IssueRequestDto> issueRequestDto = cachingDelegate.getCredentialMetadata(id);
+        IssueResponseDto issueResponseDto = fromIssuedResponse(claims, authToken);
+        if (issueRequestDto.isPresent()) {
+          credentialMetadata
+              = credentialMetadataMapper.toCredentialMetadata(issueRequestDto.get(), issueResponseDto);
         }
       } catch (IOException e) {
         log.error("Unable to retrieve cached metadata, could not log issued credential.", e);
@@ -114,8 +112,8 @@ public class IssuedResourceService {
       log.info("Credential was not issued.");
     }
 
-    if (credentialMetadataCombined != null) {
-      credentialMetadataRepository.save(credentialMetadataCombined);
+    if (credentialMetadata != null) {
+      credentialMetadataRepository.save(credentialMetadata);
     }
 
     // Build and return the redirect_uri
@@ -129,21 +127,17 @@ public class IssuedResourceService {
   }
 
   /**
-   * Map a claim to the equivalent credential metadata, and supplement with cached details and
-   * trainee user ID from the authorization token.
+   * Build an issue response DTO from token claims and the user's authorization token.
    *
    * @param claims    The Claims data to map.
    * @param authToken The user's authorization token.
    * @return The mapped credential log entry.
    */
 
-  public IssueFinishDto fromIssuedResponse(Claims claims, String authToken) throws IOException {
+  public IssueResponseDto fromIssuedResponse(Claims claims, String authToken) throws IOException {
 
-    String[] tokenSections = authToken.split("\\.");
-    byte[] payloadBytes = Base64.getUrlDecoder()
-        .decode(tokenSections[1].getBytes(StandardCharsets.UTF_8));
-    Map<?, ?> payload = objectMapper.readValue(payloadBytes, Map.class);
-    String traineeTisId = (String) payload.get(TIS_ID_ATTRIBUTE);
+    Map<String, String> authMap = jwtService.getTokenBodyMap(authToken);
+    String traineeTisId = authMap.get(TIS_ID_ATTRIBUTE);
 
     String credentialId = claims.get("SerialNumber", String.class);
     LocalDateTime issuedAt = LocalDateTime.ofInstant(
@@ -151,6 +145,6 @@ public class IssuedResourceService {
     LocalDateTime expiresAt = LocalDateTime.ofInstant(
         Instant.ofEpochSecond(claims.get("exp", Long.class)), ZoneOffset.UTC);
 
-    return new IssueFinishDto(credentialId, traineeTisId, issuedAt, expiresAt);
+    return new IssueResponseDto(credentialId, traineeTisId, issuedAt, expiresAt);
   }
 }

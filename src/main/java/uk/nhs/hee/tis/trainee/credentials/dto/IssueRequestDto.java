@@ -23,19 +23,14 @@ package uk.nhs.hee.tis.trainee.credentials.dto;
 
 import jakarta.validation.constraints.NotEmpty;
 import java.io.Serializable;
-import java.time.LocalDateTime;
 
 /**
- * A DTO representing the metadata available at the end of the issuing process.
+ * A DTO representing the metadata available at the start of the issuing process.
  *
- * @param credentialId The ID of the credential.
- * @param traineeId    The user's TIS ID.
- * @param issuedAt     The date and time the credential was issued.
- * @param expiresAt    The date and time the credential expires.
+ * @param credentialType The credential type (scope).
+ * @param tisId          The TIS ID of the record.
  */
-public record IssueFinishDto(
-    @NotEmpty String credentialId,
-    @NotEmpty String traineeId,
-    @NotEmpty LocalDateTime issuedAt,
-    @NotEmpty LocalDateTime expiresAt) implements Serializable {
+public record IssueRequestDto(
+    @NotEmpty String credentialType,
+    @NotEmpty String tisId) implements Serializable {
 }
