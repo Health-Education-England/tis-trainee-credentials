@@ -75,10 +75,6 @@ class IssueResourceTest {
   private static final String CODE_VALUE = "some-code";
   private static final String STATE_PARAM = "state";
   private static final String STATE_VALUE = "some-state";
-  private static final String ERROR_PARAM = "error";
-  private static final String ERROR_VALUE = "some-error";
-  private static final String ERROR_DESCRIPTION_PARAM = "error_description";
-  private static final String ERROR_DESCRIPTION_VALUE = "some-error-description";
 
   private static final String UNSIGNED_DATA = """
       {

@@ -115,6 +115,7 @@ public class GatewayService {
     bodyPair.add("nonce", nonce);
     bodyPair.add("state", state);
 
+    // TODO: this is a bit of an unexpected side-effect here, should be refactored
     cacheIssuingRequest(nonce, dto);
 
     HttpHeaders headers = new HttpHeaders();
