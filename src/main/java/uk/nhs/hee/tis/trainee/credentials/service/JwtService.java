@@ -121,6 +121,7 @@ public class JwtService {
 
   /**
    * Get the mapped token body, the header or signature will not be verified.
+   * TODO: investigate why Authorization token is not valid for getClaims()
    *
    * @param token The token to retrieve body values from.
    * @return The extracted map of body values.

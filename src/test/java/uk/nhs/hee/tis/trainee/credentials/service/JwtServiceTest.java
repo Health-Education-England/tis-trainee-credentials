@@ -39,6 +39,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -47,6 +48,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
+import java.util.Map;
 import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -314,5 +316,18 @@ class JwtServiceTest {
     assertThat("Unexpected claim value.", claims.get("claim2"), is("value2"));
 
     verifyNoInteractions(signingKeyResolver);
+  }
+
+  @Test
+  void shouldGetMapFromTokenBody() throws IOException {
+    String token = Jwts.builder()
+        .claim("claim1", "value1")
+        .claim("claim2", "value2")
+        .compact();
+
+    Map<String, String> bodyMap = service.getTokenBodyMap(token);
+    assertThat("Unexpected map count.", bodyMap.size(), is(2));
+    assertThat("Unexpected map value.", bodyMap.get("claim1"), is("value1"));
+    assertThat("Unexpected map value.", bodyMap.get("claim2"), is("value2"));
   }
 }
