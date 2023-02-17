@@ -33,7 +33,7 @@ import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
-import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
+import uk.nhs.hee.tis.trainee.credentials.dto.IssueStartDto;
 
 /**
  * Caching annotations do not work within the same class, this delegate provides a lightweight
@@ -202,7 +202,7 @@ class CachingDelegate {
    * @return The cached credential log data.
    */
   @CachePut(cacheNames = CREDENTIAL_LOG_DATA, cacheManager = CREDENTIAL_METADATA, key = "#key")
-  public CredentialMetadata cacheCredentialData(UUID key, CredentialMetadata data) {
+  public IssueStartDto cacheCredentialData(UUID key, IssueStartDto data) {
     return data;
   }
 
@@ -214,7 +214,7 @@ class CachingDelegate {
    */
   @Cacheable(cacheNames = CREDENTIAL_LOG_DATA, cacheManager = CREDENTIAL_METADATA)
   @CacheEvict(CREDENTIAL_LOG_DATA)
-  public Optional<CredentialMetadata> getCredentialMetadata(UUID key) {
+  public Optional<IssueStartDto> getCredentialMetadata(UUID key) {
     return Optional.empty();
   }
 }
