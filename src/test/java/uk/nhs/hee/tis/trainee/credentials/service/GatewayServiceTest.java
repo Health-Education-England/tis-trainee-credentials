@@ -83,7 +83,6 @@ class GatewayServiceTest {
     jwtService = mock(JwtService.class);
     cachingDelegate = mock(CachingDelegate.class);
 
-
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
         "", null, CALLBACK_URI, REDIRECT_URI);
     VerificationProperties verificationProperties = new VerificationProperties("", "", "");
@@ -101,8 +100,8 @@ class GatewayServiceTest {
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
         "", null, null, REDIRECT_URI);
     VerificationProperties verificationProperties = new VerificationProperties("", "", "");
-    GatewayProperties gatewayProperties = new GatewayProperties(CLIENT_ID, CLIENT_SECRET,
-        issuingProperties, verificationProperties);
+    GatewayProperties gatewayProperties = new GatewayProperties(HOST, CLIENT_ID, CLIENT_SECRET,
+        JWKS_ENDPOINT, issuingProperties, verificationProperties);
 
     service = new GatewayService(restTemplate, jwtService, gatewayProperties, cachingDelegate);
   }

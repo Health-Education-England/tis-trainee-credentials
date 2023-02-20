@@ -47,7 +47,7 @@ class CachingDelegate {
   private static final String IDENTITY_DATA = "IdentityData";
   private static final String PUBLIC_KEY = "PublicKey";
   private static final String CREDENTIAL_LOG_DATA = "CredentialLogData";
-  public static final String UNVERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Unverified";
+  private static final String UNVERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Unverified";
   private static final String VERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Verified";
 
   /**
@@ -196,7 +196,7 @@ class CachingDelegate {
   /**
    * Cache a credential issuing request dto for later retrieval.
    *
-   * @param key The cache key.
+   * @param key  The cache key.
    * @param data The credential issue request metadata to cache.
    * @return The cached credential log data.
    */
@@ -206,8 +206,8 @@ class CachingDelegate {
   }
 
   /**
-   * Get the credential issue request metadata associated with the given key, any cached value
-   * will be removed.
+   * Get the credential issue request metadata associated with the given key, any cached value will
+   * be removed.
    *
    * @param key The cache key.
    * @return The cached credential issue request metadata, or an empty optional if not found.

@@ -120,7 +120,7 @@ class IssuedResourceServiceTest {
 
     // TODO: this is quite brittle
     when(gatewayService.getTokenClaims(eq(TOKEN_ENDPOINT), eq(CALLBACK_URI), eq(CODE_VALUE), any()))
-            .thenReturn(claimsIssued);
+        .thenReturn(claimsIssued);
     when(cachingDelegate.getCredentialMetadata(uuid))
         .thenReturn(Optional.of(issueRequestDto));
     when(jwtService.getTokenBodyMap(AUTH_TOKEN))

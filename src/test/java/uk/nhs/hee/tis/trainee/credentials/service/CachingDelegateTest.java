@@ -128,7 +128,8 @@ class CachingDelegateTest {
 
   @Test
   void shouldGetCachedCredentialMetadata() {
-    Optional<IssueRequestDto> credentialMetadata = delegate.getCredentialMetadata(UUID.randomUUID());
+    Optional<IssueRequestDto> credentialMetadata = delegate.getCredentialMetadata(
+        UUID.randomUUID());
     assertThat("Unexpected credential metadata.", credentialMetadata, is(Optional.empty()));
   }
 }

@@ -33,4 +33,5 @@ import java.io.Serializable;
 public record IssueRequestDto(
     @NotEmpty String credentialType,
     @NotEmpty String tisId) implements Serializable {
+
 }

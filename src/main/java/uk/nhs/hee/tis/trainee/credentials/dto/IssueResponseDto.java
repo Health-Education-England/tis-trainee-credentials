@@ -38,4 +38,5 @@ public record IssueResponseDto(
     @NotEmpty String traineeId,
     @NotEmpty LocalDateTime issuedAt,
     @NotEmpty LocalDateTime expiresAt) implements Serializable {
+
 }

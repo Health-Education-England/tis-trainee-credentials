@@ -56,7 +56,7 @@ public class IssueResource {
   private final IssuedResourceService issuedResourceService;
 
   IssueResource(GatewayService service, CredentialDataMapper mapper,
-                IssuedResourceService issuedResourceService) {
+      IssuedResourceService issuedResourceService) {
     this.service = service;
     this.mapper = mapper;
     this.issuedResourceService = issuedResourceService;
