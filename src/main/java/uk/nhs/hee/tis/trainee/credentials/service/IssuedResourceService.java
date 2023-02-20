@@ -46,6 +46,7 @@ import uk.nhs.hee.tis.trainee.credentials.repository.CredentialMetadataRepositor
 @Service
 @Slf4j
 public class IssuedResourceService {
+
   private static final String TIS_ID_ATTRIBUTE = "custom:tisId";
   private final GatewayService service;
   private final CredentialMetadataRepository credentialMetadataRepository;
@@ -66,10 +67,10 @@ public class IssuedResourceService {
    * @param jwtService                   The JWT helper service.
    */
   IssuedResourceService(GatewayService service,
-                        CredentialMetadataRepository credentialMetadataRepository,
-                        CredentialMetadataMapper credentialMetadataMapper,
-                        CachingDelegate cachingDelegate, IssuingProperties properties,
-                        JwtService jwtService) {
+      CredentialMetadataRepository credentialMetadataRepository,
+      CredentialMetadataMapper credentialMetadataMapper,
+      CachingDelegate cachingDelegate, IssuingProperties properties,
+      JwtService jwtService) {
     // TODO: this has a lot of dependencies, consider refactoring.
     this.service = service;
     this.credentialMetadataRepository = credentialMetadataRepository;
@@ -90,7 +91,7 @@ public class IssuedResourceService {
    * @return The redirect URI
    */
   public URI logIssuedResource(String code, String state, String error, String errorDescription,
-                               String authToken) {
+      String authToken) {
 
     CredentialMetadata credentialMetadata = null;
     if (error == null && code != null) {

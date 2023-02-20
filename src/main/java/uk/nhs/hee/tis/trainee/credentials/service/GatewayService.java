@@ -64,7 +64,7 @@ public class GatewayService {
    * @param properties   The gateway application configuration.
    */
   GatewayService(RestTemplate restTemplate, JwtService jwtService, GatewayProperties properties,
-                 CachingDelegate cachingDelegate) {
+      CachingDelegate cachingDelegate) {
     this.restTemplate = restTemplate;
     this.jwtService = jwtService;
     this.properties = properties;
@@ -97,23 +97,24 @@ public class GatewayService {
    * @return The built request.
    */
   private HttpEntity<MultiValueMap<String, String>> buildParRequest(CredentialDto dto,
-                                                                    String state) {
+      String state) {
     log.info("Building PAR request.");
-    final String idTokenHint = jwtService.generateToken(dto);
-    final String nonce = UUID.randomUUID().toString();
+    String idTokenHint = jwtService.generateToken(dto);
 
+    String nonce = UUID.randomUUID().toString();
     MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
     bodyPair.add("client_id", properties.clientId());
     bodyPair.add("client_secret", properties.clientSecret());
+    bodyPair.add("scope", dto.getScope());
+    bodyPair.add("id_token_hint", idTokenHint);
+    bodyPair.add("nonce", nonce);
+    bodyPair.add("state", state);
+
     if (properties.issuing().callbackUri() != null) {
       bodyPair.add(REDIRECT_URI, properties.issuing().callbackUri()); //callback for logging
     } else {
       bodyPair.add(REDIRECT_URI, properties.issuing().redirectUri());
     }
-    bodyPair.add("scope", dto.getScope());
-    bodyPair.add("id_token_hint", idTokenHint);
-    bodyPair.add("nonce", nonce);
-    bodyPair.add("state", state);
 
     // TODO: this is a bit of an unexpected side-effect here, should be refactored
     cacheIssuingRequest(nonce, dto);

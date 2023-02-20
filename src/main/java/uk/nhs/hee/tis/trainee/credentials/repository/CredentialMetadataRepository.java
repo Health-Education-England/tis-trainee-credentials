@@ -31,6 +31,7 @@ import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
  */
 @Repository
 public interface CredentialMetadataRepository extends MongoRepository<CredentialMetadata, String> {
+
   @Override
   Optional<CredentialMetadata> findById(String id);
 
