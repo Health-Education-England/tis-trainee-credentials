@@ -99,12 +99,12 @@ class PublicKeyResolverTest {
 
   @Test
   void shouldReturnCachedValueWhenPublicKeyCached() {
+    PublicKey cachedKey = Keys.keyPairFor(SignatureAlgorithm.RS256).getPublic();
+    when(cachingDelegate.getPublicKey(CERTIFICATE_THUMBPRINT)).thenReturn(Optional.of(cachedKey));
+
     DefaultJwsHeader header = new DefaultJwsHeader(Map.of(
         JwsHeader.X509_CERT_SHA1_THUMBPRINT, CERTIFICATE_THUMBPRINT));
     Claims claims = new DefaultClaims().setIssuer(HOST);
-
-    PublicKey cachedKey = Keys.keyPairFor(SignatureAlgorithm.RS256).getPublic();
-    when(cachingDelegate.getPublicKey(CERTIFICATE_THUMBPRINT)).thenReturn(Optional.of(cachedKey));
 
     Key key = resolver.resolveSigningKey(header, claims);
 
@@ -115,14 +115,18 @@ class PublicKeyResolverTest {
   @Test
   void shouldGetWellKnownPublicKeyWhenPublicKeyNotCached()
       throws IOException, OperatorCreationException {
+    KeyPair keyPair = Keys.keyPairFor(SignatureAlgorithm.RS256);
+    String x5c = generateValidX5c(keyPair);
+    Jwk jwk = new Jwk();
+    jwk.setX5c(new String[]{x5c});
+    jwk.setX5t(CERTIFICATE_THUMBPRINT);
+    Jwks jwks = new Jwks();
+    jwks.setKeys(new Jwk[]{jwk});
+    when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(jwks);
+
     DefaultJwsHeader header = new DefaultJwsHeader(Map.of(
         JwsHeader.X509_CERT_SHA1_THUMBPRINT, CERTIFICATE_THUMBPRINT));
     Claims claims = new DefaultClaims().setIssuer(HOST);
-
-    KeyPair keyPair = Keys.keyPairFor(SignatureAlgorithm.RS256);
-    String x5c = generateValidX5c(keyPair);
-    Jwk jwk = new Jwk(new String[]{x5c}, CERTIFICATE_THUMBPRINT);
-    when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(new Jwks(new Jwk[]{jwk}));
 
     Key resolvedKey = resolver.resolveSigningKey(header, claims);
     assertThat("Unexpected resolved signing key.", resolvedKey, is(keyPair.getPublic()));
@@ -131,14 +135,18 @@ class PublicKeyResolverTest {
   @Test
   void shouldCachePublicKeyWhenRetrievedFromWellKnown()
       throws IOException, OperatorCreationException {
+    KeyPair keyPair = Keys.keyPairFor(SignatureAlgorithm.RS256);
+    String x5c = generateValidX5c(keyPair);
+    Jwk jwk = new Jwk();
+    jwk.setX5c(new String[]{x5c});
+    jwk.setX5t(CERTIFICATE_THUMBPRINT);
+    Jwks jwks = new Jwks();
+    jwks.setKeys(new Jwk[]{jwk});
+    when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(jwks);
+
     DefaultJwsHeader header = new DefaultJwsHeader(Map.of(
         JwsHeader.X509_CERT_SHA1_THUMBPRINT, CERTIFICATE_THUMBPRINT));
     Claims claims = new DefaultClaims().setIssuer(HOST);
-
-    KeyPair keyPair = Keys.keyPairFor(SignatureAlgorithm.RS256);
-    String x5c = generateValidX5c(keyPair);
-    Jwk jwk = new Jwk(new String[]{x5c}, CERTIFICATE_THUMBPRINT);
-    when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(new Jwks(new Jwk[]{jwk}));
 
     resolver.resolveSigningKey(header, claims);
     verify(cachingDelegate).cachePublicKey(CERTIFICATE_THUMBPRINT, keyPair.getPublic());
@@ -158,48 +166,58 @@ class PublicKeyResolverTest {
 
   @Test
   void shouldThrowExceptionWhenJwksEndpointReturnsNull() {
+    when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(null);
+
     DefaultJwsHeader header = new DefaultJwsHeader(Map.of(
         JwsHeader.X509_CERT_SHA1_THUMBPRINT, CERTIFICATE_THUMBPRINT));
     Claims claims = new DefaultClaims().setIssuer(HOST);
-
-    when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(null);
 
     assertThrows(IllegalArgumentException.class, () -> resolver.resolveSigningKey(header, claims));
   }
 
   @Test
   void shouldThrowExceptionWhenJwksEndpointReturnsNoKeys() {
+    Jwks jwks = new Jwks();
+    jwks.setKeys(new Jwk[0]);
+    when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(jwks);
+
     DefaultJwsHeader header = new DefaultJwsHeader(Map.of(
         JwsHeader.X509_CERT_SHA1_THUMBPRINT, CERTIFICATE_THUMBPRINT));
     Claims claims = new DefaultClaims().setIssuer(HOST);
-
-    when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(new Jwks(new Jwk[0]));
 
     assertThrows(IllegalArgumentException.class, () -> resolver.resolveSigningKey(header, claims));
   }
 
   @Test
   void shouldThrowExceptionWhenJwksEndpointReturnsNoMatchingKeys() {
+    Jwk jwk = new Jwk();
+    jwk.setX5c(null);
+    jwk.setX5t("not-cert-thumb");
+    Jwks jwks = new Jwks();
+    jwks.setKeys(new Jwk[]{jwk});
+    when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(jwks);
+
     DefaultJwsHeader header = new DefaultJwsHeader(Map.of(
         JwsHeader.X509_CERT_SHA1_THUMBPRINT, CERTIFICATE_THUMBPRINT));
     Claims claims = new DefaultClaims().setIssuer(HOST);
-
-    Jwk jwk = new Jwk(null, "not-cert-thumb");
-    when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(new Jwks(new Jwk[]{jwk}));
 
     assertThrows(IllegalArgumentException.class, () -> resolver.resolveSigningKey(header, claims));
   }
 
   @Test
   void shouldThrowExceptionWhenJwksEndpointReturnsInvalidCertificate() {
+    String x5c = Base64.getEncoder()
+        .encodeToString("invalid-certificate".getBytes(StandardCharsets.UTF_8));
+    Jwk jwk = new Jwk();
+    jwk.setX5c(new String[]{x5c});
+    jwk.setX5t(CERTIFICATE_THUMBPRINT);
+    Jwks jwks = new Jwks();
+    jwks.setKeys(new Jwk[]{jwk});
+    when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(jwks);
+
     DefaultJwsHeader header = new DefaultJwsHeader(Map.of(
         JwsHeader.X509_CERT_SHA1_THUMBPRINT, CERTIFICATE_THUMBPRINT));
     Claims claims = new DefaultClaims().setIssuer(HOST);
-
-    String x5c = Base64.getEncoder()
-        .encodeToString("invalid-certificate".getBytes(StandardCharsets.UTF_8));
-    Jwk jwk = new Jwk(new String[]{x5c}, CERTIFICATE_THUMBPRINT);
-    when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(new Jwks(new Jwk[]{jwk}));
 
     Throwable cause = assertThrows(IllegalArgumentException.class,
         () -> resolver.resolveSigningKey(header, claims)).getCause();
