@@ -34,7 +34,8 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.Optional;
-import lombok.Value;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
@@ -128,19 +129,19 @@ public class PublicKeyResolver extends SigningKeyResolverAdapter {
   /**
    * A JWKs document, with an array of JWK keys.
    */
-  @Value
+  @Data
   static class Jwks {
 
-    Jwk[] keys;
+    private Jwk[] keys;
 
     /**
      * A representation of a JWK, unused fields have been excluded for simplicity.
      */
-    @Value
+    @Data
     static class Jwk {
 
-      String[] x5c; // X.509 certificate chain.
-      String x5t; // X.509 certificate SHA-1 thumbprint.
+      private String[] x5c; // X.509 certificate chain.
+      private String x5t; // X.509 certificate SHA-1 thumbprint.
     }
   }
 }
