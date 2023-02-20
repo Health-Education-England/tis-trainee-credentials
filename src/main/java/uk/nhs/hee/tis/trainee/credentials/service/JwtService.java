@@ -104,6 +104,9 @@ public class JwtService {
    * @return The extracted claims.
    */
   public Claims getClaims(String token, boolean verifySignature) {
+    // Strip any Bearer prefix
+    token = token.replace("Bearer ", "");
+
     JwtParser parser = Jwts.parserBuilder().setSigningKeyResolver(publicKeyResolver).build();
 
     if (!verifySignature) {
