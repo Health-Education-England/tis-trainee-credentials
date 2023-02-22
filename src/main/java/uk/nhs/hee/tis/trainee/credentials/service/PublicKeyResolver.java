@@ -34,7 +34,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.Optional;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -62,13 +61,13 @@ public class PublicKeyResolver extends SigningKeyResolverAdapter {
 
   @Override
   public Key resolveSigningKey(JwsHeader header, Claims claims) {
-    String tokenThumbprint = (String) header.get(JwsHeader.X509_CERT_SHA1_THUMBPRINT);
+    String keyId = (String) header.get(JwsHeader.KEY_ID);
 
-    if (tokenThumbprint == null) {
-      throw new IllegalArgumentException("Not certificate thumbprint in headers.");
+    if (keyId == null) {
+      throw new IllegalArgumentException("No key id in headers.");
     }
 
-    Optional<PublicKey> cachedPublicKey = cachingDelegate.getPublicKey(tokenThumbprint);
+    Optional<PublicKey> cachedPublicKey = cachingDelegate.getPublicKey(keyId);
 
     if (cachedPublicKey.isPresent()) {
       return cachedPublicKey.get();
@@ -77,13 +76,13 @@ public class PublicKeyResolver extends SigningKeyResolverAdapter {
     Jwks jwks = getJwks(claims);
 
     PublicKey publicKey = Arrays.stream(jwks.getKeys())
-        .filter(key -> key.getX5t().equals(tokenThumbprint))
+        .filter(key -> key.getKid().equals(keyId))
         .map(this::getPublicKey)
         .findFirst()
         .orElseThrow(
             () -> new IllegalArgumentException("Can not resolve public key for given token."));
 
-    return cachingDelegate.cachePublicKey(tokenThumbprint, publicKey);
+    return cachingDelegate.cachePublicKey(keyId, publicKey);
   }
 
   /**
@@ -95,7 +94,7 @@ public class PublicKeyResolver extends SigningKeyResolverAdapter {
   private Jwks getJwks(Claims claims) {
     String issuer = claims.getIssuer();
 
-    if (Objects.equals(issuer, properties.host())) {
+    if (Objects.equals(issuer, properties.host()) || Objects.equals(issuer, properties.issuing().token().audience())) {
       Jwks jwks = restTemplate.getForObject(properties.jwksEndpoint(), Jwks.class);
 
       if (jwks != null) {
@@ -140,8 +139,8 @@ public class PublicKeyResolver extends SigningKeyResolverAdapter {
     @Data
     static class Jwk {
 
+      private String kid; // Key identifier.
       private String[] x5c; // X.509 certificate chain.
-      private String x5t; // X.509 certificate SHA-1 thumbprint.
     }
   }
 }

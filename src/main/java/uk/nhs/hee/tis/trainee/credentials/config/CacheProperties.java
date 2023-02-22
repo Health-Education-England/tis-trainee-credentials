@@ -38,10 +38,15 @@ public record CacheProperties(String keyPrefix, TimeToLiveProperties timeToLive)
   /**
    * A representation of the application cache time-to-live properties.
    *
+   * @param credentialMetadata  The time-to-live for credential metadata.
    * @param verificationRequest The time-to-live for verification request data.
    * @param verifiedSession     The time-to-live for verified session data.
    */
   public record TimeToLiveProperties(
+
+      @DurationUnit(ChronoUnit.SECONDS)
+      Duration credentialMetadata,
+
       @DurationUnit(ChronoUnit.SECONDS)
       Duration verificationRequest,
 

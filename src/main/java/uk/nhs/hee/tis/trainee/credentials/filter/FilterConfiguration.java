@@ -60,7 +60,7 @@ public class FilterConfiguration {
     FilterRegistrationBean<VerifiedSessionFilter> registrationBean = new FilterRegistrationBean<>();
 
     registrationBean.setFilter(filter);
-    registrationBean.addUrlPatterns("/api/issue/*");
+    registrationBean.addUrlPatterns("/api/issue/skip/*");
 
     return registrationBean;
   }

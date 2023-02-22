@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -39,6 +40,9 @@ import java.time.ZoneOffset;
  * @param endDate            The placement's end date.
  */
 public record PlacementCredentialDto(
+    @JsonIgnore
+    String tisId,
+
     @JsonProperty("TPL-Specialty")
     String specialty,
 
@@ -69,5 +73,10 @@ public record PlacementCredentialDto(
   @Override
   public String getScope() {
     return "issue.TrainingPlacement";
+  }
+
+  @Override
+  public String getTisId() {
+    return tisId();
   }
 }

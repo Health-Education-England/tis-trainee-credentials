@@ -73,8 +73,8 @@ public class GatewayService {
    * @param state The client state.
    * @return The URI to issue the credential.
    */
-  public Optional<URI> getCredentialUri(CredentialDto dto, String state) {
-    HttpEntity<MultiValueMap<String, String>> request = buildParRequest(dto, state);
+  public Optional<URI> getCredentialUri(CredentialDto dto, String nonce, String state) {
+    HttpEntity<MultiValueMap<String, String>> request = buildParRequest(dto, nonce, state);
 
     log.info("Sending PAR request.");
     ResponseEntity<ParResponse> response = restTemplate.postForEntity(
@@ -92,11 +92,10 @@ public class GatewayService {
    * @return The built request.
    */
   private HttpEntity<MultiValueMap<String, String>> buildParRequest(CredentialDto dto,
-      String state) {
+      String nonce, String state) {
     log.info("Building PAR request.");
     String idTokenHint = jwtService.generateToken(dto);
 
-    String nonce = UUID.randomUUID().toString();
     MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
     bodyPair.add("client_id", properties.clientId());
     bodyPair.add("client_secret", properties.clientSecret());

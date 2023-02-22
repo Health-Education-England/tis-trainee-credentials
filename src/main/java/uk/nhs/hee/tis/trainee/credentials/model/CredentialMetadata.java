@@ -19,48 +19,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.dto;
+package uk.nhs.hee.tis.trainee.credentials.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import static org.springframework.beans.factory.config.BeanDefinition.SCOPE_PROTOTYPE;
+
+import java.io.Serializable;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
+import lombok.Data;
+import org.springframework.context.annotation.Scope;
+import org.springframework.data.annotation.Id;
+import org.springframework.stereotype.Component;
 
 /**
- * A DTO representing a Programme Membership credential.
- *
- * @param programmeName The programme name.
- * @param startDate     The programme's start date.
- * @param endDate       The programme's end date.
+ * A credential metadata record with all properties needed to store permenently.
  */
-public record ProgrammeMembershipCredentialDto(
-    @JsonIgnore
-    String tisId,
+@Component(CredentialMetadata.ENTITY_NAME)
+@Scope(SCOPE_PROTOTYPE)
+@Data
+public class CredentialMetadata implements Serializable {
 
-    @JsonProperty("TPR-Name")
-    String programmeName,
+  public static final String ENTITY_NAME = "CredentialMetadata";
 
-    @JsonProperty("TPR-ProgrammeStartDate")
-    LocalDate startDate,
+  @Id
+  private String credentialId;
 
-    @JsonProperty("TPR-ProgrammeEndDate")
-    LocalDate endDate
-) implements CredentialDto {
-
-  @Override
-  public Instant getExpiration(Instant issuedAt) {
-    return endDate.atTime(LocalTime.MAX).toInstant(ZoneOffset.UTC);
-  }
-
-  @Override
-  public String getScope() {
-    return "issue.TrainingProgramme";
-  }
-
-  @Override
-  public String getTisId() {
-    return tisId();
-  }
+  private String traineeId;
+  private String credentialType;
+  private String tisId;
+  private Instant issuedAt;
+  private Instant expiresAt;
 }
