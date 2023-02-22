@@ -21,20 +21,20 @@
 
 package uk.nhs.hee.tis.trainee.credentials.service;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
-import java.io.ByteArrayInputStream;
+import java.math.BigInteger;
+import java.security.GeneralSecurityException;
 import java.security.Key;
+import java.security.KeyFactory;
 import java.security.PublicKey;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
+import java.security.spec.RSAPublicKeySpec;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.Optional;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -46,8 +46,6 @@ import uk.nhs.hee.tis.trainee.credentials.service.PublicKeyResolver.Jwks.Jwk;
  */
 @Component
 public class PublicKeyResolver extends SigningKeyResolverAdapter {
-
-  private static final String CERTIFICATE_TYPE = "X.509";
 
   private final CachingDelegate cachingDelegate;
   private final RestTemplate restTemplate;
@@ -62,13 +60,15 @@ public class PublicKeyResolver extends SigningKeyResolverAdapter {
 
   @Override
   public Key resolveSigningKey(JwsHeader header, Claims claims) {
-    String tokenThumbprint = (String) header.get(JwsHeader.X509_CERT_SHA1_THUMBPRINT);
-
-    if (tokenThumbprint == null) {
-      throw new IllegalArgumentException("Not certificate thumbprint in headers.");
+    if (header.getKeyId() == null) {
+      throw new IllegalArgumentException("No key id in headers.");
     }
 
-    Optional<PublicKey> cachedPublicKey = cachingDelegate.getPublicKey(tokenThumbprint);
+    // Gateway verification tokens append the algorithm to the key id.
+    String algorithm = header.getAlgorithm();
+    String keyId = header.getKeyId().replaceFirst(algorithm + "$", "");
+
+    Optional<PublicKey> cachedPublicKey = cachingDelegate.getPublicKey(keyId);
 
     if (cachedPublicKey.isPresent()) {
       return cachedPublicKey.get();
@@ -77,13 +77,13 @@ public class PublicKeyResolver extends SigningKeyResolverAdapter {
     Jwks jwks = getJwks(claims);
 
     PublicKey publicKey = Arrays.stream(jwks.getKeys())
-        .filter(key -> key.getX5t().equals(tokenThumbprint))
+        .filter(key -> key.getKeyId().equals(keyId))
         .map(this::getPublicKey)
         .findFirst()
         .orElseThrow(
             () -> new IllegalArgumentException("Can not resolve public key for given token."));
 
-    return cachingDelegate.cachePublicKey(tokenThumbprint, publicKey);
+    return cachingDelegate.cachePublicKey(keyId, publicKey);
   }
 
   /**
@@ -95,7 +95,8 @@ public class PublicKeyResolver extends SigningKeyResolverAdapter {
   private Jwks getJwks(Claims claims) {
     String issuer = claims.getIssuer();
 
-    if (Objects.equals(issuer, properties.host())) {
+    if (Objects.equals(issuer, properties.host()) || Objects.equals(issuer,
+        properties.issuing().token().audience())) {
       Jwks jwks = restTemplate.getForObject(properties.jwksEndpoint(), Jwks.class);
 
       if (jwks != null) {
@@ -114,14 +115,15 @@ public class PublicKeyResolver extends SigningKeyResolverAdapter {
    * @return The public key.
    */
   private PublicKey getPublicKey(Jwk key) {
-    byte[] keyBytes = Base64.getDecoder().decode(key.getX5c()[0]);
+    byte[] modulusBytes = Base64.getUrlDecoder().decode(key.getModulus());
+    BigInteger modulus = new BigInteger(1, modulusBytes);
+
+    byte[] exponentBytes = Base64.getUrlDecoder().decode(key.getExponent());
+    BigInteger exponent = new BigInteger(1, exponentBytes);
 
     try {
-      CertificateFactory certificateFactory = CertificateFactory.getInstance(CERTIFICATE_TYPE);
-      Certificate certificate = certificateFactory.generateCertificate(
-          new ByteArrayInputStream(keyBytes));
-      return certificate.getPublicKey();
-    } catch (CertificateException e) {
+      return KeyFactory.getInstance("RSA").generatePublic(new RSAPublicKeySpec(modulus, exponent));
+    } catch (GeneralSecurityException e) {
       throw new IllegalArgumentException(e);
     }
   }
@@ -140,8 +142,14 @@ public class PublicKeyResolver extends SigningKeyResolverAdapter {
     @Data
     static class Jwk {
 
-      private String[] x5c; // X.509 certificate chain.
-      private String x5t; // X.509 certificate SHA-1 thumbprint.
+      @JsonProperty("kid")
+      private String keyId;
+
+      @JsonProperty("n")
+      private String modulus;
+
+      @JsonProperty("e")
+      private String exponent;
     }
   }
 }
