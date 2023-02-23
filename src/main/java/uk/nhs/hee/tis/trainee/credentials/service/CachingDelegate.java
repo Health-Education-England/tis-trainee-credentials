@@ -32,6 +32,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
 
@@ -44,8 +45,10 @@ class CachingDelegate {
 
   private static final String CLIENT_STATE = "ClientState";
   private static final String CODE_VERIFIER = "CodeVerifier";
+  private static final String CREDENTIAL_DATA = "CredentialData";
   private static final String IDENTITY_DATA = "IdentityData";
   private static final String PUBLIC_KEY = "PublicKey";
+  private static final String TRAINEE_ID = "TraineeIdentifier";
   private static final String CREDENTIAL_LOG_DATA = "CredentialLogData";
   private static final String UNVERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Unverified";
   private static final String VERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Verified";
@@ -71,6 +74,30 @@ class CachingDelegate {
   @Cacheable(cacheNames = CODE_VERIFIER, cacheManager = VERIFICATION_REQUEST_DATA)
   @CacheEvict(CODE_VERIFIER)
   public Optional<String> getCodeVerifier(UUID key) {
+    return Optional.empty();
+  }
+
+  /**
+   * Cache an credential data dto for later retrieval.
+   *
+   * @param key The cache key.
+   * @param dto The credential data to cache.
+   * @return The cached credential data.
+   */
+  @CachePut(cacheNames = CREDENTIAL_DATA, cacheManager = CREDENTIAL_METADATA, key = "#key")
+  public CredentialDto cacheCredentialData(UUID key, CredentialDto dto) {
+    return dto;
+  }
+
+  /**
+   * Get the credential data associated with the given key, any cached value will be removed.
+   *
+   * @param key The cache key.
+   * @return The cached credential data, or an empty optional if not found.
+   */
+  @Cacheable(cacheNames = CREDENTIAL_DATA, cacheManager = CREDENTIAL_METADATA)
+  @CacheEvict(CREDENTIAL_DATA)
+  public Optional<CredentialDto> getCredentialData(UUID key) {
     return Optional.empty();
   }
 
@@ -142,6 +169,30 @@ class CachingDelegate {
    */
   @Cacheable(cacheNames = PUBLIC_KEY)
   public Optional<PublicKey> getPublicKey(String certificateThumbprint) {
+    return Optional.empty();
+  }
+
+  /**
+   * Cache a trainee identifier for later retrieval.
+   *
+   * @param key               The cache key.
+   * @param traineeIdentifier The trainee identifier to cache.
+   * @return The cached trainee identifier.
+   */
+  @CachePut(cacheNames = TRAINEE_ID, cacheManager = CREDENTIAL_METADATA, key = "#key")
+  public String cacheTraineeIdentifier(UUID key, String traineeIdentifier) {
+    return traineeIdentifier;
+  }
+
+  /**
+   * Get the trainee identifier associated with the given key, any cached value will be removed.
+   *
+   * @param key The cache key.
+   * @return The cached trainee identifier, or an empty optional if not found.
+   */
+  @Cacheable(cacheNames = TRAINEE_ID, cacheManager = CREDENTIAL_METADATA)
+  @CacheEvict(TRAINEE_ID)
+  public Optional<String> getTraineeIdentifier(UUID key) {
     return Optional.empty();
   }
 
