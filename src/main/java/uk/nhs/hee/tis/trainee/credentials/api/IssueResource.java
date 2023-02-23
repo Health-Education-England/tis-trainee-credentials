@@ -40,7 +40,7 @@ import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
-import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
+import uk.nhs.hee.tis.trainee.credentials.service.IssuanceService;
 import uk.nhs.hee.tis.trainee.credentials.service.IssuedResourceService;
 
 /**
@@ -51,11 +51,11 @@ import uk.nhs.hee.tis.trainee.credentials.service.IssuedResourceService;
 @RequestMapping("/api/issue")
 public class IssueResource {
 
-  private final GatewayService service;
+  private final IssuanceService service;
   private final CredentialDataMapper mapper;
   private final IssuedResourceService issuedResourceService;
 
-  IssueResource(GatewayService service, CredentialDataMapper mapper,
+  IssueResource(IssuanceService service, CredentialDataMapper mapper,
       IssuedResourceService issuedResourceService) {
     this.service = service;
     this.mapper = mapper;
@@ -64,11 +64,12 @@ public class IssueResource {
 
   @PostMapping("/programme-membership")
   ResponseEntity<String> issueProgrammeMembershipCredential(
+      @RequestHeader(HttpHeaders.AUTHORIZATION) String token,
       @Validated @RequestBody ProgrammeMembershipDataDto dataDto,
       @RequestParam(required = false) String state) {
     log.info("Received request to issue Programme Membership credential.");
     ProgrammeMembershipCredentialDto credentialDto = mapper.toCredential(dataDto);
-    Optional<URI> credentialUri = service.getCredentialUri(credentialDto, state);
+    Optional<URI> credentialUri = service.startCredentialIssuance(token, credentialDto, state);
 
     if (credentialUri.isPresent()) {
       URI uri = credentialUri.get();
@@ -82,11 +83,12 @@ public class IssueResource {
 
   @PostMapping("/placement")
   ResponseEntity<String> issuePlacementCredential(
+      @RequestHeader(HttpHeaders.AUTHORIZATION) String token,
       @Validated @RequestBody PlacementDataDto dataDto,
       @RequestParam(required = false) String state) {
     log.info("Received request to issue Placement credential.");
     PlacementCredentialDto credentialDto = mapper.toCredential(dataDto);
-    Optional<URI> credentialUri = service.getCredentialUri(credentialDto, state);
+    Optional<URI> credentialUri = service.startCredentialIssuance(token, credentialDto, state);
 
     if (credentialUri.isPresent()) {
       URI uri = credentialUri.get();
@@ -105,7 +107,6 @@ public class IssueResource {
    * @param state            The internal state returned from the gateway.
    * @param error            The error text, if the credential was not issued.
    * @param errorDescription The error description, if the credential was not issued.
-   * @param token            The user's authorization token.
    * @return The response entity redirecting to the issuing redirect_uri.
    */
   @GetMapping("/callback")

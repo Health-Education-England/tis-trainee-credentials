@@ -22,7 +22,6 @@
 package uk.nhs.hee.tis.trainee.credentials.service;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
@@ -69,6 +68,7 @@ class GatewayServiceTest {
   private static final String REDIRECT_URI = "https://redirect.uri";
   private static final String CALLBACK_URI = "https://callback.uri";
 
+  private static final String NONCE = UUID.randomUUID().toString();
   private static final String STATE = "some-client-state";
 
   private GatewayService service;
@@ -116,7 +116,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
         eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
 
-    service.getCredentialUri(dto, STATE);
+    service.getCredentialUri(dto, NONCE, STATE);
 
     HttpHeaders headers = argumentCaptor.getValue().getHeaders();
     assertThat("Unexpected accept header.", headers.get(HttpHeaders.ACCEPT),
@@ -133,7 +133,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
         eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
 
-    service.getCredentialUri(dto, STATE);
+    service.getCredentialUri(dto, NONCE, STATE);
 
     HttpHeaders headers = argumentCaptor.getValue().getHeaders();
     assertThat("Unexpected content type header.", headers.get(HttpHeaders.CONTENT_TYPE),
@@ -148,7 +148,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
         eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
 
-    service.getCredentialUri(dto, STATE);
+    service.getCredentialUri(dto, NONCE, STATE);
 
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
@@ -163,7 +163,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
         eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
 
-    service.getCredentialUri(dto, STATE);
+    service.getCredentialUri(dto, NONCE, STATE);
 
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
@@ -180,7 +180,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
         eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
 
-    service.getCredentialUri(dto, STATE);
+    service.getCredentialUri(dto, NONCE, STATE);
 
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
@@ -196,7 +196,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
         eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
 
-    service.getCredentialUri(dto, STATE);
+    service.getCredentialUri(dto, NONCE, STATE);
 
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
@@ -212,7 +212,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
         eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
 
-    service.getCredentialUri(dto, STATE);
+    service.getCredentialUri(dto, NONCE, STATE);
 
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
@@ -229,7 +229,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
         eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
 
-    service.getCredentialUri(dto, STATE);
+    service.getCredentialUri(dto, NONCE, STATE);
 
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
@@ -245,7 +245,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
         eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
 
-    service.getCredentialUri(dto, STATE);
+    service.getCredentialUri(dto, NONCE, STATE);
 
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
@@ -260,11 +260,11 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
         eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
 
-    service.getCredentialUri(dto, STATE);
+    service.getCredentialUri(dto, NONCE, STATE);
 
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
-    assertThat("Unexpected nonce.", requestBody.get("nonce"), notNullValue());
+    assertThat("Unexpected nonce.", requestBody.get("nonce"), is(List.of(NONCE)));
   }
 
   @Test
@@ -277,7 +277,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
         eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
 
-    service.getCredentialUri(dto, STATE);
+    service.getCredentialUri(dto, NONCE, STATE);
 
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
@@ -292,7 +292,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), any(), eq(ParResponse.class))).thenReturn(
         ResponseEntity.notFound().build());
 
-    Optional<URI> optional = service.getCredentialUri(dto, STATE);
+    Optional<URI> optional = service.getCredentialUri(dto, NONCE, STATE);
 
     assertThat("Unexpected URI presence.", optional.isPresent(), is(false));
   }
@@ -305,7 +305,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), any(), eq(ParResponse.class))).thenReturn(
         response);
 
-    Optional<URI> optional = service.getCredentialUri(dto, STATE);
+    Optional<URI> optional = service.getCredentialUri(dto, NONCE, STATE);
 
     assertThat("Unexpected URI presence.", optional.isPresent(), is(false));
   }
@@ -319,7 +319,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), any(), eq(ParResponse.class))).thenReturn(
         response);
 
-    Optional<URI> optional = service.getCredentialUri(dto, STATE);
+    Optional<URI> optional = service.getCredentialUri(dto, NONCE, STATE);
 
     assertThat("Unexpected URI presence.", optional.isPresent(), is(true));
 

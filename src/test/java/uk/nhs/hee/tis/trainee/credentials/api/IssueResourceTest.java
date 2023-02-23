@@ -62,7 +62,7 @@ import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.filter.FilterConfiguration;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
-import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
+import uk.nhs.hee.tis.trainee.credentials.service.IssuanceService;
 import uk.nhs.hee.tis.trainee.credentials.service.IssuedResourceService;
 import uk.nhs.hee.tis.trainee.credentials.service.VerificationService;
 
@@ -129,7 +129,7 @@ class IssueResourceTest {
   private MockMvc mockMvc;
 
   @MockBean
-  private GatewayService gatewayService;
+  private IssuanceService issuanceService;
 
   @MockBean
   private VerificationService verificationService;
@@ -187,10 +187,12 @@ class IssueResourceTest {
       throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
-    when(gatewayService.getCredentialUri(any(dtoClass), any())).thenReturn(Optional.empty());
+    when(issuanceService.startCredentialIssuance(any(), any(dtoClass), any())).thenReturn(
+        Optional.empty());
 
     mockMvc.perform(
             post("/api/issue/" + mapping)
+                .header(HttpHeaders.AUTHORIZATION, AUTH_TOKEN)
                 .content(signedData)
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isInternalServerError());
@@ -208,16 +210,51 @@ class IssueResourceTest {
 
     String credentialUriString = "the-credential-uri";
     URI credentialUri = URI.create(credentialUriString);
-    when(gatewayService.getCredentialUri(any(dtoClass), any())).thenReturn(
+    when(issuanceService.startCredentialIssuance(any(), any(dtoClass), any())).thenReturn(
         Optional.of(credentialUri));
 
     mockMvc.perform(
             post("/api/issue/" + mapping)
+                .header(HttpHeaders.AUTHORIZATION, AUTH_TOKEN)
                 .content(signedData)
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isCreated())
         .andExpect(header().string(HttpHeaders.LOCATION, credentialUriString))
         .andExpect(content().string(credentialUriString));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"placement", "programme-membership"})
+  void shouldReturnBadRequestWhenNoAuthorizationHeader(String mapping) throws Exception {
+    String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
+
+    mockMvc.perform(
+            post("/api/issue/" + mapping)
+                .content(signedData)
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest());
+  }
+
+  @ParameterizedTest
+  @CsvSource(delimiter = '|', textBlock = """
+      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto
+      placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
+      """)
+  void shouldUseTokenFromAuthorizationHeader(String mapping,
+      Class<? extends CredentialDto> dtoClass) throws Exception {
+    String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
+
+    mockMvc.perform(
+        post("/api/issue/" + mapping)
+            .header(HttpHeaders.AUTHORIZATION, AUTH_TOKEN)
+            .content(signedData)
+            .contentType(MediaType.APPLICATION_JSON));
+
+    ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
+    verify(issuanceService).startCredentialIssuance(tokenCaptor.capture(), any(dtoClass), any());
+
+    String token = tokenCaptor.getValue();
+    assertThat("Unexpected token.", token, is(AUTH_TOKEN));
   }
 
   @ParameterizedTest
@@ -231,12 +268,13 @@ class IssueResourceTest {
 
     mockMvc.perform(
         post("/api/issue/" + mapping)
+            .header(HttpHeaders.AUTHORIZATION, AUTH_TOKEN)
             .queryParam("state", "some-state-value")
             .content(signedData)
             .contentType(MediaType.APPLICATION_JSON));
 
     ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
-    verify(gatewayService).getCredentialUri(any(dtoClass), stateCaptor.capture());
+    verify(issuanceService).startCredentialIssuance(any(), any(dtoClass), stateCaptor.capture());
 
     String state = stateCaptor.getValue();
     assertThat("Unexpected state.", state, is("some-state-value"));
@@ -253,11 +291,12 @@ class IssueResourceTest {
 
     mockMvc.perform(
         post("/api/issue/" + mapping)
+            .header(HttpHeaders.AUTHORIZATION, AUTH_TOKEN)
             .content(signedData)
             .contentType(MediaType.APPLICATION_JSON));
 
     ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
-    verify(gatewayService).getCredentialUri(any(dtoClass), stateCaptor.capture());
+    verify(issuanceService).startCredentialIssuance(any(), any(dtoClass), stateCaptor.capture());
 
     String state = stateCaptor.getValue();
     assertThat("Unexpected state.", state, nullValue());
@@ -269,12 +308,13 @@ class IssueResourceTest {
 
     mockMvc.perform(
         post("/api/issue/programme-membership")
+            .header(HttpHeaders.AUTHORIZATION, AUTH_TOKEN)
             .content(signedData)
             .contentType(MediaType.APPLICATION_JSON));
 
     ArgumentCaptor<ProgrammeMembershipCredentialDto> dtoCaptor = ArgumentCaptor.forClass(
         ProgrammeMembershipCredentialDto.class);
-    verify(gatewayService).getCredentialUri(dtoCaptor.capture(), any());
+    verify(issuanceService).startCredentialIssuance(any(), dtoCaptor.capture(), any());
 
     ProgrammeMembershipCredentialDto dto = dtoCaptor.getValue();
     assertThat("Unexpected programme name.", dto.programmeName(), is("programme one"));
@@ -305,7 +345,7 @@ class IssueResourceTest {
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isBadRequest());
 
-    verifyNoInteractions(gatewayService);
+    verifyNoInteractions(issuanceService);
   }
 
   @ParameterizedTest
@@ -325,7 +365,7 @@ class IssueResourceTest {
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isBadRequest());
 
-    verifyNoInteractions(gatewayService);
+    verifyNoInteractions(issuanceService);
   }
 
   @Test
@@ -334,12 +374,13 @@ class IssueResourceTest {
 
     mockMvc.perform(
         post("/api/issue/placement")
+            .header(HttpHeaders.AUTHORIZATION, AUTH_TOKEN)
             .content(signedData)
             .contentType(MediaType.APPLICATION_JSON));
 
     ArgumentCaptor<PlacementCredentialDto> dtoCaptor = ArgumentCaptor.forClass(
         PlacementCredentialDto.class);
-    verify(gatewayService).getCredentialUri(dtoCaptor.capture(), any());
+    verify(issuanceService).startCredentialIssuance(any(), dtoCaptor.capture(), any());
 
     PlacementCredentialDto dto = dtoCaptor.getValue();
     assertThat("Unexpected specialty.", dto.specialty(), is("placement specialty"));
@@ -380,7 +421,7 @@ class IssueResourceTest {
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isBadRequest());
 
-    verifyNoInteractions(gatewayService);
+    verifyNoInteractions(issuanceService);
   }
 
   @ParameterizedTest
@@ -403,7 +444,7 @@ class IssueResourceTest {
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isBadRequest());
 
-    verifyNoInteractions(gatewayService);
+    verifyNoInteractions(issuanceService);
   }
 
   /**
@@ -422,6 +463,7 @@ class IssueResourceTest {
 
     mockMvc.perform(
             post("/api/issue/placement")
+                .header(HttpHeaders.AUTHORIZATION, AUTH_TOKEN)
                 .content(signedData)
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk());
