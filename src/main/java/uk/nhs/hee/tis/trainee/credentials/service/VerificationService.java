@@ -179,7 +179,7 @@ public class VerificationService {
     }
 
     Optional<String> clientState = cachingDelegate.getClientState(stateUuid);
-    clientState.ifPresent(s -> uriBuilder.queryParam("state", s));
+    uriBuilder.queryParamIfPresent("state", clientState);
     return uriBuilder.build().toUri();
   }
 
