@@ -35,6 +35,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import uk.nhs.hee.tis.trainee.credentials.TestCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
 
@@ -131,6 +133,48 @@ class CachingDelegateIntegrationTest {
   }
 
   @Test
+  void shouldReturnEmptyCredentialDataWhenNotCached() {
+    UUID key = UUID.randomUUID();
+
+    Optional<CredentialDto> cachedOptional = delegate.getCredentialData(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
+  }
+
+  @Test
+  void shouldReturnCachedCredentialDataAfterCaching() {
+    UUID key = UUID.randomUUID();
+
+    CredentialDto credentialData = new TestCredentialDto("123");
+    CredentialDto cachedData = delegate.cacheCredentialData(key, credentialData);
+    assertThat("Unexpected cached value.", cachedData, is(credentialData));
+  }
+
+  @Test
+  void shouldGetCachedCredentialDataWhenCached() {
+    UUID key = UUID.randomUUID();
+
+    CredentialDto credentialData = new TestCredentialDto("123");
+    delegate.cacheCredentialData(key, credentialData);
+
+    Optional<CredentialDto> cachedOptional = delegate.getCredentialData(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(credentialData)));
+  }
+
+  @Test
+  void shouldRemoveCredentialDataWhenRetrieved() {
+    UUID key = UUID.randomUUID();
+
+    CredentialDto credentialData = new TestCredentialDto("123");
+    delegate.cacheCredentialData(key, credentialData);
+
+    // Ignore this result, the cached value should be evicted.
+    delegate.getCredentialData(key);
+
+    Optional<CredentialDto> cachedOptional = delegate.getCredentialData(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
+  }
+
+  @Test
   void shouldReturnEmptyIdentityDataWhenNotCached() {
     UUID key = UUID.randomUUID();
 
@@ -208,6 +252,48 @@ class CachingDelegateIntegrationTest {
 
     Optional<PublicKey> cachedOptional = delegate.getPublicKey(certificateThumbprint);
     assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(publicKey)));
+  }
+
+  @Test
+  void shouldReturnEmptyTraineeIdentifierWhenNotCached() {
+    UUID key = UUID.randomUUID();
+
+    Optional<String> cachedOptional = delegate.getTraineeIdentifier(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
+  }
+
+  @Test
+  void shouldReturnCachedTraineeIdentifierAfterCaching() {
+    UUID key = UUID.randomUUID();
+
+    String traineeIdentifier = "123";
+    String cachedData = delegate.cacheTraineeIdentifier(key, traineeIdentifier);
+    assertThat("Unexpected cached value.", cachedData, is(traineeIdentifier));
+  }
+
+  @Test
+  void shouldGetCachedTraineeIdentifierWhenCached() {
+    UUID key = UUID.randomUUID();
+
+    String traineeIdentifier = "123";
+    delegate.cacheTraineeIdentifier(key, traineeIdentifier);
+
+    Optional<String> cachedOptional = delegate.getTraineeIdentifier(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(traineeIdentifier)));
+  }
+
+  @Test
+  void shouldRemoveTraineeIdentifierWhenRetrieved() {
+    UUID key = UUID.randomUUID();
+
+    String traineeIdentifier = "123";
+    delegate.cacheTraineeIdentifier(key, traineeIdentifier);
+
+    // Ignore this result, the cached value should be evicted.
+    delegate.getTraineeIdentifier(key);
+
+    Optional<String> cachedOptional = delegate.getTraineeIdentifier(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
   }
 
   @Test

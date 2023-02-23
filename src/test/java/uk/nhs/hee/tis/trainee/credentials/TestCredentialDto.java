@@ -19,38 +19,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.dto;
+package uk.nhs.hee.tis.trainee.credentials;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import java.io.Serializable;
 import java.time.Instant;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 
 /**
- * An interface representing a DTO containing credential data.
+ * An implementation of {@link CredentialDto} for test purposes.
  */
-public interface CredentialDto extends Serializable {
+public record TestCredentialDto(String tisId) implements CredentialDto {
 
-  /**
-   * Get the TIS ID of the record, which is recorded in the credential metadata, not the credential
-   * itself.
-   */
-  @JsonIgnore
-  String getTisId();
+  @Override
+  public String getTisId() {
+    return tisId();
+  }
 
-  /**
-   * Get the expiry instant for the credential.
-   *
-   * @param issuedAt The time the credential is being issued.
-   * @return The expiry instant of the credential.
-   */
-  @JsonIgnore
-  Instant getExpiration(Instant issuedAt);
+  @Override
+  public Instant getExpiration(Instant issuedAt) {
+    return Instant.MAX;
+  }
 
-  /**
-   * Get gateway credential type, known as scope internally.
-   *
-   * @return The credential's scope.
-   */
-  @JsonIgnore
-  String getScope();
+  @Override
+  public String getScope() {
+    return "test.Credential";
+  }
 }

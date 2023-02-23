@@ -32,6 +32,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import uk.nhs.hee.tis.trainee.credentials.TestCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
 
@@ -69,6 +71,20 @@ class CachingDelegateTest {
   }
 
   @Test
+  void shouldReturnCachedCredentialData() {
+    CredentialDto credentialData = new TestCredentialDto("123");
+    CredentialDto cachedCredentialData = delegate.cacheCredentialData(UUID.randomUUID(),
+        credentialData);
+    assertThat("Unexpected credential data.", cachedCredentialData, is(credentialData));
+  }
+
+  @Test
+  void shouldGetEmptyCredentialData() {
+    Optional<CredentialDto> credentialData = delegate.getCredentialData(UUID.randomUUID());
+    assertThat("Unexpected credential data.", credentialData, is(Optional.empty()));
+  }
+
+  @Test
   void shouldReturnCachedIdentityData() {
     IdentityDataDto identityData = new IdentityDataDto("Anthony", "Gilliam", LocalDate.now());
     IdentityDataDto returnValue = delegate.cacheIdentityData(UUID.randomUUID(), identityData);
@@ -92,6 +108,18 @@ class CachingDelegateTest {
   void shouldGetEmptyIdentityData() {
     Optional<IdentityDataDto> identityData = delegate.getIdentityData(UUID.randomUUID());
     assertThat("Unexpected identity data.", identityData, is(Optional.empty()));
+  }
+
+  @Test
+  void shouldReturnCachedTraineeIdentifier() {
+    String traineeIdentifier = delegate.cacheTraineeIdentifier(UUID.randomUUID(), "123");
+    assertThat("Unexpected trainee identifier.", traineeIdentifier, is("123"));
+  }
+
+  @Test
+  void shouldGetEmptyTraineeIdentifier() {
+    Optional<String> traineeIdentifier = delegate.getTraineeIdentifier(UUID.randomUUID());
+    assertThat("Unexpected trainee identifier.", traineeIdentifier, is(Optional.empty()));
   }
 
   @Test
