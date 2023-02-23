@@ -90,6 +90,18 @@ class CachingDelegate {
   }
 
   /**
+   * Cache a credential issuing request dto for later retrieval.
+   *
+   * @param key  The cache key.
+   * @param data The credential issue request metadata to cache.
+   * @return The cached credential log data.
+   */
+  @CachePut(cacheNames = CREDENTIAL_LOG_DATA, cacheManager = CREDENTIAL_METADATA, key = "#key")
+  public IssueRequestDto cacheCredentialData(UUID key, IssueRequestDto data) {
+    return data;
+  }
+
+  /**
    * Get the credential data associated with the given key, any cached value will be removed.
    *
    * @param key The cache key.
@@ -98,6 +110,19 @@ class CachingDelegate {
   @Cacheable(cacheNames = CREDENTIAL_DATA, cacheManager = CREDENTIAL_METADATA)
   @CacheEvict(CREDENTIAL_DATA)
   public Optional<CredentialDto> getCredentialData(UUID key) {
+    return Optional.empty();
+  }
+
+  /**
+   * Get the credential issue request metadata associated with the given key, any cached value will
+   * be removed.
+   *
+   * @param key The cache key.
+   * @return The cached credential issue request metadata, or an empty optional if not found.
+   */
+  @Cacheable(cacheNames = CREDENTIAL_LOG_DATA, cacheManager = CREDENTIAL_METADATA)
+  @CacheEvict(CREDENTIAL_LOG_DATA)
+  public Optional<IssueRequestDto> getCredentialMetadata(UUID key) {
     return Optional.empty();
   }
 
@@ -241,31 +266,6 @@ class CachingDelegate {
    */
   @Cacheable(cacheNames = VERIFIED_SESSION_IDENTIFIER, cacheManager = VERIFIED_SESSION_DATA)
   public Optional<String> getVerifiedSessionIdentifier(String sessionId) {
-    return Optional.empty();
-  }
-
-  /**
-   * Cache a credential issuing request dto for later retrieval.
-   *
-   * @param key  The cache key.
-   * @param data The credential issue request metadata to cache.
-   * @return The cached credential log data.
-   */
-  @CachePut(cacheNames = CREDENTIAL_LOG_DATA, cacheManager = CREDENTIAL_METADATA, key = "#key")
-  public IssueRequestDto cacheCredentialData(UUID key, IssueRequestDto data) {
-    return data;
-  }
-
-  /**
-   * Get the credential issue request metadata associated with the given key, any cached value will
-   * be removed.
-   *
-   * @param key The cache key.
-   * @return The cached credential issue request metadata, or an empty optional if not found.
-   */
-  @Cacheable(cacheNames = CREDENTIAL_LOG_DATA, cacheManager = CREDENTIAL_METADATA)
-  @CacheEvict(CREDENTIAL_LOG_DATA)
-  public Optional<IssueRequestDto> getCredentialMetadata(UUID key) {
     return Optional.empty();
   }
 }
