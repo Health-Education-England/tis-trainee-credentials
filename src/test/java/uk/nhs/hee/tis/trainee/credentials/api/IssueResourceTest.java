@@ -472,7 +472,7 @@ class IssueResourceTest {
   @Test
   void shouldRedirectWhenIssuingCallbackCompleted() throws Exception {
     when(issuedResourceService
-        .logIssuedResource(CODE_VALUE, STATE_VALUE, null, null, AUTH_TOKEN))
+        .logIssuedResource(CODE_VALUE, STATE_VALUE, null, null))
         .thenReturn(URI.create("test-redirect"));
 
     mockMvc.perform(
@@ -480,7 +480,7 @@ class IssueResourceTest {
                 .header(HttpHeaders.AUTHORIZATION, AUTH_TOKEN)
                 .queryParam(CODE_PARAM, CODE_VALUE)
                 .queryParam(STATE_PARAM, STATE_VALUE))
-        .andExpect(status().isOk())
+        .andExpect(status().isFound())
         .andExpect(header().string(HttpHeaders.LOCATION, "test-redirect"))
         .andExpect(jsonPath("$").doesNotExist());
   }

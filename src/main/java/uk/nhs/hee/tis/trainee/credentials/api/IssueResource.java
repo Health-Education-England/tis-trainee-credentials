@@ -114,15 +114,13 @@ public class IssueResource {
       @RequestParam(required = false) String code,
       @RequestParam(required = false) String state,
       @RequestParam(required = false) String error,
-      @RequestParam(required = false, value = "error_description") String errorDescription,
-      @RequestHeader(HttpHeaders.AUTHORIZATION) String token) {
+      @RequestParam(required = false, value = "error_description") String errorDescription) {
 
     log.info("Receiving callback for credential issuing.");
 
-    URI redirectUri = issuedResourceService.logIssuedResource(code, state, error,
-        errorDescription, token);
+    URI redirectUri = issuedResourceService.logIssuedResource(code, state, error, errorDescription);
 
     log.info("Redirecting after credential issuing process.");
-    return ResponseEntity.status(HttpStatus.OK).location(redirectUri).build();
+    return ResponseEntity.status(HttpStatus.FOUND).location(redirectUri).build();
   }
 }

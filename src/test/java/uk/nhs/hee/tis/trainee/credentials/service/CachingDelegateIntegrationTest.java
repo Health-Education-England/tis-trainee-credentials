@@ -38,7 +38,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import uk.nhs.hee.tis.trainee.credentials.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
 
 @SpringBootTest(properties = "embedded.containers.enabled=true")
 @ActiveProfiles("redis")
@@ -371,47 +370,5 @@ class CachingDelegateIntegrationTest {
 
     Optional<String> cachedOptional = delegate.getVerifiedSessionIdentifier(verifiedSession);
     assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(verifiedSession)));
-  }
-
-  @Test
-  void shouldReturnCredentialMetadataWhenNotCached() {
-    UUID key = UUID.randomUUID();
-
-    Optional<IssueRequestDto> cachedOptional = delegate.getCredentialMetadata(key);
-    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
-  }
-
-  @Test
-  void shouldReturnCachedCredentialMetadataAfterCaching() {
-    UUID key = UUID.randomUUID();
-
-    IssueRequestDto toCache = new IssueRequestDto("credential-type", "tis-id");
-    IssueRequestDto cachedCredential = delegate.cacheCredentialData(key, toCache);
-    assertThat("Unexpected cached value.", cachedCredential, is(toCache));
-  }
-
-  @Test
-  void shouldGetCachedCredentialMetadataWhenCached() {
-    UUID key = UUID.randomUUID();
-
-    IssueRequestDto toCache = new IssueRequestDto("credential-type", "tis-id");
-    delegate.cacheCredentialData(key, toCache);
-
-    Optional<IssueRequestDto> cachedOptional = delegate.getCredentialMetadata(key);
-    assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(toCache)));
-  }
-
-  @Test
-  void shouldRemoveCachedCredentialWhenRetrieved() {
-    UUID key = UUID.randomUUID();
-
-    IssueRequestDto toCache = new IssueRequestDto("credential-type", "tis-id");
-    delegate.cacheCredentialData(key, toCache);
-
-    // Ignore this result, the cached value should be evicted.
-    delegate.getCredentialMetadata(key);
-
-    Optional<IssueRequestDto> cachedOptional = delegate.getCredentialMetadata(key);
-    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
   }
 }

@@ -35,7 +35,6 @@ import org.junit.jupiter.api.Test;
 import uk.nhs.hee.tis.trainee.credentials.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
 
 class CachingDelegateTest {
 
@@ -145,19 +144,5 @@ class CachingDelegateTest {
   void shouldGetEmptyVerifiedSession() {
     Optional<String> verifiedSession = delegate.getVerifiedSessionIdentifier("verifiedSession1");
     assertThat("Unexpected verified session.", verifiedSession, is(Optional.empty()));
-  }
-
-  @Test
-  void shouldReturnCachedCredentialMetadata() {
-    IssueRequestDto toCache = new IssueRequestDto("credential-type", "tis-id");
-    IssueRequestDto credentialMetadata = delegate.cacheCredentialData(UUID.randomUUID(), toCache);
-    assertThat("Unexpected credential metadata.", credentialMetadata, is(toCache));
-  }
-
-  @Test
-  void shouldGetCachedCredentialMetadata() {
-    Optional<IssueRequestDto> credentialMetadata = delegate.getCredentialMetadata(
-        UUID.randomUUID());
-    assertThat("Unexpected credential metadata.", credentialMetadata, is(Optional.empty()));
   }
 }

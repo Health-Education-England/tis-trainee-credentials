@@ -11,13 +11,9 @@ import static org.mockito.Mockito.when;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.impl.DefaultClaims;
-import java.io.IOException;
 import java.net.URI;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,8 +21,9 @@ import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import uk.nhs.hee.tis.trainee.credentials.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
-import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialMetadataMapper;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 import uk.nhs.hee.tis.trainee.credentials.repository.CredentialMetadataRepository;
@@ -45,7 +42,7 @@ class IssuedResourceServiceTest {
   private static final String CODE_PARAM = "code";
   private static final String CODE_VALUE = "some-code";
   private static final String STATE_PARAM = "state";
-  private static final String STATE_VALUE = "some-state";
+  private static final String STATE_VALUE = UUID.randomUUID().toString();
   private static final String ERROR_PARAM = "error";
   private static final String ERROR_VALUE = "some-error";
   private static final String ERROR_DESCRIPTION_PARAM = "error_description";
@@ -56,13 +53,12 @@ class IssuedResourceServiceTest {
   private static final String TIS_ID = "the-tis-id";
   private static final String TRAINEE_ID = "the-trainee-id";
   private static final String CREDENTIAL_ID = "123-456-789";
-  private static final String CREDENTIAL_TYPE = "the-credential-type";
-  private static final LocalDateTime ISSUED_AT = LocalDateTime.MIN.truncatedTo(ChronoUnit.SECONDS);
-  private static final LocalDateTime EXPIRES_AT = LocalDateTime.MAX.truncatedTo(ChronoUnit.SECONDS);
+  private static final String CREDENTIAL_TYPE = "test.Credential";
+  private static final Instant ISSUED_AT = Instant.MIN.truncatedTo(ChronoUnit.SECONDS);
+  private static final Instant EXPIRES_AT = Instant.MAX.truncatedTo(ChronoUnit.SECONDS);
 
   private IssuedResourceService issuedResourceService;
   private GatewayService gatewayService;
-  private JwtService jwtService;
   private CachingDelegate cachingDelegate;
   private CredentialMetadataRepository credentialMetadataRepository;
   @SpyBean
@@ -71,7 +67,6 @@ class IssuedResourceServiceTest {
   @BeforeEach
   void setUp() {
     gatewayService = mock(GatewayService.class);
-    jwtService = mock(JwtService.class);
     cachingDelegate = spy(CachingDelegate.class);
     credentialMetadataRepository = mock(CredentialMetadataRepository.class);
     credentialMetadataMapper = Mappers.getMapper(CredentialMetadataMapper.class);
@@ -84,49 +79,39 @@ class IssuedResourceServiceTest {
         AUTHORIZE_ENDPOINT.toString(),
         TOKEN_ENDPOINT.toString(),
         tokenProperties,
-        CALLBACK_URI.toString(),
         REDIRECT_URI.toString());
 
     issuedResourceService = new IssuedResourceService(
         gatewayService, credentialMetadataRepository, credentialMetadataMapper, cachingDelegate,
-        properties, jwtService);
-  }
-
-  @Test
-  void shouldCacheRequestDetailsWhenStartingIssuing() {
-    // TODO - currently this is buried in the GatewayService
+        properties);
   }
 
   @Test
   void shouldNotSaveToRepositoryWhenCredentialNotIssued() {
     issuedResourceService.logIssuedResource(null, STATE_VALUE, ERROR_VALUE,
-        ERROR_DESCRIPTION_VALUE, AUTH_TOKEN);
+        ERROR_DESCRIPTION_VALUE);
     verifyNoInteractions(credentialMetadataRepository);
   }
 
   @Test
-  void shouldSaveToRepositoryWhenCredentialIssued() throws IOException {
-    UUID uuid = UUID.randomUUID();
+  void shouldSaveToRepositoryWhenCredentialIssued() {
+    UUID nonce = UUID.randomUUID();
     Claims claimsIssued = new DefaultClaims();
-    claimsIssued.put("nonce", uuid.toString());
+    claimsIssued.put("nonce", nonce.toString());
     claimsIssued.put("SerialNumber", CREDENTIAL_ID);
-    claimsIssued.put("iat", ISSUED_AT.toEpochSecond(ZoneOffset.UTC));
-    claimsIssued.put("exp", EXPIRES_AT.toEpochSecond(ZoneOffset.UTC));
+    claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
+    claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
 
-    IssueRequestDto issueRequestDto
-        = new IssueRequestDto(CREDENTIAL_TYPE, TIS_ID);
-    Map<String, String> authTokenMap = new HashMap<>();
-    authTokenMap.put(TIS_ID_ATTRIBUTE, TRAINEE_ID);
+    CredentialDto credentialData = new TestCredentialDto(TIS_ID);
 
     // TODO: this is quite brittle
-    when(gatewayService.getTokenClaims(eq(TOKEN_ENDPOINT), eq(CALLBACK_URI), eq(CODE_VALUE), any()))
+    when(gatewayService.getTokenClaims(eq(TOKEN_ENDPOINT), eq(REDIRECT_URI), eq(CODE_VALUE), any()))
         .thenReturn(claimsIssued);
-    when(cachingDelegate.getCredentialMetadata(uuid))
-        .thenReturn(Optional.of(issueRequestDto));
-    when(jwtService.getTokenBodyMap(AUTH_TOKEN))
-        .thenReturn(authTokenMap);
+    when(cachingDelegate.getCredentialData(nonce)).thenReturn(Optional.of(credentialData));
+    when(cachingDelegate.getTraineeIdentifier(UUID.fromString(STATE_VALUE))).thenReturn(
+        Optional.of(TRAINEE_ID));
 
-    issuedResourceService.logIssuedResource(CODE_VALUE, STATE_VALUE, null, null, AUTH_TOKEN);
+    issuedResourceService.logIssuedResource(CODE_VALUE, STATE_VALUE, null, null);
 
     ArgumentCaptor<CredentialMetadata> argument = ArgumentCaptor.forClass(CredentialMetadata.class);
     verify(credentialMetadataRepository).save(argument.capture());

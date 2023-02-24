@@ -24,7 +24,7 @@ package uk.nhs.hee.tis.trainee.credentials.model;
 import static org.springframework.beans.factory.config.BeanDefinition.SCOPE_PROTOTYPE;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.Data;
 import org.springframework.context.annotation.Scope;
 import org.springframework.data.annotation.Id;
@@ -46,6 +46,6 @@ public class CredentialMetadata implements Serializable {
   private String traineeId;
   private String credentialType;
   private String tisId;
-  private LocalDateTime issuedAt;
-  private LocalDateTime expiresAt;
+  private Instant issuedAt;
+  private Instant expiresAt;
 }
