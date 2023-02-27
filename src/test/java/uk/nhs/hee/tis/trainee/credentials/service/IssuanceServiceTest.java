@@ -208,7 +208,6 @@ class IssuanceServiceTest {
     claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
     claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
 
-    // TODO: this is quite brittle
     when(gatewayService.getTokenClaims(eq(TOKEN_ENDPOINT), eq(REDIRECT_URI), eq(CODE_VALUE), any()))
         .thenReturn(claimsIssued);
     when(cachingDelegate.getCredentialData(nonce)).thenReturn(Optional.of(credentialData));

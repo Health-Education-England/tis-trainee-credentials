@@ -48,7 +48,6 @@ class CachingDelegate {
   private static final String IDENTITY_DATA = "IdentityData";
   private static final String PUBLIC_KEY = "PublicKey";
   private static final String TRAINEE_ID = "TraineeIdentifier";
-  private static final String CREDENTIAL_LOG_DATA = "CredentialLogData";
   private static final String UNVERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Unverified";
   private static final String VERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Verified";
 
