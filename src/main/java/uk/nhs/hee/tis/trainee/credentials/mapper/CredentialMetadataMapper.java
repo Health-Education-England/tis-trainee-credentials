@@ -24,7 +24,7 @@ package uk.nhs.hee.tis.trainee.credentials.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants.ComponentModel;
-import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.IssueResponseDto;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 
@@ -37,16 +37,18 @@ public interface CredentialMetadataMapper {
   /**
    * Map the issue request and response data DTOs to the equivalent credential metadata.
    *
-   * @param requestDto  The issue request data to map.
-   * @param responseDto The issue response data to map.
+   * @param traineeId      The trainee ID to map.
+   * @param credentialData The credential data to map.
+   * @param responseDto    The issue response data to map.
    * @return The mapped credential metadata.
    */
-  @Mapping(source = "requestDto.credentialType", target = "credentialType")
-  @Mapping(source = "requestDto.tisId", target = "tisId")
-  @Mapping(source = "responseDto.credentialId", target = "credentialId")
-  @Mapping(source = "responseDto.traineeId", target = "traineeId")
-  @Mapping(source = "responseDto.issuedAt", target = "issuedAt")
-  @Mapping(source = "responseDto.expiresAt", target = "expiresAt")
-  CredentialMetadata toCredentialMetadata(IssueRequestDto requestDto, IssueResponseDto responseDto);
+  @Mapping(target = "credentialId", source = "responseDto.credentialId")
+  @Mapping(target = "traineeId", source = "traineeId")
+  @Mapping(target = "credentialType", source = "credentialData.scope")
+  @Mapping(target = "tisId", source = "credentialData.tisId")
+  @Mapping(target = "issuedAt", source = "responseDto.issuedAt")
+  @Mapping(target = "expiresAt", source = "responseDto.expiresAt")
+  CredentialMetadata toCredentialMetadata(String traineeId, CredentialDto credentialData,
+      IssueResponseDto responseDto);
 
 }

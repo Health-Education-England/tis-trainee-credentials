@@ -41,7 +41,6 @@ import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
 import uk.nhs.hee.tis.trainee.credentials.service.IssuanceService;
-import uk.nhs.hee.tis.trainee.credentials.service.IssuedResourceService;
 
 /**
  * API endpoints for issuing trainee digital credentials.
@@ -53,13 +52,10 @@ public class IssueResource {
 
   private final IssuanceService service;
   private final CredentialDataMapper mapper;
-  private final IssuedResourceService issuedResourceService;
 
-  IssueResource(IssuanceService service, CredentialDataMapper mapper,
-      IssuedResourceService issuedResourceService) {
+  IssueResource(IssuanceService service, CredentialDataMapper mapper) {
     this.service = service;
     this.mapper = mapper;
-    this.issuedResourceService = issuedResourceService;
   }
 
   @PostMapping("/programme-membership")
@@ -114,15 +110,13 @@ public class IssueResource {
       @RequestParam(required = false) String code,
       @RequestParam(required = false) String state,
       @RequestParam(required = false) String error,
-      @RequestParam(required = false, value = "error_description") String errorDescription,
-      @RequestHeader(HttpHeaders.AUTHORIZATION) String token) {
+      @RequestParam(required = false, value = "error_description") String errorDescription) {
 
     log.info("Receiving callback for credential issuing.");
 
-    URI redirectUri = issuedResourceService.logIssuedResource(code, state, error,
-        errorDescription, token);
+    URI redirectUri = service.completeCredentialVerification(code, state, error, errorDescription);
 
     log.info("Redirecting after credential issuing process.");
-    return ResponseEntity.status(HttpStatus.OK).location(redirectUri).build();
+    return ResponseEntity.status(HttpStatus.FOUND).location(redirectUri).build();
   }
 }

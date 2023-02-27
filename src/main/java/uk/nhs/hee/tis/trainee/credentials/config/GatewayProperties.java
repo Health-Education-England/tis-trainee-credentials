@@ -49,7 +49,6 @@ public record GatewayProperties(
    * @param authorizeEndpoint The gateway's issue authorize endpoint URI.
    * @param tokenEndpoint     The gateway's issue token endpoint URI.
    * @param token             The issuing token child properties.
-   * @param callbackUri       The URI to use to log the issuing event outcome.
    * @param redirectUri       The URI to redirect to after issuing a credential.
    */
   @ConfigurationProperties(prefix = "application.gateway.issuing")
@@ -58,7 +57,6 @@ public record GatewayProperties(
       String authorizeEndpoint,
       String tokenEndpoint,
       TokenProperties token,
-      String callbackUri,
       String redirectUri) {
 
     /**

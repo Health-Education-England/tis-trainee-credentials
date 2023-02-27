@@ -34,7 +34,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
 
 /**
  * Caching annotations do not work within the same class, this delegate provides a lightweight
@@ -90,18 +89,6 @@ class CachingDelegate {
   }
 
   /**
-   * Cache a credential issuing request dto for later retrieval.
-   *
-   * @param key  The cache key.
-   * @param data The credential issue request metadata to cache.
-   * @return The cached credential log data.
-   */
-  @CachePut(cacheNames = CREDENTIAL_LOG_DATA, cacheManager = CREDENTIAL_METADATA, key = "#key")
-  public IssueRequestDto cacheCredentialData(UUID key, IssueRequestDto data) {
-    return data;
-  }
-
-  /**
    * Get the credential data associated with the given key, any cached value will be removed.
    *
    * @param key The cache key.
@@ -110,19 +97,6 @@ class CachingDelegate {
   @Cacheable(cacheNames = CREDENTIAL_DATA, cacheManager = CREDENTIAL_METADATA)
   @CacheEvict(CREDENTIAL_DATA)
   public Optional<CredentialDto> getCredentialData(UUID key) {
-    return Optional.empty();
-  }
-
-  /**
-   * Get the credential issue request metadata associated with the given key, any cached value will
-   * be removed.
-   *
-   * @param key The cache key.
-   * @return The cached credential issue request metadata, or an empty optional if not found.
-   */
-  @Cacheable(cacheNames = CREDENTIAL_LOG_DATA, cacheManager = CREDENTIAL_METADATA)
-  @CacheEvict(CREDENTIAL_LOG_DATA)
-  public Optional<IssueRequestDto> getCredentialMetadata(UUID key) {
     return Optional.empty();
   }
 

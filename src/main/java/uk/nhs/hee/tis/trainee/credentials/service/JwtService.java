@@ -26,8 +26,6 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
@@ -117,20 +115,5 @@ public class JwtService {
     } else {
       return parser.parseClaimsJws(token).getBody();
     }
-  }
-
-  /**
-   * Get the mapped token body, the header or signature will not be verified.
-   * TODO: investigate why Authorization token is not valid for getClaims()
-   *
-   * @param token The token to retrieve body values from.
-   * @return The extracted map of body values.
-   */
-  public Map<String, String> getTokenBodyMap(String token) throws IOException {
-    String[] tokenSections = token.split("\\.");
-    byte[] payloadBytes = Base64.getUrlDecoder()
-        .decode(tokenSections[1].getBytes(StandardCharsets.UTF_8));
-
-    return mapper.readValue(payloadBytes, Map.class);
   }
 }

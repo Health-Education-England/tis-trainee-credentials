@@ -23,7 +23,7 @@ package uk.nhs.hee.tis.trainee.credentials.dto;
 
 import jakarta.validation.constraints.NotEmpty;
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * A DTO representing the metadata available at the end of the issuing process.
@@ -36,7 +36,7 @@ import java.time.LocalDateTime;
 public record IssueResponseDto(
     @NotEmpty String credentialId,
     @NotEmpty String traineeId,
-    @NotEmpty LocalDateTime issuedAt,
-    @NotEmpty LocalDateTime expiresAt) implements Serializable {
+    @NotEmpty Instant issuedAt,
+    @NotEmpty Instant expiresAt) implements Serializable {
 
 }

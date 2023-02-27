@@ -66,7 +66,6 @@ class GatewayServiceTest {
   private static final String PAR_ENDPOINT = "https://credential.gateway/par/endpoint";
   private static final String TOKEN_ENDPOINT = "https://credential.gateway/token/endpoint";
   private static final String REDIRECT_URI = "https://redirect.uri";
-  private static final String CALLBACK_URI = "https://callback.uri";
 
   private static final String NONCE = UUID.randomUUID().toString();
   private static final String STATE = "some-client-state";
@@ -75,35 +74,31 @@ class GatewayServiceTest {
   private JwtService jwtService;
   private RestTemplate restTemplate;
 
-  private CachingDelegate cachingDelegate;
-
   @BeforeEach
   void setUp() {
     restTemplate = mock(RestTemplate.class);
     jwtService = mock(JwtService.class);
-    cachingDelegate = mock(CachingDelegate.class);
 
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
-        "", null, CALLBACK_URI, REDIRECT_URI);
+        "", null, REDIRECT_URI);
     VerificationProperties verificationProperties = new VerificationProperties("", "", "");
     GatewayProperties gatewayProperties = new GatewayProperties(HOST, CLIENT_ID, CLIENT_SECRET,
         JWKS_ENDPOINT, issuingProperties, verificationProperties);
 
-    service = new GatewayService(restTemplate, jwtService, gatewayProperties, cachingDelegate);
+    service = new GatewayService(restTemplate, jwtService, gatewayProperties);
   }
 
   void setUpWithoutCallbackUri() {
     restTemplate = mock(RestTemplate.class);
     jwtService = mock(JwtService.class);
-    cachingDelegate = mock(CachingDelegate.class);
 
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
-        "", null, null, REDIRECT_URI);
+        "", null, REDIRECT_URI);
     VerificationProperties verificationProperties = new VerificationProperties("", "", "");
     GatewayProperties gatewayProperties = new GatewayProperties(HOST, CLIENT_ID, CLIENT_SECRET,
         JWKS_ENDPOINT, issuingProperties, verificationProperties);
 
-    service = new GatewayService(restTemplate, jwtService, gatewayProperties, cachingDelegate);
+    service = new GatewayService(restTemplate, jwtService, gatewayProperties);
   }
 
   @Test
@@ -201,7 +196,7 @@ class GatewayServiceTest {
     var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
     MultiValueMap<String, String> requestBody = request.getBody();
     assertThat("Unexpected redirect URI.", requestBody.get("redirect_uri"),
-        is(List.of(CALLBACK_URI)));
+        is(List.of(REDIRECT_URI)));
   }
 
   @Test

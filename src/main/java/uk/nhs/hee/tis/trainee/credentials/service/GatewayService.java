@@ -41,7 +41,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
 
 /**
  * A service providing credential gateway functionality.
@@ -50,11 +49,9 @@ import uk.nhs.hee.tis.trainee.credentials.dto.IssueRequestDto;
 @Service
 public class GatewayService {
 
-  private static final String REDIRECT_URI = "redirect_uri";
   private final RestTemplate restTemplate;
   private final JwtService jwtService;
   private final GatewayProperties properties;
-  private final CachingDelegate cachingDelegate;
 
   /**
    * Create a service providing credential gateway functionality.
@@ -63,12 +60,10 @@ public class GatewayService {
    * @param jwtService   The service to use to build JWT.
    * @param properties   The gateway application configuration.
    */
-  GatewayService(RestTemplate restTemplate, JwtService jwtService, GatewayProperties properties,
-      CachingDelegate cachingDelegate) {
+  GatewayService(RestTemplate restTemplate, JwtService jwtService, GatewayProperties properties) {
     this.restTemplate = restTemplate;
     this.jwtService = jwtService;
     this.properties = properties;
-    this.cachingDelegate = cachingDelegate;
   }
 
   /**
@@ -105,19 +100,11 @@ public class GatewayService {
     MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
     bodyPair.add("client_id", properties.clientId());
     bodyPair.add("client_secret", properties.clientSecret());
+    bodyPair.add("redirect_uri", properties.issuing().redirectUri());
     bodyPair.add("scope", dto.getScope());
     bodyPair.add("id_token_hint", idTokenHint);
     bodyPair.add("nonce", nonce);
     bodyPair.add("state", state);
-
-    if (properties.issuing().callbackUri() != null) {
-      bodyPair.add(REDIRECT_URI, properties.issuing().callbackUri()); //callback for logging
-    } else {
-      bodyPair.add(REDIRECT_URI, properties.issuing().redirectUri());
-    }
-
-    // TODO: this is a bit of an unexpected side-effect here, should be refactored
-    cacheIssuingRequest(nonce, dto);
 
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(List.of(MediaType.APPLICATION_JSON));
@@ -125,18 +112,6 @@ public class GatewayService {
 
     log.info("Built PAR request.");
     return new HttpEntity<>(bodyPair, headers);
-  }
-
-  /**
-   * Cache details of the issuing request, to be used when logging the issuing outcome.
-   *
-   * @param nonce the key to use for the cached request.
-   * @param dto   the credentials DTO.
-   */
-  private void cacheIssuingRequest(String nonce, CredentialDto dto) {
-    IssueRequestDto issueRequestDto = new IssueRequestDto(dto.getScope(), dto.getTisId());
-    UUID id = UUID.fromString(nonce);
-    cachingDelegate.cacheCredentialData(id, issueRequestDto);
   }
 
   /**
@@ -230,7 +205,7 @@ public class GatewayService {
     MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
     bodyPair.add("client_id", properties.clientId());
     bodyPair.add("client_secret", properties.clientSecret());
-    bodyPair.add(REDIRECT_URI, redirectUri.toString());
+    bodyPair.add("redirect_uri", redirectUri.toString());
     bodyPair.add("grant_type", "authorization_code");
     bodyPair.add("code", code);
     bodyPair.add("code_verifier", codeVerifier);
