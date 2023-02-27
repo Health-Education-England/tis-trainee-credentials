@@ -21,8 +21,7 @@ gradlew bootRun
 | GATEWAY_CLIENT_ID                 | The client ID for the credential gateway.                                                                               |         |
 | GATEWAY_CLIENT_SECRET             | The client secret for the credential gateway.                                                                           |         |
 | GATEWAY_TOKEN_SIGNING_KEY         | The Base64 encoded signing key for the credential data.                                                                 |         |
-| GATEWAY_ISSUING_CALLBACK_URI      | Where the gateway issue should redirect to after issuing to log credential metadata.                                    |         |
-| GATEWAY_ISSUING_REDIRECT_URI      | Where the gateway issue should redirect to after issuing and optionally logging credential metadata.                    |         |
+| GATEWAY_ISSUING_REDIRECT_URI      | Where the gateway issue should redirect to after issuing.                                                               |         |
 | GATEWAY_VERIFICATION_REDIRECT_URI | Where the gateway issue should redirect to verify a supplied credential, e.g. `<host>/api/credentials/verify/callback`. |         |
 | SENTRY_DSN                        | A Sentry error monitoring Data Source Name.                                                                             |         |
 | SENTRY_ENVIRONMENT                | The environment to log Sentry events against.                                                                           | local   |
