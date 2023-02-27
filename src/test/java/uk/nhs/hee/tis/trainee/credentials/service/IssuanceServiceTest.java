@@ -226,6 +226,45 @@ class IssuanceServiceTest {
   }
 
   @Test
+  void shouldNotSaveToRepositoryWhenCredentialDataNotCached() {
+    UUID nonce = UUID.randomUUID();
+    Claims claimsIssued = new DefaultClaims();
+    claimsIssued.put("nonce", nonce.toString());
+    claimsIssued.put("SerialNumber", CREDENTIAL_ID);
+    claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
+    claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
+
+    when(gatewayService.getTokenClaims(eq(TOKEN_ENDPOINT), eq(REDIRECT_URI), eq(CODE_VALUE), any()))
+        .thenReturn(claimsIssued);
+    when(cachingDelegate.getCredentialData(nonce)).thenReturn(Optional.empty());
+    when(cachingDelegate.getTraineeIdentifier(UUID.fromString(STATE_VALUE))).thenReturn(
+        Optional.of(TRAINEE_ID));
+    issuanceService.completeCredentialVerification(CODE_VALUE, STATE_VALUE, null, null);
+
+    verifyNoInteractions(credentialMetadataRepository);
+  }
+
+  @ParameterizedTest
+  @MethodSource("credentialMethodSource")
+  void shouldNotSaveToRepositoryWhenTraineeIdNotCached(CredentialDto credentialData) {
+    UUID nonce = UUID.randomUUID();
+    Claims claimsIssued = new DefaultClaims();
+    claimsIssued.put("nonce", nonce.toString());
+    claimsIssued.put("SerialNumber", CREDENTIAL_ID);
+    claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
+    claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
+
+    when(gatewayService.getTokenClaims(eq(TOKEN_ENDPOINT), eq(REDIRECT_URI), eq(CODE_VALUE), any()))
+        .thenReturn(claimsIssued);
+    when(cachingDelegate.getCredentialData(nonce)).thenReturn(Optional.of(credentialData));
+    when(cachingDelegate.getTraineeIdentifier(UUID.fromString(STATE_VALUE))).thenReturn(
+        Optional.empty());
+    issuanceService.completeCredentialVerification(CODE_VALUE, STATE_VALUE, null, null);
+
+    verifyNoInteractions(credentialMetadataRepository);
+  }
+
+  @Test
   void shouldReturnCredentialIssuedWhenGatewayIssueSuccessful() {
     URI uri = issuanceService.completeCredentialVerification(null, STATE_VALUE, null, null);
 
