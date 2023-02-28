@@ -22,12 +22,20 @@
 package uk.nhs.hee.tis.trainee.credentials.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.io.Serializable;
 import java.time.Instant;
 
 /**
  * An interface representing a DTO containing credential data.
  */
-public interface CredentialDto {
+public interface CredentialDto extends Serializable {
+
+  /**
+   * Get the TIS ID of the record, which is recorded in the credential metadata, not the credential
+   * itself.
+   */
+  @JsonIgnore
+  String getTisId();
 
   /**
    * Get the expiry instant for the credential.

@@ -24,10 +24,14 @@ package uk.nhs.hee.tis.trainee.credentials.api;
 import java.net.URI;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,7 +40,7 @@ import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
-import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
+import uk.nhs.hee.tis.trainee.credentials.service.IssuanceService;
 
 /**
  * API endpoints for issuing trainee digital credentials.
@@ -46,21 +50,22 @@ import uk.nhs.hee.tis.trainee.credentials.service.GatewayService;
 @RequestMapping("/api/issue")
 public class IssueResource {
 
-  private final GatewayService service;
+  private final IssuanceService service;
   private final CredentialDataMapper mapper;
 
-  IssueResource(GatewayService service, CredentialDataMapper mapper) {
+  IssueResource(IssuanceService service, CredentialDataMapper mapper) {
     this.service = service;
     this.mapper = mapper;
   }
 
   @PostMapping("/programme-membership")
   ResponseEntity<String> issueProgrammeMembershipCredential(
+      @RequestHeader(HttpHeaders.AUTHORIZATION) String token,
       @Validated @RequestBody ProgrammeMembershipDataDto dataDto,
       @RequestParam(required = false) String state) {
     log.info("Received request to issue Programme Membership credential.");
     ProgrammeMembershipCredentialDto credentialDto = mapper.toCredential(dataDto);
-    Optional<URI> credentialUri = service.getCredentialUri(credentialDto, state);
+    Optional<URI> credentialUri = service.startCredentialIssuance(token, credentialDto, state);
 
     if (credentialUri.isPresent()) {
       URI uri = credentialUri.get();
@@ -74,11 +79,12 @@ public class IssueResource {
 
   @PostMapping("/placement")
   ResponseEntity<String> issuePlacementCredential(
+      @RequestHeader(HttpHeaders.AUTHORIZATION) String token,
       @Validated @RequestBody PlacementDataDto dataDto,
       @RequestParam(required = false) String state) {
     log.info("Received request to issue Placement credential.");
     PlacementCredentialDto credentialDto = mapper.toCredential(dataDto);
-    Optional<URI> credentialUri = service.getCredentialUri(credentialDto, state);
+    Optional<URI> credentialUri = service.startCredentialIssuance(token, credentialDto, state);
 
     if (credentialUri.isPresent()) {
       URI uri = credentialUri.get();
@@ -88,5 +94,29 @@ public class IssueResource {
       log.error("Could not issue Placement credential.");
       return ResponseEntity.internalServerError().build();
     }
+  }
+
+  /**
+   * A callback to log the outcome of the issued resource, and redirect to the redirect_uri.
+   *
+   * @param code             The code returned from the gateway.
+   * @param state            The internal state returned from the gateway.
+   * @param error            The error text, if the credential was not issued.
+   * @param errorDescription The error description, if the credential was not issued.
+   * @return The response entity redirecting to the issuing redirect_uri.
+   */
+  @GetMapping("/callback")
+  ResponseEntity<String> logIssuedResource(
+      @RequestParam(required = false) String code,
+      @RequestParam(required = false) String state,
+      @RequestParam(required = false) String error,
+      @RequestParam(required = false, value = "error_description") String errorDescription) {
+
+    log.info("Receiving callback for credential issuing.");
+
+    URI redirectUri = service.completeCredentialVerification(code, state, error, errorDescription);
+
+    log.info("Redirecting after credential issuing process.");
+    return ResponseEntity.status(HttpStatus.FOUND).location(redirectUri).build();
   }
 }

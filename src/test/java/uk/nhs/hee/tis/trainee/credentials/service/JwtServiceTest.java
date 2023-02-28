@@ -57,6 +57,7 @@ import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 
 class JwtServiceTest {
 
+  private static final String TIS_ID = "1";
   private static final String PROGRAMME_NAME = "Programme One";
   private static final LocalDate START_DATE = LocalDate.now().minusYears(1);
   private static final LocalDate END_DATE = LocalDate.now().plusYears(1);
@@ -107,6 +108,11 @@ class JwtServiceTest {
       public String getScope() {
         return "issue.Empty";
       }
+
+      @Override
+      public String getTisId() {
+        return "";
+      }
     }
 
     final Instant now = Instant.now();
@@ -130,7 +136,7 @@ class JwtServiceTest {
 
   @Test
   void shouldGenerateTokenWithProgrammeMembershipClaims() {
-    var dto = new ProgrammeMembershipCredentialDto(PROGRAMME_NAME, START_DATE, END_DATE);
+    var dto = new ProgrammeMembershipCredentialDto(TIS_ID, PROGRAMME_NAME, START_DATE, END_DATE);
 
     String tokenString = service.generateToken(dto);
 
@@ -152,7 +158,7 @@ class JwtServiceTest {
 
   @Test
   void shouldGenerateTokenWithPlacementClaims() {
-    var dto = new PlacementCredentialDto(
+    var dto = new PlacementCredentialDto(TIS_ID,
         PLACEMENT_SPECIALTY, PLACEMENT_GRADE, PLACEMENT_NATIONAL_POST_NUMBER,
         PLACEMENT_EMPLOYING_BODY, PLACEMENT_SITE, START_DATE, END_DATE);
 

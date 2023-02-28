@@ -51,6 +51,7 @@ public record GatewayProperties(
    * @param token             The issuing token child properties.
    * @param redirectUri       The URI to redirect to after issuing a credential.
    */
+  @ConfigurationProperties(prefix = "application.gateway.issuing")
   public record IssuingProperties(
       String parEndpoint,
       String authorizeEndpoint,

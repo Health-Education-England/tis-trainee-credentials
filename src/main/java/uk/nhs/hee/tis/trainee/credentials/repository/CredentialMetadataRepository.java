@@ -19,48 +19,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.dto;
+package uk.nhs.hee.tis.trainee.credentials.repository;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
+import java.util.Optional;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 
 /**
- * A DTO representing a Programme Membership credential.
- *
- * @param programmeName The programme name.
- * @param startDate     The programme's start date.
- * @param endDate       The programme's end date.
+ * A repository for credential metadata log records.
  */
-public record ProgrammeMembershipCredentialDto(
-    @JsonIgnore
-    String tisId,
-
-    @JsonProperty("TPR-Name")
-    String programmeName,
-
-    @JsonProperty("TPR-ProgrammeStartDate")
-    LocalDate startDate,
-
-    @JsonProperty("TPR-ProgrammeEndDate")
-    LocalDate endDate
-) implements CredentialDto {
+@Repository
+public interface CredentialMetadataRepository extends MongoRepository<CredentialMetadata, String> {
 
   @Override
-  public Instant getExpiration(Instant issuedAt) {
-    return endDate.atTime(LocalTime.MAX).toInstant(ZoneOffset.UTC);
-  }
+  Optional<CredentialMetadata> findById(String id);
 
   @Override
-  public String getScope() {
-    return "issue.TrainingProgramme";
-  }
+  <T extends CredentialMetadata> T save(T entity);
 
   @Override
-  public String getTisId() {
-    return tisId;
-  }
+  void deleteById(String id);
 }

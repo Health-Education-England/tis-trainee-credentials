@@ -19,48 +19,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.dto;
+package uk.nhs.hee.tis.trainee.credentials;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 
 /**
- * A DTO representing a Programme Membership credential.
- *
- * @param programmeName The programme name.
- * @param startDate     The programme's start date.
- * @param endDate       The programme's end date.
+ * An implementation of {@link CredentialDto} for test purposes.
  */
-public record ProgrammeMembershipCredentialDto(
-    @JsonIgnore
-    String tisId,
+public record TestCredentialDto(String tisId) implements CredentialDto {
 
-    @JsonProperty("TPR-Name")
-    String programmeName,
-
-    @JsonProperty("TPR-ProgrammeStartDate")
-    LocalDate startDate,
-
-    @JsonProperty("TPR-ProgrammeEndDate")
-    LocalDate endDate
-) implements CredentialDto {
+  @Override
+  public String getTisId() {
+    return tisId();
+  }
 
   @Override
   public Instant getExpiration(Instant issuedAt) {
-    return endDate.atTime(LocalTime.MAX).toInstant(ZoneOffset.UTC);
+    return Instant.MAX;
   }
 
   @Override
   public String getScope() {
-    return "issue.TrainingProgramme";
-  }
-
-  @Override
-  public String getTisId() {
-    return tisId;
+    return "test.Credential";
   }
 }
