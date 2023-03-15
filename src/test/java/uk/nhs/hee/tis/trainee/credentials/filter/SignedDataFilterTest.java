@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -37,15 +38,19 @@ import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import uk.nhs.hee.tis.trainee.credentials.SignatureTestUtil;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
+import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
 
 class SignedDataFilterTest {
 
@@ -56,7 +61,7 @@ class SignedDataFilterTest {
 
   private static final String SIGNED_DATA_TEMPLATE = """
       {
-        "id": 123,
+        "tisId": 123,
         "signature": {
           "signedAt": "%s",
           "validUntil": "%s"
@@ -65,13 +70,15 @@ class SignedDataFilterTest {
       """;
 
   private SignedDataFilter filter;
+  private RevocationService service;
 
   @BeforeEach
   void setUp() {
     ObjectMapper mapper = new ObjectMapper();
     mapper.registerModule(new JavaTimeModule());
+    service = mock(RevocationService.class);
 
-    filter = new SignedDataFilter(mapper, SIGNATURE_SECRET_KEY);
+    filter = new SignedDataFilter(mapper, SIGNATURE_SECRET_KEY, service);
   }
 
   @ParameterizedTest
@@ -284,11 +291,167 @@ class SignedDataFilterTest {
   }
 
   @Test
-  void shouldCallFilterChainWhenSignatureVerifies() throws Exception {
+  void shouldBeForbiddenWhenSignatureIsForUnknownCredentialType() throws Exception {
     String signedData = SignatureTestUtil.signData(
         SIGNED_DATA_TEMPLATE.formatted(SIGNED_AT, VALID_UNTIL), SIGNATURE_SECRET_KEY);
 
     MockHttpServletRequest request = new MockHttpServletRequest();
+    request.setServletPath("/api/issue/unknown-path");
+    request.setContent(signedData.getBytes(UTF_8));
+
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    FilterChain filterChain = mock(FilterChain.class);
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    assertThat("Unexpected response status.", response.getStatus(), is(403));
+    verifyNoInteractions(filterChain);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldBeForbiddenWhenRequestDataHasNoTisId(CredentialType credentialType) throws Exception {
+    when(service.getLastModifiedDate("123", credentialType)).thenReturn(
+        Optional.of(SIGNED_AT.minus(Duration.ofHours(1))));
+
+    String unSignedData = """
+        {
+          "id": 123,
+          "signature": {
+            "signedAt": "%s",
+            "validUntil": "%s"
+          }
+        }
+        """.formatted(SIGNED_AT, VALID_UNTIL);
+
+    String signedData = SignatureTestUtil.signData(unSignedData, SIGNATURE_SECRET_KEY);
+
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.setServletPath(credentialType.getApiPath());
+    request.setContent(signedData.getBytes(UTF_8));
+
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    FilterChain filterChain = mock(FilterChain.class);
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    assertThat("Unexpected response status.", response.getStatus(), is(403));
+    verifyNoInteractions(filterChain);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldBeForbiddenWhenSignatureIsOlderThanModifiedData(CredentialType credentialType)
+      throws Exception {
+    when(service.getLastModifiedDate("123", credentialType)).thenReturn(
+        Optional.of(SIGNED_AT.plus(Duration.ofHours(1))));
+
+    String signedData = SignatureTestUtil.signData(
+        SIGNED_DATA_TEMPLATE.formatted(SIGNED_AT, VALID_UNTIL), SIGNATURE_SECRET_KEY);
+
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.setServletPath(credentialType.getApiPath());
+    request.setContent(signedData.getBytes(UTF_8));
+
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    FilterChain filterChain = mock(FilterChain.class);
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    assertThat("Unexpected response status.", response.getStatus(), is(403));
+    verifyNoInteractions(filterChain);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldBeForbiddenWhenSignatureIsSameAsModifiedData(CredentialType credentialType)
+      throws Exception {
+    when(service.getLastModifiedDate("123", credentialType)).thenReturn(Optional.of(SIGNED_AT));
+
+    String signedData = SignatureTestUtil.signData(
+        SIGNED_DATA_TEMPLATE.formatted(SIGNED_AT, VALID_UNTIL), SIGNATURE_SECRET_KEY);
+
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.setServletPath(credentialType.getApiPath());
+    request.setContent(signedData.getBytes(UTF_8));
+
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    FilterChain filterChain = mock(FilterChain.class);
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    assertThat("Unexpected response status.", response.getStatus(), is(403));
+    verifyNoInteractions(filterChain);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldReturnOkayWhenSignatureValidAndIsNewerThanModifiedData(
+      CredentialType credentialType) throws Exception {
+    when(service.getLastModifiedDate("123", credentialType)).thenReturn(
+        Optional.of(SIGNED_AT.minus(Duration.ofHours(1))));
+
+    String signedData = SignatureTestUtil.signData(
+        SIGNED_DATA_TEMPLATE.formatted(SIGNED_AT, VALID_UNTIL), SIGNATURE_SECRET_KEY);
+
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.setServletPath(credentialType.getApiPath());
+    request.setContent(signedData.getBytes(UTF_8));
+
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    FilterChain filterChain = mock(FilterChain.class);
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    assertThat("Unexpected response status.", response.getStatus(), is(200));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldReturnOkayWhenSignatureValidAndDataNeverModified(CredentialType credentialType)
+      throws Exception {
+    when(service.getLastModifiedDate("123", credentialType)).thenReturn(Optional.empty());
+
+    String signedData = SignatureTestUtil.signData(
+        SIGNED_DATA_TEMPLATE.formatted(SIGNED_AT, VALID_UNTIL), SIGNATURE_SECRET_KEY);
+
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.setServletPath(credentialType.getApiPath());
+    request.setContent(signedData.getBytes(UTF_8));
+
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    FilterChain filterChain = mock(FilterChain.class);
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    assertThat("Unexpected response status.", response.getStatus(), is(200));
+  }
+
+  @Test
+  void shouldReturnOkayWhenSignatureValidAndNotIssuingCredential() throws Exception {
+    String signedData = SignatureTestUtil.signData(
+        SIGNED_DATA_TEMPLATE.formatted(SIGNED_AT, VALID_UNTIL), SIGNATURE_SECRET_KEY);
+
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.setServletPath("/api/not-issuing");
+    request.setContent(signedData.getBytes(UTF_8));
+
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    FilterChain filterChain = mock(FilterChain.class);
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    assertThat("Unexpected response status.", response.getStatus(), is(200));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldCallFilterChainWhenSignatureVerifies(CredentialType credentialType) throws Exception {
+    String signedData = SignatureTestUtil.signData(
+        SIGNED_DATA_TEMPLATE.formatted(SIGNED_AT, VALID_UNTIL), SIGNATURE_SECRET_KEY);
+
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.setServletPath(credentialType.getApiPath());
     request.setContent(signedData.getBytes(UTF_8));
 
     MockHttpServletResponse response = new MockHttpServletResponse();
@@ -300,12 +463,15 @@ class SignedDataFilterTest {
     verify(filterChain).doFilter(any(HttpServletRequest.class), eq(response));
   }
 
-  @Test
-  void shouldWrapTheRequestInputStreamForDownstreamConsumers() throws Exception {
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldWrapTheRequestInputStreamForDownstreamConsumers(CredentialType credentialType)
+      throws Exception {
     String signedData = SignatureTestUtil.signData(
         SIGNED_DATA_TEMPLATE.formatted(SIGNED_AT, VALID_UNTIL), SIGNATURE_SECRET_KEY);
 
     MockHttpServletRequest request = new MockHttpServletRequest();
+    request.setServletPath(credentialType.getApiPath());
     request.setContent(signedData.getBytes(UTF_8));
 
     MockHttpServletResponse response = new MockHttpServletResponse();

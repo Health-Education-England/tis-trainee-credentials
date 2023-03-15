@@ -30,12 +30,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
+import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
 
 /**
  * A request filter that verifies the signature of signed data.
@@ -44,11 +47,16 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class SignedDataFilter extends OncePerRequestFilter {
 
+  private static final String ISSUE_PATH = "/api/issue/";
+
   private static final String SIGNATURE_FIELD = "signature";
   private static final String HMAC_FIELD = "hmac";
+  private static final String TIS_ID_FIELD = "tisId";
 
   private final ObjectMapper mapper;
   private final String signatureSecretKey;
+
+  private final RevocationService revocationService;
 
   /**
    * Create a request filter that verifies the signature of signed data.
@@ -57,9 +65,11 @@ public class SignedDataFilter extends OncePerRequestFilter {
    * @param signatureSecretKey The secret key used to sign and verify the signature.
    */
   SignedDataFilter(ObjectMapper mapper,
-      @Value("${application.signature.secret-key}") String signatureSecretKey) {
+      @Value("${application.signature.secret-key}") String signatureSecretKey,
+      RevocationService revocationService) {
     this.mapper = mapper;
     this.signatureSecretKey = signatureSecretKey;
+    this.revocationService = revocationService;
   }
 
   @Override
@@ -97,17 +107,14 @@ public class SignedDataFilter extends OncePerRequestFilter {
     JsonNode signatureNode = tree.get(SIGNATURE_FIELD);
 
     if (signatureNode != null) {
-      record Signature(String hmac, Instant signedAt, Instant validUntil) {
-
-      }
-
       Signature signature = mapper.treeToValue(signatureNode, Signature.class);
 
       String hmac = signature.hmac();
       Instant signedAt = signature.signedAt();
       Instant validUntil = signature.validUntil();
 
-      if (hmac != null && isValidInstant(signedAt, true) && isValidInstant(validUntil, false)) {
+      if (hmac != null && isValidInstant(signedAt, true) && isValidInstant(validUntil, false)
+          && isDataValid(request, tree, signature)) {
         ((ObjectNode) signatureNode).remove(HMAC_FIELD);
         byte[] treeBytes = mapper.writeValueAsBytes(tree);
         String verificationSignature = new HmacUtils(HmacAlgorithms.HMAC_SHA_256,
@@ -120,6 +127,35 @@ public class SignedDataFilter extends OncePerRequestFilter {
   }
 
   /**
+   * Check whether the signed data is still valid.
+   *
+   * @param request   The http request.
+   * @param tree      The request's json contents.
+   * @param signature The request data's signature.
+   * @return true is the data is still valid, else false if the data was modified after signing.
+   */
+  private boolean isDataValid(HttpServletRequest request, JsonNode tree, Signature signature) {
+    String servletPath = request.getServletPath();
+
+    // Skip data validation unless issuing a credential.
+    if (!servletPath.startsWith(ISSUE_PATH)) {
+      return true;
+    }
+
+    Optional<CredentialType> credentialType = CredentialType.fromPath(servletPath);
+
+    if (credentialType.isEmpty() || !tree.has(TIS_ID_FIELD)) {
+      return false;
+    }
+
+    String tisId = tree.get(TIS_ID_FIELD).asText();
+    Optional<Instant> modifiedDate = revocationService.getLastModifiedDate(tisId,
+        credentialType.get());
+
+    return modifiedDate.map(modified -> modified.isBefore(signature.signedAt)).orElse(true);
+  }
+
+  /**
    * Validate the provided {@link Instant} against the current Instant.
    *
    * @param instant     The Instant to validate.
@@ -129,5 +165,16 @@ public class SignedDataFilter extends OncePerRequestFilter {
   private boolean isValidInstant(Instant instant, boolean requirePast) {
     Instant now = Instant.now();
     return instant != null && instant.compareTo(now) > 0 != requirePast;
+  }
+
+  /**
+   * A representation of the signature from a signed data DTO.
+   *
+   * @param hmac       The hash-based message authentication code.
+   * @param signedAt   When the data was signed.
+   * @param validUntil When the signature is valid until.
+   */
+  private record Signature(String hmac, Instant signedAt, Instant validUntil) {
+
   }
 }

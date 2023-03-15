@@ -21,46 +21,42 @@
 
 package uk.nhs.hee.tis.trainee.credentials.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.Optional;
+import lombok.Getter;
 
 /**
- * A DTO representing a Programme Membership credential.
- *
- * @param programmeName The programme name.
- * @param startDate     The programme's start date.
- * @param endDate       The programme's end date.
+ * An enumeration of available credential types.
  */
-public record ProgrammeMembershipCredentialDto(
-    @JsonIgnore
-    String tisId,
+@Getter
+public enum CredentialType {
 
-    @JsonProperty("TPR-Name")
-    String programmeName,
+  TRAINING_PLACEMENT("issue.TrainingPlacement", "/api/issue/placement"),
+  TRAINING_PROGRAMME("issue.TrainingProgramme", "/api/issue/programme-membership");
 
-    @JsonProperty("TPR-ProgrammeStartDate")
-    LocalDate startDate,
+  private final String gatewayScope;
+  private final String apiPath;
 
-    @JsonProperty("TPR-ProgrammeEndDate")
-    LocalDate endDate
-) implements CredentialDto {
-
-  @Override
-  public Instant getExpiration(Instant issuedAt) {
-    return endDate.atTime(LocalTime.MAX).toInstant(ZoneOffset.UTC);
+  /**
+   * Construct a credential type.
+   *
+   * @param gatewayScope The gateway scope e.g. issue.DataType.
+   * @param apiPath      The API request path for the credential type.
+   */
+  CredentialType(String gatewayScope, String apiPath) {
+    this.gatewayScope = gatewayScope;
+    this.apiPath = apiPath;
   }
 
-  @Override
-  public String getScope() {
-    return CredentialType.TRAINING_PROGRAMME.getGatewayScope();
-  }
-
-  @Override
-  public String getTisId() {
-    return tisId;
+  /**
+   * Get the credential type matching the given path.
+   *
+   * @param apiPath The API path to match.
+   * @return The matched credential type, or else empty.
+   */
+  public static Optional<CredentialType> fromPath(String apiPath) {
+    return Arrays.stream(CredentialType.values())
+        .filter(ct -> ct.apiPath.equals(apiPath))
+        .findFirst();
   }
 }

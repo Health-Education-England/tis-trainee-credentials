@@ -63,6 +63,7 @@ import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.filter.FilterConfiguration;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
 import uk.nhs.hee.tis.trainee.credentials.service.IssuanceService;
+import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
 import uk.nhs.hee.tis.trainee.credentials.service.VerificationService;
 
 @WebMvcTest(IssueResource.class)
@@ -129,6 +130,9 @@ class IssueResourceTest {
 
   @MockBean
   private IssuanceService issuanceService;
+
+  @MockBean
+  private RevocationService revocationService;
 
   @MockBean
   private VerificationService verificationService;
