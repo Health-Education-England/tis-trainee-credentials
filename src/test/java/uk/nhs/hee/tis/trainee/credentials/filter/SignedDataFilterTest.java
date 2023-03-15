@@ -290,24 +290,6 @@ class SignedDataFilterTest {
     verifyNoInteractions(filterChain);
   }
 
-  @Test
-  void shouldBeForbiddenWhenSignatureIsForUnknownCredentialType() throws Exception {
-    String signedData = SignatureTestUtil.signData(
-        SIGNED_DATA_TEMPLATE.formatted(SIGNED_AT, VALID_UNTIL), SIGNATURE_SECRET_KEY);
-
-    MockHttpServletRequest request = new MockHttpServletRequest();
-    request.setServletPath("/api/issue/unknown-path");
-    request.setContent(signedData.getBytes(UTF_8));
-
-    MockHttpServletResponse response = new MockHttpServletResponse();
-    FilterChain filterChain = mock(FilterChain.class);
-
-    filter.doFilterInternal(request, response, filterChain);
-
-    assertThat("Unexpected response status.", response.getStatus(), is(403));
-    verifyNoInteractions(filterChain);
-  }
-
   @ParameterizedTest
   @EnumSource(CredentialType.class)
   void shouldBeForbiddenWhenRequestDataHasNoTisId(CredentialType credentialType) throws Exception {
@@ -382,6 +364,25 @@ class SignedDataFilterTest {
 
     assertThat("Unexpected response status.", response.getStatus(), is(403));
     verifyNoInteractions(filterChain);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"/api/verify/identity", "/api/issue/unknown"})
+  void shouldReturnOkayWhenSignatureValidAndNotAnIssuableCredential(String apiPath)
+      throws Exception {
+    String signedData = SignatureTestUtil.signData(
+        SIGNED_DATA_TEMPLATE.formatted(SIGNED_AT, VALID_UNTIL), SIGNATURE_SECRET_KEY);
+
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.setServletPath(apiPath);
+    request.setContent(signedData.getBytes(UTF_8));
+
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    FilterChain filterChain = mock(FilterChain.class);
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    assertThat("Unexpected response status.", response.getStatus(), is(200));
   }
 
   @ParameterizedTest

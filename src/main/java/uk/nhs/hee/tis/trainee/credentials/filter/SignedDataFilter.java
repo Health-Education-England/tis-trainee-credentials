@@ -47,8 +47,6 @@ import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
 @Component
 public class SignedDataFilter extends OncePerRequestFilter {
 
-  private static final String ISSUE_PATH = "/api/issue/";
-
   private static final String SIGNATURE_FIELD = "signature";
   private static final String HMAC_FIELD = "hmac";
   private static final String TIS_ID_FIELD = "tisId";
@@ -136,15 +134,14 @@ public class SignedDataFilter extends OncePerRequestFilter {
    */
   private boolean isDataValid(HttpServletRequest request, JsonNode tree, Signature signature) {
     String servletPath = request.getServletPath();
+    Optional<CredentialType> credentialType = CredentialType.fromPath(servletPath);
 
-    // Skip data validation unless issuing a credential.
-    if (!servletPath.startsWith(ISSUE_PATH)) {
+    // Skip validation for any request without a matching credential type.
+    if (credentialType.isEmpty()) {
       return true;
     }
 
-    Optional<CredentialType> credentialType = CredentialType.fromPath(servletPath);
-
-    if (credentialType.isEmpty() || !tree.has(TIS_ID_FIELD)) {
+    if (!tree.has(TIS_ID_FIELD)) {
       return false;
     }
 
