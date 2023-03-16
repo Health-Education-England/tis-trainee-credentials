@@ -61,6 +61,7 @@ public class SignedDataFilter extends OncePerRequestFilter {
    *
    * @param mapper             An {@link ObjectMapper} to use when reading the request payload.
    * @param signatureSecretKey The secret key used to sign and verify the signature.
+   * @param revocationService  The revocation service instance to use.
    */
   SignedDataFilter(ObjectMapper mapper,
       @Value("${application.signature.secret-key}") String signatureSecretKey,
