@@ -55,6 +55,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import uk.nhs.hee.tis.trainee.credentials.SignatureTestUtil;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
 import uk.nhs.hee.tis.trainee.credentials.filter.FilterConfiguration;
+import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
 import uk.nhs.hee.tis.trainee.credentials.service.VerificationService;
 
 @WebMvcTest(VerifyResource.class)
@@ -83,6 +84,9 @@ class VerifyResourceTest {
 
   @Autowired
   private MockMvc mockMvc;
+
+  @MockBean
+  private RevocationService revocationService;
 
   @MockBean
   private VerificationService service;

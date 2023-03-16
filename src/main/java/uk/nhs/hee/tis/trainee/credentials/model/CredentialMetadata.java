@@ -31,7 +31,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.stereotype.Component;
 
 /**
- * A credential metadata record with all properties needed to store permenently.
+ * A credential metadata record with all properties needed to store permanently.
  */
 @Component(CredentialMetadata.ENTITY_NAME)
 @Scope(SCOPE_PROTOTYPE)

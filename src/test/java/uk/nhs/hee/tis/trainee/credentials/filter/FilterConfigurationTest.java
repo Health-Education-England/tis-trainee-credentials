@@ -46,7 +46,7 @@ class FilterConfigurationTest {
 
   @Test
   void shouldRegisterSignedDataFilter() {
-    SignedDataFilter filter = new SignedDataFilter(new ObjectMapper(), SIGNATURE_SECRET_KEY);
+    SignedDataFilter filter = new SignedDataFilter(new ObjectMapper(), SIGNATURE_SECRET_KEY, null);
 
     var registrationBean = configuration.registerSignedDataFilter(filter);
 
@@ -56,7 +56,7 @@ class FilterConfigurationTest {
 
   @Test
   void shouldRegisterSignedDataFilterOnIssueApiEndpoints() {
-    SignedDataFilter filter = new SignedDataFilter(new ObjectMapper(), SIGNATURE_SECRET_KEY);
+    SignedDataFilter filter = new SignedDataFilter(new ObjectMapper(), SIGNATURE_SECRET_KEY, null);
 
     var registrationBean = configuration.registerSignedDataFilter(filter);
 
@@ -66,7 +66,7 @@ class FilterConfigurationTest {
 
   @Test
   void shouldRegisterSignedDataFilterOnVerifyApiEndpoints() {
-    SignedDataFilter filter = new SignedDataFilter(new ObjectMapper(), SIGNATURE_SECRET_KEY);
+    SignedDataFilter filter = new SignedDataFilter(new ObjectMapper(), SIGNATURE_SECRET_KEY, null);
 
     var registrationBean = configuration.registerSignedDataFilter(filter);
 

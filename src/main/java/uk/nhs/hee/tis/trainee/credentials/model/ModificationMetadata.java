@@ -19,48 +19,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.dto;
+package uk.nhs.hee.tis.trainee.credentials.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
+import org.springframework.data.annotation.Id;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 
 /**
- * A DTO representing a Programme Membership credential.
- *
- * @param programmeName The programme name.
- * @param startDate     The programme's start date.
- * @param endDate       The programme's end date.
+ * Metadata of modified data related to credentials.
  */
-public record ProgrammeMembershipCredentialDto(
-    @JsonIgnore
-    String tisId,
+public record ModificationMetadata(@Id ModificationMetadataId id, Instant lastModifiedDate) {
 
-    @JsonProperty("TPR-Name")
-    String programmeName,
-
-    @JsonProperty("TPR-ProgrammeStartDate")
-    LocalDate startDate,
-
-    @JsonProperty("TPR-ProgrammeEndDate")
-    LocalDate endDate
-) implements CredentialDto {
-
-  @Override
-  public Instant getExpiration(Instant issuedAt) {
-    return endDate.atTime(LocalTime.MAX).toInstant(ZoneOffset.UTC);
+  /**
+   * Create a metadata object for data modification.
+   *
+   * @param tisId            The TIS ID of the modified data.
+   * @param credentialType   The credential type related to the data object.
+   * @param lastModifiedDate The instant of the modification.
+   */
+  public ModificationMetadata(String tisId, CredentialType credentialType,
+      Instant lastModifiedDate) {
+    this(new ModificationMetadataId(tisId, credentialType), lastModifiedDate);
   }
 
-  @Override
-  public String getScope() {
-    return CredentialType.TRAINING_PROGRAMME.getGatewayScope();
-  }
+  /**
+   * A composite ID containing both the TIS ID and credential type.
+   *
+   * @param tisId          The TIS ID of the modified data..
+   * @param credentialType The credential type related to the data object.
+   */
+  public record ModificationMetadataId(String tisId, CredentialType credentialType) {
 
-  @Override
-  public String getTisId() {
-    return tisId;
   }
 }
