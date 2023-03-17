@@ -93,7 +93,7 @@ public class GatewayService {
    * @return The built request.
    */
   private HttpEntity<MultiValueMap<String, String>> buildParRequest(CredentialDto dto, String nonce,
-      String state) {
+                                                                    String state) {
     log.info("Building PAR request.");
     String idTokenHint = jwtService.generateToken(dto);
 
@@ -199,7 +199,7 @@ public class GatewayService {
    * @return The built token request.
    */
   private HttpEntity<MultiValueMap<String, String>> buildTokenRequest(URI redirectUri, String code,
-      String codeVerifier, String state) {
+                                                                      String codeVerifier, String state) {
     log.info("Building Token request.");
 
     MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
@@ -221,5 +221,52 @@ public class GatewayService {
 
   record TokenResponse(@JsonProperty("id_token") String idToken) {
 
+  }
+
+  /**
+   * Revoke a credential from the gateway.
+   *
+   * @param credentialTemplateName The credential template name.
+   * @param credentialId           The credential ID.
+   */
+  public void revokeCredential(String credentialTemplateName, String credentialId) {
+    String endpoint = properties.revocation().revokeCredentialEndpoint();
+    HttpEntity<MultiValueMap<String, String>> request
+        = buildRevocationRequest(credentialTemplateName, credentialId);
+
+    log.info("Sending revoke credential request.");
+    ResponseEntity<String> revokeResponse = restTemplate.postForEntity(endpoint, request,
+        String.class);
+
+    if (revokeResponse.getStatusCode().isError()) {
+      log.error("Credential revoke request failed with code {}.", revokeResponse.getStatusCode());
+    }
+    log.info("Revoked credential of type {} with id {}.", credentialTemplateName, credentialId);
+  }
+
+  /**
+   * Build a credential revocation request from a credential type and ID.
+   *
+   * @param credentialTemplateName The credential template name.
+   * @param credentialId           The credential ID.
+   * @return The built credential revocation request.
+   */
+  private HttpEntity<MultiValueMap<String, String>> buildRevocationRequest(
+      String credentialTemplateName, String credentialId) {
+
+    MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
+    bodyPair.add("client_id", properties.clientId());
+    bodyPair.add("client_secret", properties.clientSecret());
+    bodyPair.add("OrganizationId", properties.organisationId());
+    bodyPair.add("CredentialTemplateName", credentialTemplateName);
+    bodyPair.add("SerialNumber", credentialId);
+    bodyPair.add("RevocationReason", "Source record deleted");
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+    log.info("Built credential revocation request.");
+    return new HttpEntity<>(bodyPair, headers);
   }
 }

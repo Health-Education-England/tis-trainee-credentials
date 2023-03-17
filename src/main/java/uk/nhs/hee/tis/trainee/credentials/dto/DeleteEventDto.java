@@ -19,27 +19,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.repository;
+package uk.nhs.hee.tis.trainee.credentials.dto;
 
-import java.util.Optional;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.stereotype.Repository;
-import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
+import jakarta.validation.constraints.NotEmpty;
+import java.io.Serializable;
 
 /**
- * A repository for credential metadata log records.
+ * A DTO representing data deletion events.
+ *
+ * @param tisId The id of the record.
  */
-@Repository
-public interface CredentialMetadataRepository extends MongoRepository<CredentialMetadata, String> {
+public record DeleteEventDto(
+    @NotEmpty String tisId) implements Serializable {
 
-  @Override
-  Optional<CredentialMetadata> findById(String id);
-
-  Optional<CredentialMetadata> findByCredentialTypeAndTisId(String credentialType, String tisId);
-
-  @Override
-  <T extends CredentialMetadata> T save(T entity);
-
-  @Override
-  void deleteById(String id);
 }

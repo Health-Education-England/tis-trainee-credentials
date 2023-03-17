@@ -49,6 +49,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties;
+import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.RevocationProperties;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.VerificationProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
@@ -61,6 +62,7 @@ class GatewayServiceTest {
   private static final String CLIENT_ID = "client-id";
   private static final String CLIENT_SECRET = "no-very-secret";
   private static final String HOST = "https://credential.gateway";
+  private static final String ORGANISATION_ID = "organisation-id";
   private static final String AUTHORIZE_ENDPOINT = "https://credential.gateway/authorize/endpoint";
   private static final String JWKS_ENDPOINT = "https://credential.gateway/jwks/endpoint";
   private static final String PAR_ENDPOINT = "https://credential.gateway/par/endpoint";
@@ -82,8 +84,10 @@ class GatewayServiceTest {
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
         "", null, REDIRECT_URI);
     VerificationProperties verificationProperties = new VerificationProperties("", "", "");
-    GatewayProperties gatewayProperties = new GatewayProperties(HOST, CLIENT_ID, CLIENT_SECRET,
-        JWKS_ENDPOINT, issuingProperties, verificationProperties);
+    RevocationProperties revocationProperties = new RevocationProperties("rev");
+    GatewayProperties gatewayProperties = new GatewayProperties(HOST, ORGANISATION_ID, CLIENT_ID,
+        CLIENT_SECRET, JWKS_ENDPOINT, issuingProperties, verificationProperties,
+        revocationProperties);
 
     service = new GatewayService(restTemplate, jwtService, gatewayProperties);
   }
@@ -95,8 +99,10 @@ class GatewayServiceTest {
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
         "", null, REDIRECT_URI);
     VerificationProperties verificationProperties = new VerificationProperties("", "", "");
-    GatewayProperties gatewayProperties = new GatewayProperties(HOST, CLIENT_ID, CLIENT_SECRET,
-        JWKS_ENDPOINT, issuingProperties, verificationProperties);
+    RevocationProperties revocationProperties = new RevocationProperties("rev");
+    GatewayProperties gatewayProperties = new GatewayProperties(HOST, ORGANISATION_ID, CLIENT_ID,
+        CLIENT_SECRET, JWKS_ENDPOINT, issuingProperties, verificationProperties,
+        revocationProperties);
 
     service = new GatewayService(restTemplate, jwtService, gatewayProperties);
   }

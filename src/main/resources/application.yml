@@ -4,6 +4,10 @@ server:
     context-path: /credentials
 
 application:
+  aws:
+    sqs:
+      delete-placement: ${DELETE_PLACEMENT_QUEUE_URL:}
+      delete-programme-membership: ${DELETE_PROGRAMME_MEMBERSHIP_QUEUE_URL:}
   cache:
     key-prefix: Credentials
     time-to-live:
@@ -12,6 +16,7 @@ application:
       credential-metadata: ${REDIS_TTL_ISSUING_FLOW:600}
   gateway:
     host: https://${GATEWAY_HOST}
+    organisation-id: ${GATEWAY_ORGANISATION_ID}
     client-id: ${GATEWAY_CLIENT_ID}
     client-secret: ${GATEWAY_CLIENT_SECRET}
     jwks-endpoint: ${application.gateway.host}/issuing/.well-known/openid-configuration/jwks
@@ -28,6 +33,8 @@ application:
       authorize-endpoint: ${application.gateway.host}/connect/authorize?client_id=${application.gateway.client-id}&response_type=code&redirect_uri=${application.gateway.verification.redirect-uri}&response_mode=query
       token-endpoint: ${application.gateway.host}/connect/token
       redirect-uri: ${GATEWAY_VERIFICATION_REDIRECT_URI}
+    revocation:
+      revoke-credential-endpoint: ${application.gateway.host}/Revocation/revokecredential
   signature:
     secret-key: ${SIGNATURE_SECRET_KEY}
 

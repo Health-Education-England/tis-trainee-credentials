@@ -32,17 +32,22 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.nhs.hee.tis.trainee.credentials.model.ModificationMetadata;
+import uk.nhs.hee.tis.trainee.credentials.repository.CredentialMetadataRepository;
 import uk.nhs.hee.tis.trainee.credentials.repository.ModificationMetadataRepository;
 
 class RevocationServiceTest {
 
   private RevocationService service;
+  private CredentialMetadataRepository credentialMetadataRepository;
   private ModificationMetadataRepository repository;
+  private GatewayService gatewayService;
 
   @BeforeEach
   void setUp() {
+    credentialMetadataRepository = mock(CredentialMetadataRepository.class);
     repository = mock(ModificationMetadataRepository.class);
-    service = new RevocationService(repository);
+    gatewayService = mock(GatewayService.class);
+    service = new RevocationService(credentialMetadataRepository, repository, gatewayService);
   }
 
   @Test

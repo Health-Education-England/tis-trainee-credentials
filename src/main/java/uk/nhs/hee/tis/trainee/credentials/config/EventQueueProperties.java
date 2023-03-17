@@ -19,27 +19,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.repository;
+package uk.nhs.hee.tis.trainee.credentials.config;
 
-import java.util.Optional;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.stereotype.Repository;
-import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * A repository for credential metadata log records.
+ * A representation of the event queues.
+ *
+ * @param deletePlacement           The delete placement queue URL.
+ * @param deleteProgrammeMembership The delete programme membership queue URL.
  */
-@Repository
-public interface CredentialMetadataRepository extends MongoRepository<CredentialMetadata, String> {
+@ConfigurationProperties(prefix = "application.aws.sqs")
+public record EventQueueProperties(
+    String deletePlacement,
+    String deleteProgrammeMembership) {
 
-  @Override
-  Optional<CredentialMetadata> findById(String id);
-
-  Optional<CredentialMetadata> findByCredentialTypeAndTisId(String credentialType, String tisId);
-
-  @Override
-  <T extends CredentialMetadata> T save(T entity);
-
-  @Override
-  void deleteById(String id);
 }
