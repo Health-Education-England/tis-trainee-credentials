@@ -25,7 +25,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.impl.DefaultClaims;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -231,7 +233,7 @@ public class GatewayService {
    */
   public void revokeCredential(String credentialTemplateName, String credentialId) {
     String endpoint = properties.revocation().revokeCredentialEndpoint();
-    HttpEntity<MultiValueMap<String, String>> request
+    HttpEntity<Map<String, String>> request
         = buildRevocationRequest(credentialTemplateName, credentialId);
 
     log.info("Sending revoke credential request.");
@@ -239,8 +241,10 @@ public class GatewayService {
         String.class);
 
     if (revokeResponse.getStatusCode().isError()) {
-      log.error("Credential revoke request failed with code {}.", revokeResponse.getStatusCode());
+      log.error("Credential revocation for credential of type {} with id {} failed with code {}.",
+          credentialTemplateName, credentialId, revokeResponse.getStatusCode());
     }
+    //should be a 204 no content response
     log.info("Revoked credential of type {} with id {}.", credentialTemplateName, credentialId);
   }
 
@@ -251,20 +255,20 @@ public class GatewayService {
    * @param credentialId           The credential ID.
    * @return The built credential revocation request.
    */
-  private HttpEntity<MultiValueMap<String, String>> buildRevocationRequest(
+  private HttpEntity<Map<String, String>> buildRevocationRequest(
       String credentialTemplateName, String credentialId) {
 
-    MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
-    bodyPair.add("client_id", properties.clientId());
-    bodyPair.add("client_secret", properties.clientSecret());
-    bodyPair.add("OrganizationId", properties.organisationId());
-    bodyPair.add("CredentialTemplateName", credentialTemplateName);
-    bodyPair.add("SerialNumber", credentialId);
-    bodyPair.add("RevocationReason", "Source record deleted");
+    Map<String, String> bodyPair = new HashMap<>();
+    bodyPair.put("client_id", properties.clientId());
+    bodyPair.put("client_secret", properties.clientSecret());
+    bodyPair.put("OrganisationId", properties.organisationId());
+    bodyPair.put("CredentialTemplateName", credentialTemplateName);
+    bodyPair.put("SerialNumber", credentialId);
+    bodyPair.put("RevocationReason", "Source record deleted");
 
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+    headers.setContentType(MediaType.APPLICATION_JSON);
 
     log.info("Built credential revocation request.");
     return new HttpEntity<>(bodyPair, headers);
