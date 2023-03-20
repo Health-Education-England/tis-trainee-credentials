@@ -79,7 +79,8 @@ public class RevocationService {
     if (metadata.isPresent()) {
       gatewayService.revokeCredential(credentialType.getGatewayScope(),
           metadata.get().getCredentialId());
-      //TODO: remove 'issue.' from gateway scope?
+      //TODO: might need to remove 'issue.' from gateway scope?
+      credentialMetadataRepository.deleteById(metadata.get().getCredentialId());
     }
   }
 }
