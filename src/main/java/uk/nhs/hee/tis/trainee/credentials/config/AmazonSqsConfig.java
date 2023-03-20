@@ -31,6 +31,9 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.converter.MessageConverter;
 
+/**
+ * Configuration for SQS functionality.
+ */
 @Configuration
 public class AmazonSqsConfig {
 

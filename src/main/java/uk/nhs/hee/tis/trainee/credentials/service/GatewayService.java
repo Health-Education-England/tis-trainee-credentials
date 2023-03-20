@@ -95,7 +95,7 @@ public class GatewayService {
    * @return The built request.
    */
   private HttpEntity<MultiValueMap<String, String>> buildParRequest(CredentialDto dto, String nonce,
-                                                                    String state) {
+      String state) {
     log.info("Building PAR request.");
     String idTokenHint = jwtService.generateToken(dto);
 
@@ -201,7 +201,7 @@ public class GatewayService {
    * @return The built token request.
    */
   private HttpEntity<MultiValueMap<String, String>> buildTokenRequest(URI redirectUri, String code,
-                                                                      String codeVerifier, String state) {
+      String codeVerifier, String state) {
     log.info("Building Token request.");
 
     MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();

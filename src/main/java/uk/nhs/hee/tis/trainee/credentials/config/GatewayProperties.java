@@ -94,7 +94,6 @@ public record GatewayProperties(
    *
    * @param revokeCredentialEndpoint The gateway's revocation endpoint URI.
    */
-  @ConfigurationProperties(prefix = "application.gateway.revocation")
   public record RevocationProperties(
       String revokeCredentialEndpoint) {
 

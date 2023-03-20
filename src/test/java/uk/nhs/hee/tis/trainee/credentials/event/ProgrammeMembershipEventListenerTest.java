@@ -21,37 +21,35 @@
 
 package uk.nhs.hee.tis.trainee.credentials.event;
 
-import static io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy.ON_SUCCESS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
-import io.awspring.cloud.messaging.listener.annotation.SqsListener;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.dto.DeleteEventDto;
 import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
 
-/**
- * An event listener for programme membership deletes / updates.
- */
-@Slf4j
-@Component
-public class ProgrammeMembershipEventListener {
+class ProgrammeMembershipEventListenerTest {
 
-  private final RevocationService revocationService;
+  private static final String TIS_ID = UUID.randomUUID().toString();
 
-  ProgrammeMembershipEventListener(RevocationService revocationService) {
-    this.revocationService = revocationService;
+  private ProgrammeMembershipEventListener listener;
+  private RevocationService service;
+
+  @BeforeEach
+  void setUp() {
+    service = mock(RevocationService.class);
+    listener = new ProgrammeMembershipEventListener(service);
   }
 
-  /**
-   * Listener for delete events.
-   *
-   * @param deletedProgrammeMembership The deleted programme membership.
-   */
-  @SqsListener(value = "${application.aws.sqs.delete-programme-membership}",
-      deletionPolicy = ON_SUCCESS)
-  void deleteProgrammeMembership(DeleteEventDto deletedProgrammeMembership) {
-    log.debug("Received delete event for programme membership {}.", deletedProgrammeMembership);
-    revocationService.revoke(deletedProgrammeMembership.tisId(), CredentialType.TRAINING_PROGRAMME);
+  @Test
+  void shouldDeleteProgrammeMembership() {
+    DeleteEventDto dto = new DeleteEventDto(TIS_ID);
+
+    listener.deleteProgrammeMembership(dto);
+
+    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PROGRAMME);
   }
 }

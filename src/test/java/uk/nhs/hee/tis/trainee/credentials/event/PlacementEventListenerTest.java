@@ -19,19 +19,37 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.config;
+package uk.nhs.hee.tis.trainee.credentials.event;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
-/**
- * A representation of the event queues.
- *
- * @param deletePlacement           The delete placement queue URL.
- * @param deleteProgrammeMembership The delete programme membership queue URL.
- */
-@ConfigurationProperties(prefix = "application.aws.sqs")
-public record EventQueueProperties(
-    String deletePlacement,
-    String deleteProgrammeMembership) {
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
+import uk.nhs.hee.tis.trainee.credentials.dto.DeleteEventDto;
+import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
 
+class PlacementEventListenerTest {
+
+  private static final String TIS_ID = UUID.randomUUID().toString();
+
+  private PlacementEventListener listener;
+  private RevocationService service;
+
+  @BeforeEach
+  void setUp() {
+    service = mock(RevocationService.class);
+    listener = new PlacementEventListener(service);
+  }
+
+  @Test
+  void shouldDeletePlacement() {
+    DeleteEventDto dto = new DeleteEventDto(TIS_ID);
+
+    listener.deletePlacement(dto);
+
+    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT);
+  }
 }
