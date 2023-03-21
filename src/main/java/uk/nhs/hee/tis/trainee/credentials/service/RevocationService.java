@@ -36,14 +36,15 @@ import uk.nhs.hee.tis.trainee.credentials.repository.ModificationMetadataReposit
  */
 @Service
 public class RevocationService {
+
   private final CredentialMetadataRepository credentialMetadataRepository;
 
   private final ModificationMetadataRepository modificationMetadataRepository;
   private final GatewayService gatewayService;
 
   RevocationService(CredentialMetadataRepository credentialMetadataRepository,
-                    ModificationMetadataRepository modificationMetadataRepository,
-                    GatewayService gatewayService) {
+      ModificationMetadataRepository modificationMetadataRepository,
+      GatewayService gatewayService) {
     this.credentialMetadataRepository = credentialMetadataRepository;
     this.modificationMetadataRepository = modificationMetadataRepository;
     this.gatewayService = gatewayService;
@@ -68,14 +69,13 @@ public class RevocationService {
    *
    * @param tisId          The TIS ID of the modified object.
    * @param credentialType The credential type of the modified object.
-   * @return The {@link Instant} of the last modification, or empty if never modified.
    */
   public void revoke(String tisId, CredentialType credentialType) {
     //find this credential in the credential metadata repository
     //if it exists, then revoke it
     Optional<CredentialMetadata> metadata
         = credentialMetadataRepository.findByCredentialTypeAndTisId(
-            credentialType.getGatewayScope(), tisId);
+        credentialType.getGatewayScope(), tisId);
     if (metadata.isPresent()) {
       gatewayService.revokeCredential(credentialType.getGatewayScope(),
           metadata.get().getCredentialId());

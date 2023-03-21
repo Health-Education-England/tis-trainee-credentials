@@ -655,8 +655,9 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
         eq(String.class))).thenReturn(ResponseEntity.notFound().build());
 
+    String scope = credentialType.getGatewayScope();
     ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-        () -> service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID));
+        () -> service.revokeCredential(scope, CREDENTIAL_ID));
     assertThat("Unexpected exception status code.", exception.getStatusCode(),
         is(HttpStatus.NOT_FOUND));
   }

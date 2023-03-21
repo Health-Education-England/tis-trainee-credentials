@@ -52,6 +52,21 @@ import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 @Service
 public class GatewayService {
 
+  private static final String CLIENT_ID = "client_id";
+  private static final String CLIENT_SECRET = "client_secret";
+  private static final String CODE = "code";
+  private static final String CODE_VERIFIER = "code_verifier";
+  private static final String CREDENTIAL_TEMPLATE_NAME = "CredentialTemplateName";
+  private static final String GRANT_TYPE = "grant_type";
+  private static final String ID_TOKEN_HINT = "id_token_hint";
+  private static final String NONCE = "nonce";
+  private static final String ORGANIZATION_ID = "OrganisationId";
+  private static final String REDIRECT_URI = "redirect_uri";
+  private static final String REVOCATION_REASON = "RevocationReason";
+  private static final String SCOPE = "scope";
+  private static final String SERIAL_NUMBER = "SerialNumber";
+  private static final String STATE = "state";
+
   private final RestTemplate restTemplate;
   private final JwtService jwtService;
   private final GatewayProperties properties;
@@ -101,13 +116,13 @@ public class GatewayService {
     String idTokenHint = jwtService.generateToken(dto);
 
     MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
-    bodyPair.add("client_id", properties.clientId());
-    bodyPair.add("client_secret", properties.clientSecret());
-    bodyPair.add("redirect_uri", properties.issuing().redirectUri());
-    bodyPair.add("scope", dto.getScope());
-    bodyPair.add("id_token_hint", idTokenHint);
-    bodyPair.add("nonce", nonce);
-    bodyPair.add("state", state);
+    bodyPair.add(CLIENT_ID, properties.clientId());
+    bodyPair.add(CLIENT_SECRET, properties.clientSecret());
+    bodyPair.add(REDIRECT_URI, properties.issuing().redirectUri());
+    bodyPair.add(SCOPE, dto.getScope());
+    bodyPair.add(ID_TOKEN_HINT, idTokenHint);
+    bodyPair.add(NONCE, nonce);
+    bodyPair.add(STATE, state);
 
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(List.of(MediaType.APPLICATION_JSON));
@@ -206,13 +221,13 @@ public class GatewayService {
     log.info("Building Token request.");
 
     MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
-    bodyPair.add("client_id", properties.clientId());
-    bodyPair.add("client_secret", properties.clientSecret());
-    bodyPair.add("redirect_uri", redirectUri.toString());
-    bodyPair.add("grant_type", "authorization_code");
-    bodyPair.add("code", code);
-    bodyPair.add("code_verifier", codeVerifier);
-    bodyPair.add("state", state);
+    bodyPair.add(CLIENT_ID, properties.clientId());
+    bodyPair.add(CLIENT_SECRET, properties.clientSecret());
+    bodyPair.add(REDIRECT_URI, redirectUri.toString());
+    bodyPair.add(GRANT_TYPE, "authorization_code");
+    bodyPair.add(CODE, code);
+    bodyPair.add(CODE_VERIFIER, codeVerifier);
+    bodyPair.add(STATE, state);
 
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(List.of(MediaType.APPLICATION_JSON));
@@ -265,12 +280,12 @@ public class GatewayService {
       String credentialTemplateName, String credentialId) {
 
     Map<String, String> bodyPair = new HashMap<>();
-    bodyPair.put("client_id", properties.clientId());
-    bodyPair.put("client_secret", properties.clientSecret());
-    bodyPair.put("OrganisationId", properties.organisationId());
-    bodyPair.put("CredentialTemplateName", credentialTemplateName);
-    bodyPair.put("SerialNumber", credentialId);
-    bodyPair.put("RevocationReason", "Source record deleted");
+    bodyPair.put(CLIENT_ID, properties.clientId());
+    bodyPair.put(CLIENT_SECRET, properties.clientSecret());
+    bodyPair.put(ORGANIZATION_ID, properties.organisationId());
+    bodyPair.put(CREDENTIAL_TEMPLATE_NAME, credentialTemplateName);
+    bodyPair.put(SERIAL_NUMBER, credentialId);
+    bodyPair.put(REVOCATION_REASON, "Source record deleted");
 
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(List.of(MediaType.APPLICATION_JSON));
