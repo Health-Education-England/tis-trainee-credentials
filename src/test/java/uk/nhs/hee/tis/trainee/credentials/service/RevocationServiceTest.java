@@ -23,19 +23,33 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.web.server.ResponseStatusException;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
+import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 import uk.nhs.hee.tis.trainee.credentials.model.ModificationMetadata;
 import uk.nhs.hee.tis.trainee.credentials.repository.CredentialMetadataRepository;
 import uk.nhs.hee.tis.trainee.credentials.repository.ModificationMetadataRepository;
 
 class RevocationServiceTest {
+
+  private static final String TIS_ID = UUID.randomUUID().toString();
+  private static final String CREDENTIAL_ID = UUID.randomUUID().toString();
 
   private RevocationService service;
   private CredentialMetadataRepository credentialMetadataRepository;
@@ -69,5 +83,54 @@ class RevocationServiceTest {
     Optional<Instant> lastModifiedDate = service.getLastModifiedDate("", null);
 
     assertThat("Unexpected last modified date presence", lastModifiedDate.isEmpty(), is(true));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldNotAttemptRevocationWhenCredentialNotIssued(CredentialType credentialType) {
+    when(credentialMetadataRepository.findByCredentialTypeAndTisId(credentialType.getGatewayScope(),
+        TIS_ID)).thenReturn(Optional.empty());
+
+    service.revoke(TIS_ID, credentialType);
+
+    verifyNoInteractions(gatewayService);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldNotDeleteCredentialMetadataWhenRevocationFails(CredentialType credentialType) {
+    CredentialMetadata credentialMetadata = new CredentialMetadata();
+    credentialMetadata.setTisId(TIS_ID);
+    credentialMetadata.setCredentialId(CREDENTIAL_ID);
+
+    String scope = credentialType.getGatewayScope();
+
+    when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
+        Optional.of(credentialMetadata));
+    doThrow(ResponseStatusException.class).when(gatewayService)
+        .revokeCredential(scope, CREDENTIAL_ID);
+
+    assertThrows(ResponseStatusException.class, () -> service.revoke(TIS_ID, credentialType));
+
+    verify(credentialMetadataRepository).findByCredentialTypeAndTisId(scope, TIS_ID);
+    verifyNoMoreInteractions(credentialMetadataRepository);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldDeleteCredentialMetadataWhenRevocationSuccessful(CredentialType credentialType) {
+    CredentialMetadata credentialMetadata = new CredentialMetadata();
+    credentialMetadata.setTisId(TIS_ID);
+    credentialMetadata.setCredentialId(CREDENTIAL_ID);
+
+    String scope = credentialType.getGatewayScope();
+
+    when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
+        Optional.of(credentialMetadata));
+
+    service.revoke(TIS_ID, credentialType);
+
+    verify(gatewayService).revokeCredential(scope, CREDENTIAL_ID);
+    verify(credentialMetadataRepository).deleteById(CREDENTIAL_ID);
   }
 }

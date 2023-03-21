@@ -40,6 +40,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
@@ -230,8 +231,10 @@ public class GatewayService {
    *
    * @param credentialTemplateName The credential template name.
    * @param credentialId           The credential ID.
+   * @throws ResponseStatusException If the gateway could not handle the revocation request.
    */
-  public void revokeCredential(String credentialTemplateName, String credentialId) {
+  public void revokeCredential(String credentialTemplateName, String credentialId)
+      throws ResponseStatusException {
     String endpoint = properties.revocation().revokeCredentialEndpoint();
     HttpEntity<Map<String, String>> request
         = buildRevocationRequest(credentialTemplateName, credentialId);
@@ -241,9 +244,12 @@ public class GatewayService {
         String.class);
 
     if (revokeResponse.getStatusCode().isError()) {
-      log.error("Credential revocation for credential of type {} with id {} failed with code {}.",
+      String message = String.format(
+          "Credential revocation for credential of type %s with id %s failed with code %s.",
           credentialTemplateName, credentialId, revokeResponse.getStatusCode());
+      throw new ResponseStatusException(revokeResponse.getStatusCode(), message);
     }
+
     //should be a 204 no content response
     log.info("Revoked credential of type {} with id {}.", credentialTemplateName, credentialId);
   }
