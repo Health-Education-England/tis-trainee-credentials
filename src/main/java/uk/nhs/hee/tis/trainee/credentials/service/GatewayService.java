@@ -25,7 +25,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.impl.DefaultClaims;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +40,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
@@ -48,6 +51,21 @@ import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 @Slf4j
 @Service
 public class GatewayService {
+
+  private static final String CLIENT_ID = "client_id";
+  private static final String CLIENT_SECRET = "client_secret";
+  private static final String CODE = "code";
+  private static final String CODE_VERIFIER = "code_verifier";
+  private static final String CREDENTIAL_TEMPLATE_NAME = "CredentialTemplateName";
+  private static final String GRANT_TYPE = "grant_type";
+  private static final String ID_TOKEN_HINT = "id_token_hint";
+  private static final String NONCE = "nonce";
+  private static final String ORGANIZATION_ID = "OrganisationId";
+  private static final String REDIRECT_URI = "redirect_uri";
+  private static final String REVOCATION_REASON = "RevocationReason";
+  private static final String SCOPE = "scope";
+  private static final String SERIAL_NUMBER = "SerialNumber";
+  private static final String STATE = "state";
 
   private final RestTemplate restTemplate;
   private final JwtService jwtService;
@@ -98,13 +116,13 @@ public class GatewayService {
     String idTokenHint = jwtService.generateToken(dto);
 
     MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
-    bodyPair.add("client_id", properties.clientId());
-    bodyPair.add("client_secret", properties.clientSecret());
-    bodyPair.add("redirect_uri", properties.issuing().redirectUri());
-    bodyPair.add("scope", dto.getScope());
-    bodyPair.add("id_token_hint", idTokenHint);
-    bodyPair.add("nonce", nonce);
-    bodyPair.add("state", state);
+    bodyPair.add(CLIENT_ID, properties.clientId());
+    bodyPair.add(CLIENT_SECRET, properties.clientSecret());
+    bodyPair.add(REDIRECT_URI, properties.issuing().redirectUri());
+    bodyPair.add(SCOPE, dto.getScope());
+    bodyPair.add(ID_TOKEN_HINT, idTokenHint);
+    bodyPair.add(NONCE, nonce);
+    bodyPair.add(STATE, state);
 
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(List.of(MediaType.APPLICATION_JSON));
@@ -203,13 +221,13 @@ public class GatewayService {
     log.info("Building Token request.");
 
     MultiValueMap<String, String> bodyPair = new LinkedMultiValueMap<>();
-    bodyPair.add("client_id", properties.clientId());
-    bodyPair.add("client_secret", properties.clientSecret());
-    bodyPair.add("redirect_uri", redirectUri.toString());
-    bodyPair.add("grant_type", "authorization_code");
-    bodyPair.add("code", code);
-    bodyPair.add("code_verifier", codeVerifier);
-    bodyPair.add("state", state);
+    bodyPair.add(CLIENT_ID, properties.clientId());
+    bodyPair.add(CLIENT_SECRET, properties.clientSecret());
+    bodyPair.add(REDIRECT_URI, redirectUri.toString());
+    bodyPair.add(GRANT_TYPE, "authorization_code");
+    bodyPair.add(CODE, code);
+    bodyPair.add(CODE_VERIFIER, codeVerifier);
+    bodyPair.add(STATE, state);
 
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(List.of(MediaType.APPLICATION_JSON));
@@ -221,5 +239,59 @@ public class GatewayService {
 
   record TokenResponse(@JsonProperty("id_token") String idToken) {
 
+  }
+
+  /**
+   * Revoke a credential from the gateway.
+   *
+   * @param credentialTemplateName The credential template name.
+   * @param credentialId           The credential ID.
+   * @throws ResponseStatusException If the gateway could not handle the revocation request.
+   */
+  public void revokeCredential(String credentialTemplateName, String credentialId)
+      throws ResponseStatusException {
+    String endpoint = properties.revocation().revokeCredentialEndpoint();
+    HttpEntity<Map<String, String>> request
+        = buildRevocationRequest(credentialTemplateName, credentialId);
+
+    log.info("Sending revoke credential request.");
+    ResponseEntity<String> revokeResponse = restTemplate.postForEntity(endpoint, request,
+        String.class);
+
+    if (revokeResponse.getStatusCode().isError()) {
+      String message = String.format(
+          "Credential revocation for credential of type %s with id %s failed with code %s.",
+          credentialTemplateName, credentialId, revokeResponse.getStatusCode());
+      throw new ResponseStatusException(revokeResponse.getStatusCode(), message);
+    }
+
+    //should be a 204 no content response
+    log.info("Revoked credential of type {} with id {}.", credentialTemplateName, credentialId);
+  }
+
+  /**
+   * Build a credential revocation request from a credential type and ID.
+   *
+   * @param credentialTemplateName The credential template name.
+   * @param credentialId           The credential ID.
+   * @return The built credential revocation request.
+   */
+  private HttpEntity<Map<String, String>> buildRevocationRequest(
+      String credentialTemplateName, String credentialId) {
+
+    Map<String, String> bodyPair = new HashMap<>();
+    bodyPair.put(CLIENT_ID, properties.clientId());
+    bodyPair.put(CLIENT_SECRET, properties.clientSecret());
+    bodyPair.put(ORGANIZATION_ID, properties.organisationId());
+    bodyPair.put(CREDENTIAL_TEMPLATE_NAME, credentialTemplateName);
+    bodyPair.put(SERIAL_NUMBER, credentialId);
+    bodyPair.put(REVOCATION_REASON, "Source record deleted");
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+    headers.setContentType(MediaType.APPLICATION_JSON);
+
+    log.info("Built credential revocation request.");
+    return new HttpEntity<>(bodyPair, headers);
   }
 }

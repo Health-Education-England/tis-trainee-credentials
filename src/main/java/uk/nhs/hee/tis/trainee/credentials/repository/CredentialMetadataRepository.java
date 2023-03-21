@@ -35,6 +35,8 @@ public interface CredentialMetadataRepository extends MongoRepository<Credential
   @Override
   Optional<CredentialMetadata> findById(String id);
 
+  Optional<CredentialMetadata> findByCredentialTypeAndTisId(String credentialType, String tisId);
+
   @Override
   <T extends CredentialMetadata> T save(T entity);
 

@@ -24,6 +24,7 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -39,6 +40,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -47,10 +50,13 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties;
+import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.RevocationProperties;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.VerificationProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService.ParResponse;
@@ -61,14 +67,18 @@ class GatewayServiceTest {
   private static final String CLIENT_ID = "client-id";
   private static final String CLIENT_SECRET = "no-very-secret";
   private static final String HOST = "https://credential.gateway";
+  private static final String ORGANISATION_ID = "organisation-id";
   private static final String AUTHORIZE_ENDPOINT = "https://credential.gateway/authorize/endpoint";
   private static final String JWKS_ENDPOINT = "https://credential.gateway/jwks/endpoint";
   private static final String PAR_ENDPOINT = "https://credential.gateway/par/endpoint";
   private static final String TOKEN_ENDPOINT = "https://credential.gateway/token/endpoint";
+  private static final String REVOCATION_ENDPOINT = "https://credential.gateway/revocation/endpoint";
   private static final String REDIRECT_URI = "https://redirect.uri";
 
   private static final String NONCE = UUID.randomUUID().toString();
   private static final String STATE = "some-client-state";
+
+  private static final String CREDENTIAL_ID = UUID.randomUUID().toString();
 
   private GatewayService service;
   private JwtService jwtService;
@@ -82,8 +92,10 @@ class GatewayServiceTest {
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
         "", null, REDIRECT_URI);
     VerificationProperties verificationProperties = new VerificationProperties("", "", "");
-    GatewayProperties gatewayProperties = new GatewayProperties(HOST, CLIENT_ID, CLIENT_SECRET,
-        JWKS_ENDPOINT, issuingProperties, verificationProperties);
+    RevocationProperties revocationProperties = new RevocationProperties(REVOCATION_ENDPOINT);
+    GatewayProperties gatewayProperties = new GatewayProperties(HOST, ORGANISATION_ID, CLIENT_ID,
+        CLIENT_SECRET, JWKS_ENDPOINT, issuingProperties, verificationProperties,
+        revocationProperties);
 
     service = new GatewayService(restTemplate, jwtService, gatewayProperties);
   }
@@ -95,8 +107,10 @@ class GatewayServiceTest {
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
         "", null, REDIRECT_URI);
     VerificationProperties verificationProperties = new VerificationProperties("", "", "");
-    GatewayProperties gatewayProperties = new GatewayProperties(HOST, CLIENT_ID, CLIENT_SECRET,
-        JWKS_ENDPOINT, issuingProperties, verificationProperties);
+    RevocationProperties revocationProperties = new RevocationProperties("rev");
+    GatewayProperties gatewayProperties = new GatewayProperties(HOST, ORGANISATION_ID, CLIENT_ID,
+        CLIENT_SECRET, JWKS_ENDPOINT, issuingProperties, verificationProperties,
+        revocationProperties);
 
     service = new GatewayService(restTemplate, jwtService, gatewayProperties);
   }
@@ -369,6 +383,36 @@ class GatewayServiceTest {
   }
 
   @Test
+  void shouldIncludeAcceptHeaderInTokenRequest() {
+    URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
+
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(tokenEndpoint), requestCaptor.capture(),
+        eq(TokenResponse.class))).thenReturn(ResponseEntity.notFound().build());
+
+    service.getTokenClaims(tokenEndpoint, URI.create(REDIRECT_URI), "", "");
+
+    HttpHeaders headers = requestCaptor.getValue().getHeaders();
+    assertThat("Unexpected content type header.", headers.get(HttpHeaders.ACCEPT),
+        is(List.of(MediaType.APPLICATION_JSON_VALUE)));
+  }
+
+  @Test
+  void shouldIncludeContentTypeHeaderInTokenRequest() {
+    URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
+
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(tokenEndpoint), requestCaptor.capture(),
+        eq(TokenResponse.class))).thenReturn(ResponseEntity.notFound().build());
+
+    service.getTokenClaims(tokenEndpoint, URI.create(REDIRECT_URI), "", "");
+
+    HttpHeaders headers = requestCaptor.getValue().getHeaders();
+    assertThat("Unexpected content type header.", headers.get(HttpHeaders.CONTENT_TYPE),
+        is(List.of(MediaType.APPLICATION_FORM_URLENCODED_VALUE)));
+  }
+
+  @Test
   void shouldIncludeClientIdInTokenRequest() {
     URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
 
@@ -477,5 +521,144 @@ class GatewayServiceTest {
     List<String> state = requestBody.get("state");
     assertThat("Unexpected state count.", state.size(), is(1));
     assertDoesNotThrow(() -> UUID.fromString(state.get(0)), "Unexpected state format.");
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldIncludeAcceptHeaderInRevocationRequest(CredentialType credentialType) {
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
+        eq(String.class))).thenReturn(ResponseEntity.ok().build());
+
+    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+
+    HttpHeaders headers = requestCaptor.getValue().getHeaders();
+    assertThat("Unexpected content type header.", headers.get(HttpHeaders.ACCEPT),
+        is(List.of(MediaType.APPLICATION_JSON_VALUE)));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldIncludeContentTypeHeaderInRevocationRequest(CredentialType credentialType) {
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
+        eq(String.class))).thenReturn(ResponseEntity.ok().build());
+
+    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+
+    HttpHeaders headers = requestCaptor.getValue().getHeaders();
+    assertThat("Unexpected content type header.", headers.get(HttpHeaders.CONTENT_TYPE),
+        is(List.of(MediaType.APPLICATION_JSON_VALUE)));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldIncludeClientIdInRevocationRequest(CredentialType credentialType) {
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
+        eq(String.class))).thenReturn(ResponseEntity.ok().build());
+
+    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+
+    var request = (HttpEntity<Map<String, String>>) requestCaptor.getValue();
+    Map<String, String> requestBody = request.getBody();
+    assertThat("Unexpected client id.", requestBody.get("client_id"), is(CLIENT_ID));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldIncludeClientSecretInRevocationRequest(CredentialType credentialType) {
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
+        eq(String.class))).thenReturn(ResponseEntity.ok().build());
+
+    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+
+    var request = (HttpEntity<Map<String, String>>) requestCaptor.getValue();
+    Map<String, String> requestBody = request.getBody();
+    assertThat("Unexpected client secret.", requestBody.get("client_secret"), is(CLIENT_SECRET));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldIncludeOrganizationIdInRevocationRequest(CredentialType credentialType) {
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
+        eq(String.class))).thenReturn(ResponseEntity.ok().build());
+
+    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+
+    var request = (HttpEntity<Map<String, String>>) requestCaptor.getValue();
+    Map<String, String> requestBody = request.getBody();
+    assertThat("Unexpected client id.", requestBody.get("OrganisationId"), is(ORGANISATION_ID));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldIncludeCredentialTemplateNameInRevocationRequest(CredentialType credentialType) {
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
+        eq(String.class))).thenReturn(ResponseEntity.ok().build());
+
+    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+
+    var request = (HttpEntity<Map<String, String>>) requestCaptor.getValue();
+    Map<String, String> requestBody = request.getBody();
+    assertThat("Unexpected client id.", requestBody.get("CredentialTemplateName"),
+        is(credentialType.getGatewayScope()));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldIncludeCredentialIdInRevocationRequest(CredentialType credentialType) {
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
+        eq(String.class))).thenReturn(ResponseEntity.ok().build());
+
+    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+
+    var request = (HttpEntity<Map<String, String>>) requestCaptor.getValue();
+    Map<String, String> requestBody = request.getBody();
+    assertThat("Unexpected client id.", requestBody.get("SerialNumber"), is(CREDENTIAL_ID));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldIncludeRevocationReasonInRevocationRequest(CredentialType credentialType) {
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
+        eq(String.class))).thenReturn(ResponseEntity.ok().build());
+
+    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+
+    var request = (HttpEntity<Map<String, String>>) requestCaptor.getValue();
+    Map<String, String> requestBody = request.getBody();
+    assertThat("Unexpected client id.", requestBody.get("RevocationReason"),
+        is("Source record deleted"));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldNotThrowExceptionWhenRevocationResponseOk(CredentialType credentialType) {
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
+        eq(String.class))).thenReturn(ResponseEntity.ok().build());
+
+    assertDoesNotThrow(
+        () -> service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldThrowExceptionWhenRevocationResponseNotOk(CredentialType credentialType) {
+    var requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
+        eq(String.class))).thenReturn(ResponseEntity.notFound().build());
+
+    String scope = credentialType.getGatewayScope();
+    ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+        () -> service.revokeCredential(scope, CREDENTIAL_ID));
+    assertThat("Unexpected exception status code.", exception.getStatusCode(),
+        is(HttpStatus.NOT_FOUND));
   }
 }

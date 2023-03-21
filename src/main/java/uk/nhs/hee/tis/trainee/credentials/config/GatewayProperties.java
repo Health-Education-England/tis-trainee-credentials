@@ -36,11 +36,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "application.gateway")
 public record GatewayProperties(
     String host,
+    String organisationId,
     String clientId,
     String clientSecret,
     String jwksEndpoint,
     IssuingProperties issuing,
-    VerificationProperties verification) {
+    VerificationProperties verification,
+    RevocationProperties revocation) {
 
   /**
    * A representation of the gateway's issuing properties.
@@ -84,6 +86,16 @@ public record GatewayProperties(
       String authorizeEndpoint,
       String tokenEndpoint,
       String redirectUri) {
+
+  }
+
+  /**
+   * A representation of the gateway credential revocation properties.
+   *
+   * @param revokeCredentialEndpoint The gateway's revocation endpoint URI.
+   */
+  public record RevocationProperties(
+      String revokeCredentialEndpoint) {
 
   }
 }

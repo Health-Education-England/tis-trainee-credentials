@@ -25,8 +25,10 @@ import java.time.Instant;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
+import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 import uk.nhs.hee.tis.trainee.credentials.model.ModificationMetadata;
 import uk.nhs.hee.tis.trainee.credentials.model.ModificationMetadata.ModificationMetadataId;
+import uk.nhs.hee.tis.trainee.credentials.repository.CredentialMetadataRepository;
 import uk.nhs.hee.tis.trainee.credentials.repository.ModificationMetadataRepository;
 
 /**
@@ -35,10 +37,17 @@ import uk.nhs.hee.tis.trainee.credentials.repository.ModificationMetadataReposit
 @Service
 public class RevocationService {
 
-  private final ModificationMetadataRepository modificationMetadataRepository;
+  private final CredentialMetadataRepository credentialMetadataRepository;
 
-  RevocationService(ModificationMetadataRepository modificationMetadataRepository) {
+  private final ModificationMetadataRepository modificationMetadataRepository;
+  private final GatewayService gatewayService;
+
+  RevocationService(CredentialMetadataRepository credentialMetadataRepository,
+      ModificationMetadataRepository modificationMetadataRepository,
+      GatewayService gatewayService) {
+    this.credentialMetadataRepository = credentialMetadataRepository;
     this.modificationMetadataRepository = modificationMetadataRepository;
+    this.gatewayService = gatewayService;
   }
 
   /**
@@ -53,5 +62,25 @@ public class RevocationService {
     Optional<ModificationMetadata> metadata = modificationMetadataRepository.findById(id);
 
     return metadata.map(ModificationMetadata::lastModifiedDate);
+  }
+
+  /**
+   * Revoke any issued credentials for matching credential type and ID.
+   *
+   * @param tisId          The TIS ID of the modified object.
+   * @param credentialType The credential type of the modified object.
+   */
+  public void revoke(String tisId, CredentialType credentialType) {
+    //find this credential in the credential metadata repository
+    //if it exists, then revoke it
+    Optional<CredentialMetadata> metadata
+        = credentialMetadataRepository.findByCredentialTypeAndTisId(
+        credentialType.getGatewayScope(), tisId);
+    if (metadata.isPresent()) {
+      gatewayService.revokeCredential(credentialType.getGatewayScope(),
+          metadata.get().getCredentialId());
+      //TODO: might need to remove 'issue.' from gateway scope?
+      credentialMetadataRepository.deleteById(metadata.get().getCredentialId());
+    }
   }
 }

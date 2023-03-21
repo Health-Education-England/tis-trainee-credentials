@@ -19,25 +19,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials;
+package uk.nhs.hee.tis.trainee.credentials.dto;
 
-import com.amazonaws.services.sqs.AmazonSQSAsync;
-import io.awspring.cloud.autoconfigure.messaging.SqsAutoConfiguration;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import jakarta.validation.constraints.NotEmpty;
+import java.io.Serializable;
 
-@SpringBootTest
-@EnableAutoConfiguration(exclude = SqsAutoConfiguration.class)
-class TisTraineeCredentialsApplicationTest {
+/**
+ * A DTO representing data deletion events.
+ *
+ * @param tisId The id of the record.
+ */
+public record DeleteEventDto(
+    @NotEmpty String tisId) implements Serializable {
 
-  @MockBean
-  private AmazonSQSAsync amazonSqsAsync;
-
-
-  @Test
-  void contextLoads() {
-
-  }
 }

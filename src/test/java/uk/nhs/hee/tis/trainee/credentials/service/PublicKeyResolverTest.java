@@ -77,8 +77,8 @@ class PublicKeyResolverTest {
 
     TokenProperties tokenProperties = new TokenProperties(ISSUING_TOKEN_AUDIENCE, "", "");
     IssuingProperties issuingProperties = new IssuingProperties("", "", "", tokenProperties, "");
-    GatewayProperties gatewayProperties = new GatewayProperties(HOST, "", "", JWKS_ENDPOINT,
-        issuingProperties, null);
+    GatewayProperties gatewayProperties = new GatewayProperties(HOST, "", "", "", JWKS_ENDPOINT,
+        issuingProperties, null, null);
     resolver = new PublicKeyResolver(cachingDelegate, restTemplate, gatewayProperties);
   }
 

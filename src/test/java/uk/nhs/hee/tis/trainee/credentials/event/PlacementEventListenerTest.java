@@ -19,25 +19,37 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials;
+package uk.nhs.hee.tis.trainee.credentials.event;
 
-import com.amazonaws.services.sqs.AmazonSQSAsync;
-import io.awspring.cloud.autoconfigure.messaging.SqsAutoConfiguration;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
+import uk.nhs.hee.tis.trainee.credentials.dto.DeleteEventDto;
+import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
 
-@SpringBootTest
-@EnableAutoConfiguration(exclude = SqsAutoConfiguration.class)
-class TisTraineeCredentialsApplicationTest {
+class PlacementEventListenerTest {
 
-  @MockBean
-  private AmazonSQSAsync amazonSqsAsync;
+  private static final String TIS_ID = UUID.randomUUID().toString();
 
+  private PlacementEventListener listener;
+  private RevocationService service;
+
+  @BeforeEach
+  void setUp() {
+    service = mock(RevocationService.class);
+    listener = new PlacementEventListener(service);
+  }
 
   @Test
-  void contextLoads() {
+  void shouldDeletePlacement() {
+    DeleteEventDto dto = new DeleteEventDto(TIS_ID);
 
+    listener.deletePlacement(dto);
+
+    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT);
   }
 }
