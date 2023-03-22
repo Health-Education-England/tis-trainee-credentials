@@ -31,20 +31,22 @@ import lombok.Getter;
 @Getter
 public enum CredentialType {
 
-  TRAINING_PLACEMENT("issue.TrainingPlacement", "/api/issue/placement"),
-  TRAINING_PROGRAMME("issue.TrainingProgramme", "/api/issue/programme-membership");
+  TRAINING_PLACEMENT("TrainingPlacement", "/api/issue/placement"),
+  TRAINING_PROGRAMME("TrainingProgramme", "/api/issue/programme-membership");
 
-  private final String gatewayScope;
+  private static final String ISSUANCE_SCOPE_PREFIX = "issue.";
+
+  private final String templateName;
   private final String apiPath;
 
   /**
    * Construct a credential type.
    *
-   * @param gatewayScope The gateway scope e.g. issue.DataType.
+   * @param templateName The gateway credential template name.
    * @param apiPath      The API request path for the credential type.
    */
-  CredentialType(String gatewayScope, String apiPath) {
-    this.gatewayScope = gatewayScope;
+  CredentialType(String templateName, String apiPath) {
+    this.templateName = templateName;
     this.apiPath = apiPath;
   }
 
@@ -58,5 +60,14 @@ public enum CredentialType {
     return Arrays.stream(CredentialType.values())
         .filter(ct -> ct.apiPath.equals(apiPath))
         .findFirst();
+  }
+
+  /**
+   * Get issuance scope e.g. issue.TemplateName
+   *
+   * @return The issuance scope.
+   */
+  public String getIssuanceScope() {
+    return ISSUANCE_SCOPE_PREFIX + templateName;
   }
 }

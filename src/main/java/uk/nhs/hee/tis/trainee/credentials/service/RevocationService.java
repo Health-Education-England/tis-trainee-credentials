@@ -75,9 +75,9 @@ public class RevocationService {
     //if it exists, then revoke it
     Optional<CredentialMetadata> metadata
         = credentialMetadataRepository.findByCredentialTypeAndTisId(
-        credentialType.getGatewayScope(), tisId);
+        credentialType.getIssuanceScope(), tisId);
     if (metadata.isPresent()) {
-      gatewayService.revokeCredential(credentialType.getGatewayScope(),
+      gatewayService.revokeCredential(credentialType.getIssuanceScope(),
           metadata.get().getCredentialId());
       //TODO: might need to remove 'issue.' from gateway scope?
       credentialMetadataRepository.deleteById(metadata.get().getCredentialId());

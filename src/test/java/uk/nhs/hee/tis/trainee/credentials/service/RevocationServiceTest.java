@@ -88,8 +88,9 @@ class RevocationServiceTest {
   @ParameterizedTest
   @EnumSource(CredentialType.class)
   void shouldNotAttemptRevocationWhenCredentialNotIssued(CredentialType credentialType) {
-    when(credentialMetadataRepository.findByCredentialTypeAndTisId(credentialType.getGatewayScope(),
-        TIS_ID)).thenReturn(Optional.empty());
+    when(
+        credentialMetadataRepository.findByCredentialTypeAndTisId(credentialType.getIssuanceScope(),
+            TIS_ID)).thenReturn(Optional.empty());
 
     service.revoke(TIS_ID, credentialType);
 
@@ -103,7 +104,7 @@ class RevocationServiceTest {
     credentialMetadata.setTisId(TIS_ID);
     credentialMetadata.setCredentialId(CREDENTIAL_ID);
 
-    String scope = credentialType.getGatewayScope();
+    String scope = credentialType.getIssuanceScope();
 
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
         Optional.of(credentialMetadata));
@@ -123,7 +124,7 @@ class RevocationServiceTest {
     credentialMetadata.setTisId(TIS_ID);
     credentialMetadata.setCredentialId(CREDENTIAL_ID);
 
-    String scope = credentialType.getGatewayScope();
+    String scope = credentialType.getIssuanceScope();
 
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
         Optional.of(credentialMetadata));

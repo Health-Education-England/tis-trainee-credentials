@@ -72,7 +72,7 @@ public record PlacementCredentialDto(
 
   @Override
   public String getScope() {
-    return CredentialType.TRAINING_PLACEMENT.getGatewayScope();
+    return CredentialType.TRAINING_PLACEMENT.getIssuanceScope();
   }
 
   @Override
