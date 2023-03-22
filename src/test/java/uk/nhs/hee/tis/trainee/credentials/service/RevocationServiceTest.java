@@ -32,6 +32,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.web.server.ResponseStatusException;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
@@ -88,10 +90,11 @@ class RevocationServiceTest {
   @ParameterizedTest
   @EnumSource(CredentialType.class)
   void shouldNotAttemptRevocationWhenCredentialNotIssued(CredentialType credentialType) {
-    when(credentialMetadataRepository.findByCredentialTypeAndTisId(credentialType.getGatewayScope(),
-        TIS_ID)).thenReturn(Optional.empty());
+    when(
+        credentialMetadataRepository.findByCredentialTypeAndTisId(credentialType.getIssuanceScope(),
+            TIS_ID)).thenReturn(Optional.empty());
 
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, null);
 
     verifyNoInteractions(gatewayService);
   }
@@ -103,14 +106,14 @@ class RevocationServiceTest {
     credentialMetadata.setTisId(TIS_ID);
     credentialMetadata.setCredentialId(CREDENTIAL_ID);
 
-    String scope = credentialType.getGatewayScope();
+    String scope = credentialType.getIssuanceScope();
 
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
         Optional.of(credentialMetadata));
     doThrow(ResponseStatusException.class).when(gatewayService)
-        .revokeCredential(scope, CREDENTIAL_ID);
+        .revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
 
-    assertThrows(ResponseStatusException.class, () -> service.revoke(TIS_ID, credentialType));
+    assertThrows(ResponseStatusException.class, () -> service.revoke(TIS_ID, credentialType, null));
 
     verify(credentialMetadataRepository).findByCredentialTypeAndTisId(scope, TIS_ID);
     verifyNoMoreInteractions(credentialMetadataRepository);
@@ -123,14 +126,58 @@ class RevocationServiceTest {
     credentialMetadata.setTisId(TIS_ID);
     credentialMetadata.setCredentialId(CREDENTIAL_ID);
 
-    String scope = credentialType.getGatewayScope();
+    String scope = credentialType.getIssuanceScope();
 
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
         Optional.of(credentialMetadata));
 
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, null);
 
-    verify(gatewayService).revokeCredential(scope, CREDENTIAL_ID);
+    verify(gatewayService).revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
     verify(credentialMetadataRepository).deleteById(CREDENTIAL_ID);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldStoreLastModifiedDateWhenRevoking(CredentialType credentialType) {
+    service.revoke(TIS_ID, credentialType, null);
+
+    ArgumentCaptor<ModificationMetadata> metadataCaptor = ArgumentCaptor.forClass(
+        ModificationMetadata.class);
+    verify(repository).save(metadataCaptor.capture());
+
+    ModificationMetadata metadata = metadataCaptor.getValue();
+    assertThat("Unexpected TIS ID.", metadata.id().tisId(), is(TIS_ID));
+    assertThat("Unexpected credential type.", metadata.id().credentialType(), is(credentialType));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldStoreLastModifiedDateAsNowWhenTimestampNull(CredentialType credentialType) {
+    service.revoke(TIS_ID, credentialType, null);
+
+    ArgumentCaptor<ModificationMetadata> metadataCaptor = ArgumentCaptor.forClass(
+        ModificationMetadata.class);
+    verify(repository).save(metadataCaptor.capture());
+
+    ModificationMetadata metadata = metadataCaptor.getValue();
+    Instant timestamp = metadata.lastModifiedDate();
+    Instant now = Instant.now();
+    int delta = (int) Duration.between(timestamp, now).toMinutes();
+    assertThat("Unexpected modification timestamp delta.", delta, is(0));
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldStoreLastModifiedDateAsGivenWhenTimestampNotNull(CredentialType credentialType) {
+    Instant now = Instant.now().minus(Duration.ofDays(1));
+    service.revoke(TIS_ID, credentialType, now);
+
+    ArgumentCaptor<ModificationMetadata> metadataCaptor = ArgumentCaptor.forClass(
+        ModificationMetadata.class);
+    verify(repository).save(metadataCaptor.capture());
+
+    ModificationMetadata metadata = metadataCaptor.getValue();
+    assertThat("Unexpected modification timestamp.", metadata.lastModifiedDate(), is(now));
   }
 }

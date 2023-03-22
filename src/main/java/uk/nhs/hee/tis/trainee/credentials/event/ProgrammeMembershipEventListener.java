@@ -51,7 +51,8 @@ public class ProgrammeMembershipEventListener {
   @SqsListener(value = "${application.aws.sqs.delete-programme-membership}",
       deletionPolicy = ON_SUCCESS)
   void deleteProgrammeMembership(DeleteEventDto deletedProgrammeMembership) {
-    log.debug("Received delete event for programme membership {}.", deletedProgrammeMembership);
-    revocationService.revoke(deletedProgrammeMembership.tisId(), CredentialType.TRAINING_PROGRAMME);
+    log.info("Received delete event for programme membership {}.", deletedProgrammeMembership);
+    revocationService.revoke(deletedProgrammeMembership.tisId(), CredentialType.TRAINING_PROGRAMME,
+        deletedProgrammeMembership.timestamp());
   }
 }

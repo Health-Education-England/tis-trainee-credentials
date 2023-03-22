@@ -56,7 +56,7 @@ public record ProgrammeMembershipCredentialDto(
 
   @Override
   public String getScope() {
-    return CredentialType.TRAINING_PROGRAMME.getGatewayScope();
+    return CredentialType.TRAINING_PROGRAMME.getIssuanceScope();
   }
 
   @Override

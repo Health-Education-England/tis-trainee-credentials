@@ -530,7 +530,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
         eq(String.class))).thenReturn(ResponseEntity.ok().build());
 
-    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+    service.revokeCredential(credentialType.getIssuanceScope(), CREDENTIAL_ID);
 
     HttpHeaders headers = requestCaptor.getValue().getHeaders();
     assertThat("Unexpected content type header.", headers.get(HttpHeaders.ACCEPT),
@@ -544,7 +544,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
         eq(String.class))).thenReturn(ResponseEntity.ok().build());
 
-    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+    service.revokeCredential(credentialType.getIssuanceScope(), CREDENTIAL_ID);
 
     HttpHeaders headers = requestCaptor.getValue().getHeaders();
     assertThat("Unexpected content type header.", headers.get(HttpHeaders.CONTENT_TYPE),
@@ -558,7 +558,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
         eq(String.class))).thenReturn(ResponseEntity.ok().build());
 
-    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+    service.revokeCredential(credentialType.getIssuanceScope(), CREDENTIAL_ID);
 
     var request = (HttpEntity<Map<String, String>>) requestCaptor.getValue();
     Map<String, String> requestBody = request.getBody();
@@ -572,7 +572,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
         eq(String.class))).thenReturn(ResponseEntity.ok().build());
 
-    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+    service.revokeCredential(credentialType.getIssuanceScope(), CREDENTIAL_ID);
 
     var request = (HttpEntity<Map<String, String>>) requestCaptor.getValue();
     Map<String, String> requestBody = request.getBody();
@@ -586,7 +586,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
         eq(String.class))).thenReturn(ResponseEntity.ok().build());
 
-    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+    service.revokeCredential(credentialType.getIssuanceScope(), CREDENTIAL_ID);
 
     var request = (HttpEntity<Map<String, String>>) requestCaptor.getValue();
     Map<String, String> requestBody = request.getBody();
@@ -600,12 +600,12 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
         eq(String.class))).thenReturn(ResponseEntity.ok().build());
 
-    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+    service.revokeCredential(credentialType.getIssuanceScope(), CREDENTIAL_ID);
 
     var request = (HttpEntity<Map<String, String>>) requestCaptor.getValue();
     Map<String, String> requestBody = request.getBody();
     assertThat("Unexpected client id.", requestBody.get("CredentialTemplateName"),
-        is(credentialType.getGatewayScope()));
+        is(credentialType.getIssuanceScope()));
   }
 
   @ParameterizedTest
@@ -615,7 +615,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
         eq(String.class))).thenReturn(ResponseEntity.ok().build());
 
-    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+    service.revokeCredential(credentialType.getIssuanceScope(), CREDENTIAL_ID);
 
     var request = (HttpEntity<Map<String, String>>) requestCaptor.getValue();
     Map<String, String> requestBody = request.getBody();
@@ -629,7 +629,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
         eq(String.class))).thenReturn(ResponseEntity.ok().build());
 
-    service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID);
+    service.revokeCredential(credentialType.getIssuanceScope(), CREDENTIAL_ID);
 
     var request = (HttpEntity<Map<String, String>>) requestCaptor.getValue();
     Map<String, String> requestBody = request.getBody();
@@ -645,7 +645,7 @@ class GatewayServiceTest {
         eq(String.class))).thenReturn(ResponseEntity.ok().build());
 
     assertDoesNotThrow(
-        () -> service.revokeCredential(credentialType.getGatewayScope(), CREDENTIAL_ID));
+        () -> service.revokeCredential(credentialType.getIssuanceScope(), CREDENTIAL_ID));
   }
 
   @ParameterizedTest
@@ -655,7 +655,7 @@ class GatewayServiceTest {
     when(restTemplate.postForEntity(eq(REVOCATION_ENDPOINT), requestCaptor.capture(),
         eq(String.class))).thenReturn(ResponseEntity.notFound().build());
 
-    String scope = credentialType.getGatewayScope();
+    String scope = credentialType.getIssuanceScope();
     ResponseStatusException exception = assertThrows(ResponseStatusException.class,
         () -> service.revokeCredential(scope, CREDENTIAL_ID));
     assertThat("Unexpected exception status code.", exception.getStatusCode(),
