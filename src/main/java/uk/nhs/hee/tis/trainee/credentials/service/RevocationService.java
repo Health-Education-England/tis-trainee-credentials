@@ -83,8 +83,7 @@ public class RevocationService {
         credentialType.getIssuanceScope(), tisId);
     if (metadata.isPresent()) {
       log.info("Issued credential {} found for TIS ID {}, revoking.", credentialType, tisId);
-      //TODO: might need to remove 'issue.' from gateway scope?
-      gatewayService.revokeCredential(credentialType.getIssuanceScope(),
+      gatewayService.revokeCredential(credentialType.getTemplateName(),
           metadata.get().getCredentialId());
       credentialMetadataRepository.deleteById(metadata.get().getCredentialId());
       log.info("Credential {} for TIS ID {} has been revoked.", credentialType, tisId);

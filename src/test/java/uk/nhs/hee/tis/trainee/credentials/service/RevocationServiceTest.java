@@ -111,7 +111,7 @@ class RevocationServiceTest {
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
         Optional.of(credentialMetadata));
     doThrow(ResponseStatusException.class).when(gatewayService)
-        .revokeCredential(scope, CREDENTIAL_ID);
+        .revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
 
     assertThrows(ResponseStatusException.class, () -> service.revoke(TIS_ID, credentialType, null));
 
@@ -133,7 +133,7 @@ class RevocationServiceTest {
 
     service.revoke(TIS_ID, credentialType, null);
 
-    verify(gatewayService).revokeCredential(scope, CREDENTIAL_ID);
+    verify(gatewayService).revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
     verify(credentialMetadataRepository).deleteById(CREDENTIAL_ID);
   }
 
