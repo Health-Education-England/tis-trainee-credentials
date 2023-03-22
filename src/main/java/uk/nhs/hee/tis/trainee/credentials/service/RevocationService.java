@@ -79,8 +79,9 @@ public class RevocationService {
     saveLastModifiedDate(tisId, credentialType, modifiedTimestamp);
 
     // Find this credential in the credential metadata repository. If it exists, then revoke it.
-    Optional<CredentialMetadata> metadata = credentialMetadataRepository.findByCredentialTypeAndTisId(
-        credentialType.getIssuanceScope(), tisId);
+    Optional<CredentialMetadata> metadata =
+        credentialMetadataRepository.findByCredentialTypeAndTisId(
+            credentialType.getIssuanceScope(), tisId);
     if (metadata.isPresent()) {
       log.info("Issued credential {} found for TIS ID {}, revoking.", credentialType, tisId);
       gatewayService.revokeCredential(credentialType.getTemplateName(),
