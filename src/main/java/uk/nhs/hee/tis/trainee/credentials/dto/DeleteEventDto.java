@@ -23,13 +23,15 @@ package uk.nhs.hee.tis.trainee.credentials.dto;
 
 import jakarta.validation.constraints.NotEmpty;
 import java.io.Serializable;
+import java.time.Instant;
 
 /**
  * A DTO representing data deletion events.
  *
- * @param tisId The id of the record.
+ * @param tisId     The id of the record.
+ * @param timestamp The timestamp of the deletion.
  */
 public record DeleteEventDto(
-    @NotEmpty String tisId) implements Serializable {
+    @NotEmpty String tisId, Instant timestamp) implements Serializable {
 
 }

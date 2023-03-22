@@ -21,9 +21,13 @@
 
 package uk.nhs.hee.tis.trainee.credentials.event;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,10 +50,29 @@ class PlacementEventListenerTest {
 
   @Test
   void shouldDeletePlacement() {
-    DeleteEventDto dto = new DeleteEventDto(TIS_ID);
+    DeleteEventDto dto = new DeleteEventDto(TIS_ID, null);
 
     listener.deletePlacement(dto);
 
-    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT);
+    verify(service).revoke(eq(TIS_ID), eq(CredentialType.TRAINING_PLACEMENT), any());
+  }
+
+  @Test
+  void shouldPassNullTimestampWhenDeletingPlacementWithNoTimestamp() {
+    DeleteEventDto dto = new DeleteEventDto(TIS_ID, null);
+
+    listener.deletePlacement(dto);
+
+    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT, null);
+  }
+
+  @Test
+  void shouldPassProvidedTimestampWhenDeletingPlacementWithTimestamp() {
+    Instant now = Instant.now().minus(Duration.ofDays(1));
+    DeleteEventDto dto = new DeleteEventDto(TIS_ID, now);
+
+    listener.deletePlacement(dto);
+
+    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT, now);
   }
 }

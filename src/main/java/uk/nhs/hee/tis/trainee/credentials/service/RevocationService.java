@@ -23,6 +23,8 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 
 import java.time.Instant;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
@@ -34,6 +36,7 @@ import uk.nhs.hee.tis.trainee.credentials.repository.ModificationMetadataReposit
 /**
  * A service providing credential revocation functionality.
  */
+@Slf4j
 @Service
 public class RevocationService {
 
@@ -67,20 +70,48 @@ public class RevocationService {
   /**
    * Revoke any issued credentials for matching credential type and ID.
    *
-   * @param tisId          The TIS ID of the modified object.
-   * @param credentialType The credential type of the modified object.
+   * @param tisId             The TIS ID of the modified object.
+   * @param credentialType    The credential type of the modified object.
+   * @param modifiedTimestamp The timestamp of the modification, will use current time if null.
    */
-  public void revoke(String tisId, CredentialType credentialType) {
-    //find this credential in the credential metadata repository
-    //if it exists, then revoke it
-    Optional<CredentialMetadata> metadata
-        = credentialMetadataRepository.findByCredentialTypeAndTisId(
+  public void revoke(String tisId, CredentialType credentialType,
+      @Nullable Instant modifiedTimestamp) {
+    saveLastModifiedDate(tisId, credentialType, modifiedTimestamp);
+
+    // Find this credential in the credential metadata repository. If it exists, then revoke it.
+    Optional<CredentialMetadata> metadata = credentialMetadataRepository.findByCredentialTypeAndTisId(
         credentialType.getIssuanceScope(), tisId);
     if (metadata.isPresent()) {
+      log.info("Issued credential {} found for TIS ID {}, revoking.", credentialType, tisId);
+      //TODO: might need to remove 'issue.' from gateway scope?
       gatewayService.revokeCredential(credentialType.getIssuanceScope(),
           metadata.get().getCredentialId());
-      //TODO: might need to remove 'issue.' from gateway scope?
       credentialMetadataRepository.deleteById(metadata.get().getCredentialId());
+      log.info("Credential {} for TIS ID {} has been revoked.", credentialType, tisId);
+    } else {
+      log.info("No {} credential issued for TIS ID {}, skipped revocation.", credentialType, tisId);
     }
+  }
+
+  /**
+   * Save the last modified date for the object being revoked.
+   *
+   * @param tisId             The TIS ID of the modified object.
+   * @param credentialType    The credential type of the modified object.
+   * @param modifiedTimestamp The timestamp of the modification, will use current time if null.
+   */
+  private void saveLastModifiedDate(String tisId, CredentialType credentialType,
+      @Nullable Instant modifiedTimestamp) {
+    // Default timestamp to current time if null.
+    if (modifiedTimestamp == null) {
+      log.debug("No modified timestamp provided for {} {}, defaulting to current timestamp.",
+          credentialType, tisId);
+      modifiedTimestamp = Instant.now();
+    }
+
+    ModificationMetadata metadata = new ModificationMetadata(tisId, credentialType,
+        modifiedTimestamp);
+    modificationMetadataRepository.save(metadata);
+    log.debug("Stored last modified time {} for {} {}.", modifiedTimestamp, credentialType, tisId);
   }
 }

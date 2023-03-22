@@ -21,9 +21,13 @@
 
 package uk.nhs.hee.tis.trainee.credentials.event;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,10 +50,29 @@ class ProgrammeMembershipEventListenerTest {
 
   @Test
   void shouldDeleteProgrammeMembership() {
-    DeleteEventDto dto = new DeleteEventDto(TIS_ID);
+    DeleteEventDto dto = new DeleteEventDto(TIS_ID, null);
 
     listener.deleteProgrammeMembership(dto);
 
-    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PROGRAMME);
+    verify(service).revoke(eq(TIS_ID), eq(CredentialType.TRAINING_PROGRAMME), any());
+  }
+
+  @Test
+  void shouldPassNullTimestampWhenDeletingProgrammeMembershipWithNoTimestamp() {
+    DeleteEventDto dto = new DeleteEventDto(TIS_ID, null);
+
+    listener.deleteProgrammeMembership(dto);
+
+    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PROGRAMME, null);
+  }
+
+  @Test
+  void shouldPassProvidedTimestampWhenDeletingProgrammeMembershipWithTimestamp() {
+    Instant now = Instant.now().minus(Duration.ofDays(1));
+    DeleteEventDto dto = new DeleteEventDto(TIS_ID, now);
+
+    listener.deleteProgrammeMembership(dto);
+
+    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PROGRAMME, now);
   }
 }
