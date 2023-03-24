@@ -1,6 +1,7 @@
 # TIS Trainee Credentials
 
 ## About
+
 This service issues and verifies trainee digital credentials.
 
 ## Developing
@@ -17,6 +18,7 @@ gradlew bootRun
 
 | Name                              | Description                                                                                                             | Default     |
 |-----------------------------------|-------------------------------------------------------------------------------------------------------------------------|-------------|
+| AWS_XRAY_DAEMON_ADDRESS | The AWS XRay daemon host. | |
 | DB_HOST                           | The MongoDB host to connect to.                                                                                         | localhost   |
 | DB_PORT                           | The port to connect to MongoDB on.                                                                                      | 27017       |
 | DB_NAME                           | The name of the MongoDB database.                                                                                       | credentials |
@@ -38,12 +40,14 @@ gradlew bootRun
 
 The Gradle `test` task can be used to run automated tests and produce coverage
 reports.
+
 ```shell
 gradlew test
 ```
 
 The Gradle `check` lifecycle task can be used to run automated tests and also
 verify formatting conforms to the code style guidelines.
+
 ```shell
 gradlew check
 ```
@@ -55,7 +59,9 @@ gradlew bootBuildImage
 ```
 
 ## Versioning
+
 This project uses [Semantic Versioning](semver.org).
 
 ## License
+
 This project is license under [The MIT License (MIT)](LICENSE).

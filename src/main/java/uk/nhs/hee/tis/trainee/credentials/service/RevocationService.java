@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.service;
 
+import com.amazonaws.xray.spring.aop.XRayEnabled;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +40,7 @@ import uk.nhs.hee.tis.trainee.credentials.repository.ModificationMetadataReposit
  */
 @Slf4j
 @Service
+@XRayEnabled
 public class RevocationService {
 
   private final CredentialMetadataRepository credentialMetadataRepository;

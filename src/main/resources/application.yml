@@ -16,6 +16,7 @@ application:
       verification-request: ${REDIS_TTL_VERIFICATION_REQUEST:300}
       verified-session: ${REDIS_TTL_VERIFIED_SESSION:600}
       credential-metadata: ${REDIS_TTL_ISSUING_FLOW:600}
+  environment: ${ENVIRONMENT:local}
   gateway:
     host: https://${GATEWAY_HOST}
     organisation-id: ${GATEWAY_ORGANISATION_ID}
@@ -41,9 +42,15 @@ application:
   signature:
     secret-key: ${SIGNATURE_SECRET_KEY}
 
+com:
+  amazonaws:
+    xray:
+      emitters:
+        daemon-address: ${AWS_XRAY_DAEMON_ADDRESS:}
+
 sentry:
   dsn: ${SENTRY_DSN:}
-  environment: ${SENTRY_ENVIRONMENT:}
+  environment: ${application.environment}
 
 spring:
   data:

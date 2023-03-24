@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.api;
 
+import com.amazonaws.xray.spring.aop.XRayEnabled;
 import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,7 @@ import uk.nhs.hee.tis.trainee.credentials.service.VerificationService;
 @RestController
 @RequestMapping("/api/verify")
 @Validated
+@XRayEnabled
 public class VerifyResource {
 
   private final VerificationService service;

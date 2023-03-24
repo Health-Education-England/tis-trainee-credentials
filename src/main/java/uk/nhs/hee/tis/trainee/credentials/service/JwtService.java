@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.service;
 
+import com.amazonaws.xray.spring.aop.XRayEnabled;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
@@ -41,6 +42,7 @@ import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
  */
 @Slf4j
 @Service
+@XRayEnabled
 public class JwtService {
 
   private final ObjectMapper mapper;
