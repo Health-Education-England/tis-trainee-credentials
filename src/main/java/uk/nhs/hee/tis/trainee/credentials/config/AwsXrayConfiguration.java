@@ -28,6 +28,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Configure the AWS Xray filter with the segment name set to service and environment.
+ */
 @Configuration
 @ConditionalOnExpression("!T(org.springframework.util.StringUtils)"
     + ".isEmpty('${com.amazonaws.xray.emitters.daemon-address}')")

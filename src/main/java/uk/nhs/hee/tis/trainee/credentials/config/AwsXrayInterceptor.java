@@ -27,6 +27,9 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
+/**
+ * Extend the Xray interceptor with instructions to wrap annotated Resource and Service beans.
+ */
 @Aspect
 @Component
 @ConditionalOnExpression("!T(org.springframework.util.StringUtils)"
