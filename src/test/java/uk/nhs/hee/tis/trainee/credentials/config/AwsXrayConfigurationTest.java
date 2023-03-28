@@ -23,25 +23,55 @@ package uk.nhs.hee.tis.trainee.credentials.config;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 import com.amazonaws.xray.javax.servlet.AWSXRayServletFilter;
-import javax.servlet.Filter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 class AwsXrayConfigurationTest {
 
-  private AwsXrayConfiguration configuration;
+  private static final String DAEMON_PROPERTY = "com.amazonaws.xray.emitters.daemon-address";
+
+  private ApplicationContextRunner runner;
 
   @BeforeEach
   void setUp() {
-    configuration = new AwsXrayConfiguration();
+    runner = new ApplicationContextRunner()
+        .withUserConfiguration(AwsXrayConfiguration.class);
   }
 
   @Test
-  void shouldCreateInstanceOfAwsXrayServletFilter() {
-    Filter filter = configuration.tracingFilter("testEnvironment");
+  void shouldDisableConfigIfDaemonAddressNotSet() {
+    runner
+        .withPropertyValues(DAEMON_PROPERTY + "=")
+        .run(context -> assertThat("Unexpected bean presence.",
+            context.containsBean("tracingFilter"), is(false)));
+  }
 
-    assertThat("Unexpected filter type.", filter, instanceOf(AWSXRayServletFilter.class));
+  @Test
+  void shouldEnableConfigIfDaemonAddressSet() {
+    runner
+        .withPropertyValues(DAEMON_PROPERTY + "=https://localhost:1234")
+        .run(context -> assertAll(
+            () -> assertThat("Unexpected bean presence.",
+                context.containsBean("awsXrayConfiguration"), is(true)),
+            () -> assertThat("Unexpected bean type.", context.getBean("awsXrayConfiguration"),
+                instanceOf(AwsXrayConfiguration.class))
+        ));
+  }
+
+  @Test
+  void shouldRegisterAwsXrayTracingFilterWhenConfigEnabled() {
+    runner
+        .withPropertyValues(DAEMON_PROPERTY + "=https://localhost:1234")
+        .run(context -> assertAll(
+            () -> assertThat("Unexpected bean presence.", context.containsBean("tracingFilter"),
+                is(true)),
+            () -> assertThat("Unexpected bean type.", context.getBean("tracingFilter"),
+                instanceOf(AWSXRayServletFilter.class))
+        ));
   }
 }

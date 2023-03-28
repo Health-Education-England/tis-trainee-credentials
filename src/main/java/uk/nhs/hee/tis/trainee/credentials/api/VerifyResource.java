@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.api;
 
+import com.amazonaws.xray.AWSXRay;
 import com.amazonaws.xray.spring.aop.XRayEnabled;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -60,10 +61,12 @@ public class VerifyResource {
   ResponseEntity<String> verifyIdentity(@RequestHeader(HttpHeaders.AUTHORIZATION) String authToken,
       @RequestParam(required = false) String state,
       @Valid @RequestBody IdentityDataDto dto) {
+    AWSXRay.beginSegment("verify-identity"); //TODO figure out how to get rid of this
     log.info("Received request to start identity verification.");
     URI uri = service.startIdentityVerification(authToken, dto, state);
 
     log.info("Identity verification successfully started.");
+    AWSXRay.endSegment();
     return ResponseEntity.created(uri).body(uri.toString());
   }
 
