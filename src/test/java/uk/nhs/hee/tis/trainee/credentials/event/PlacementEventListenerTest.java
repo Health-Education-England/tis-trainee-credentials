@@ -30,6 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.dto.DeleteEventDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.UpdateEventDto;
 import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
 
 class PlacementEventListenerTest {
@@ -52,5 +53,33 @@ class PlacementEventListenerTest {
     listener.deletePlacement(dto);
 
     verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT);
+  }
+
+  @Test
+  void shouldUpdatePlacement() {
+    UpdateEventDto dto = new UpdateEventDto(TIS_ID, null, null);
+
+    listener.updatePlacement(dto);
+
+    verify(service).revoke(eq(TIS_ID), eq(CredentialType.TRAINING_PLACEMENT), any());
+  }
+
+  @Test
+  void shouldPassNullTimestampWhenUpdatingPlacementWithNoTimestamp() {
+    UpdateEventDto dto = new UpdateEventDto(TIS_ID, null, null);
+
+    listener.updatePlacement(dto);
+
+    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT, null);
+  }
+
+  @Test
+  void shouldPassProvidedTimestampWhenUpdatingPlacementWithTimestamp() {
+    Instant now = Instant.now().minus(Duration.ofDays(1));
+    UpdateEventDto dto = new UpdateEventDto(TIS_ID, now, null);
+
+    listener.updatePlacement(dto);
+
+    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT, now);
   }
 }

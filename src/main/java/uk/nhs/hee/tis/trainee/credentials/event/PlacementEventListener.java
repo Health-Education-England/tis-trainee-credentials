@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.dto.DeleteEventDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.UpdateEventDto;
 import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
 
 /**
@@ -52,5 +53,19 @@ public class PlacementEventListener {
   void deletePlacement(DeleteEventDto deletedPlacement) {
     log.info("Received delete event for placement {}.", deletedPlacement);
     revocationService.revoke(deletedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT);
+  }
+
+  /**
+   * Listener for update events.
+   *
+   * @param updatedPlacement The updated placement.
+   */
+  @SqsListener(value = "${application.aws.sqs.update-placement}", deletionPolicy = ON_SUCCESS)
+  void updatePlacement(UpdateEventDto updatedPlacement) {
+    log.info("Received update event for placement {}.", updatedPlacement);
+    // TODO be selective with revoking credentials depending on the actual data changed.
+    // For now, we simply revoke
+    revocationService.revoke(updatedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT,
+        updatedPlacement.timestamp());
   }
 }
