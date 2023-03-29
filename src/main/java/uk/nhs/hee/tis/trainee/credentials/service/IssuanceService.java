@@ -73,13 +73,13 @@ public class IssuanceService {
    * Start the issuance of a credential.
    *
    * @param authToken   The request's authorization token.
-   * @param dto         The user's identity data.
+   * @param dto         The user's credential data.
    * @param clientState The state sent by client when making the request to start verification.
    * @return The URI to continue the issuing via credential gateway, or empty if issuing failed.
    */
   public Optional<URI> startCredentialIssuance(String authToken, CredentialDto dto,
       @Nullable String clientState) {
-    // Cache the provided identity data against the nonce.
+    // Cache the provided credential data against the nonce.
     UUID nonce = UUID.randomUUID();
     cachingDelegate.cacheCredentialData(nonce, dto);
 
@@ -91,6 +91,9 @@ public class IssuanceService {
     Claims authClaims = jwtService.getClaims(authToken);
     String traineeId = authClaims.get("custom:tisId", String.class);
     cachingDelegate.cacheTraineeIdentifier(internalState, traineeId);
+
+    // Cache the current timestamp as the start of the issuance.
+    cachingDelegate.cacheIssuanceTimestamp(internalState, Instant.now());
 
     return gatewayService.getCredentialUri(dto, nonce.toString(), internalState.toString());
   }

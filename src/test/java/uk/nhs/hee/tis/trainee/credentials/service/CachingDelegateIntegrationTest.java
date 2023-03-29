@@ -29,6 +29,7 @@ import io.awspring.cloud.autoconfigure.messaging.SqsAutoConfiguration;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import java.security.PublicKey;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
@@ -178,6 +179,48 @@ class CachingDelegateIntegrationTest {
     delegate.getCredentialData(key);
 
     Optional<CredentialDto> cachedOptional = delegate.getCredentialData(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
+  }
+
+  @Test
+  void shouldReturnEmptyIssuanceTimestampWhenNotCached() {
+    UUID key = UUID.randomUUID();
+
+    Optional<Instant> cachedOptional = delegate.getIssuanceTimestamp(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
+  }
+
+  @Test
+  void shouldReturnCachedIssuanceTimestampAfterCaching() {
+    UUID key = UUID.randomUUID();
+
+    Instant timestamp = Instant.now();
+    Instant cachedData = delegate.cacheIssuanceTimestamp(key, timestamp);
+    assertThat("Unexpected cached value.", cachedData, is(timestamp));
+  }
+
+  @Test
+  void shouldGetCachedIssuanceTimestampWhenCached() {
+    UUID key = UUID.randomUUID();
+
+    Instant timestamp = Instant.now();
+    delegate.cacheIssuanceTimestamp(key, timestamp);
+
+    Optional<Instant> cachedOptional = delegate.getIssuanceTimestamp(key);
+    assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(timestamp)));
+  }
+
+  @Test
+  void shouldRemoveIssuanceTimestampWhenRetrieved() {
+    UUID key = UUID.randomUUID();
+
+    Instant timestamp = Instant.now();
+    delegate.cacheIssuanceTimestamp(key, timestamp);
+
+    // Ignore this result, the cached value should be evicted.
+    delegate.getIssuanceTimestamp(key);
+
+    Optional<Instant> cachedOptional = delegate.getIssuanceTimestamp(key);
     assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
   }
 

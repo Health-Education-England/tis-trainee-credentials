@@ -35,6 +35,7 @@ import static org.mockito.Mockito.when;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.impl.DefaultClaims;
 import java.net.URI;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -163,6 +164,30 @@ class IssuanceServiceTest {
     UUID cacheKey = cacheKeyCaptor.getValue();
     String requestState = requestStateCaptor.getValue();
     assertThat("Unexpected state cache key.", cacheKey.toString(), is(requestState));
+  }
+
+  @Test
+  void shouldCacheIssuanceTimestampAgainstInternalStateWhenStartingIssuance() {
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims());
+
+    issuanceService.startCredentialIssuance(AUTH_TOKEN, null, null);
+
+    ArgumentCaptor<UUID> cacheKeyCaptor = ArgumentCaptor.forClass(UUID.class);
+    ArgumentCaptor<Instant> timestampCaptor = ArgumentCaptor.forClass(Instant.class);
+    verify(cachingDelegate).cacheIssuanceTimestamp(cacheKeyCaptor.capture(),
+        timestampCaptor.capture());
+
+    ArgumentCaptor<String> requestStateCaptor = ArgumentCaptor.forClass(String.class);
+    verify(gatewayService).getCredentialUri(any(), any(), requestStateCaptor.capture());
+
+    UUID cacheKey = cacheKeyCaptor.getValue();
+    String requestState = requestStateCaptor.getValue();
+    assertThat("Unexpected state cache key.", cacheKey.toString(), is(requestState));
+
+    Instant timestamp = timestampCaptor.getValue();
+    Instant now = Instant.now();
+    int delta = (int) Duration.between(timestamp, now).toMinutes();
+    assertThat("Unexpected issuance timestamp delta.", delta, is(0));
   }
 
   @Test
