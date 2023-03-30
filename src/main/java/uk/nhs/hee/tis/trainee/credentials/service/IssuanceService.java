@@ -185,24 +185,19 @@ public class IssuanceService {
 
     String tisId = credentialDto.getTisId();
     CredentialType credentialType = credentialDto.getCredentialType();
-    Optional<Instant> lastModified = revocationService.getLastModifiedDate(tisId, credentialType);
+    Optional<Instant> issuanceTimestamp = cachingDelegate.getIssuanceTimestamp(internalState);
 
-    if (lastModified.isPresent()) {
-      Optional<Instant> issuanceTimestamp = cachingDelegate.getIssuanceTimestamp(internalState);
+    // If unknown issuance timestamp then force staleness if modification exists.
+    boolean revoked = revocationService.revokeIfStale(tisId, credentialType,
+        issuanceTimestamp.orElse(Instant.MIN));
 
-      if (issuanceTimestamp.isPresent()) {
-
-        if (lastModified.get().isBefore(issuanceTimestamp.get())) {
-          error = new Error("stale_data",
-              "The issued credential data was stale and has been revoked");
-        }
-      } else {
+    if (revoked) {
+      if (issuanceTimestamp.isEmpty()) {
         error = new Error("unknown_data_freshness",
             "The issued credential data could not be verified and has been revoked");
-      }
-
-      if (error != null) {
-        revocationService.revoke(tisId, credentialType, lastModified.orElse(null));
+      } else {
+        error = new Error("stale_data",
+            "The issued credential data was stale and has been revoked");
       }
     }
 

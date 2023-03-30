@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -342,7 +341,7 @@ class IssuanceServiceTest {
 
   @ParameterizedTest
   @MethodSource("credentialMethodSource")
-  void shouldNotRevokeIssuedCredentialWhenDataNeverChanged(CredentialDto credentialData) {
+  void shouldReturnErrorWhenNewCredentialRevokedWithUnknownIssuance(CredentialDto credentialData) {
     Claims claimsIssued = new DefaultClaims();
     claimsIssued.put("nonce", UUID.randomUUID().toString());
     claimsIssued.put("SerialNumber", CREDENTIAL_ID);
@@ -355,56 +354,8 @@ class IssuanceServiceTest {
 
     when(cachingDelegate.getIssuanceTimestamp(UUID.fromString(STATE_VALUE))).thenReturn(
         Optional.empty());
-    when(revocationService.getLastModifiedDate(TIS_ID,
-        credentialData.getCredentialType())).thenReturn(Optional.empty());
-
-    URI uri = issuanceService.completeCredentialVerification(CODE_VALUE, STATE_VALUE, null, null);
-
-    assertThat("Unexpected uri query.", uri.getQuery(), nullValue());
-    verify(revocationService, never()).revoke(any(), any(), any());
-  }
-
-  @ParameterizedTest
-  @MethodSource("credentialMethodSource")
-  void shouldNotRevokeIssuedCredentialWhenDataNotChangedWhileIssuing(CredentialDto credentialData) {
-    Claims claimsIssued = new DefaultClaims();
-    claimsIssued.put("nonce", UUID.randomUUID().toString());
-    claimsIssued.put("SerialNumber", CREDENTIAL_ID);
-    claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
-    claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
-
-    when(gatewayService.getTokenClaims(any(), any(), any(), any())).thenReturn(claimsIssued);
-    when(cachingDelegate.getCredentialData(any())).thenReturn(Optional.of(credentialData));
-    when(cachingDelegate.getTraineeIdentifier(any())).thenReturn(Optional.of(TIS_ID));
-
-    when(cachingDelegate.getIssuanceTimestamp(UUID.fromString(STATE_VALUE))).thenReturn(
-        Optional.of(Instant.MIN));
-    when(revocationService.getLastModifiedDate(TIS_ID,
-        credentialData.getCredentialType())).thenReturn(Optional.of(Instant.MAX));
-
-    URI uri = issuanceService.completeCredentialVerification(CODE_VALUE, STATE_VALUE, null, null);
-
-    assertThat("Unexpected uri query.", uri.getQuery(), nullValue());
-    verify(revocationService, never()).revoke(any(), any(), any());
-  }
-
-  @ParameterizedTest
-  @MethodSource("credentialMethodSource")
-  void shouldRevokeIssuedCredentialWhenIssuanceTimestampNotFound(CredentialDto credentialData) {
-    Claims claimsIssued = new DefaultClaims();
-    claimsIssued.put("nonce", UUID.randomUUID().toString());
-    claimsIssued.put("SerialNumber", CREDENTIAL_ID);
-    claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
-    claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
-
-    when(gatewayService.getTokenClaims(any(), any(), any(), any())).thenReturn(claimsIssued);
-    when(cachingDelegate.getCredentialData(any())).thenReturn(Optional.of(credentialData));
-    when(cachingDelegate.getTraineeIdentifier(any())).thenReturn(Optional.of(TIS_ID));
-
-    when(cachingDelegate.getIssuanceTimestamp(UUID.fromString(STATE_VALUE))).thenReturn(
-        Optional.empty());
-    when(revocationService.getLastModifiedDate(TIS_ID,
-        credentialData.getCredentialType())).thenReturn(Optional.of(Instant.MIN));
+    when(revocationService.revokeIfStale(TIS_ID, credentialData.getCredentialType(),
+        Instant.MIN)).thenReturn(true);
 
     URI uri = issuanceService.completeCredentialVerification(CODE_VALUE, STATE_VALUE, null, null);
 
@@ -413,13 +364,11 @@ class IssuanceServiceTest {
     assertThat("Unexpected error.", queryParams.get("error"), is("unknown_data_freshness"));
     assertThat("Unexpected error description.", queryParams.get("error_description"),
         is("The issued credential data could not be verified and has been revoked"));
-
-    verify(revocationService).revoke(any(), any(), any());
   }
 
   @ParameterizedTest
   @MethodSource("credentialMethodSource")
-  void shouldRevokeIssuedCredentialWhenDataChangedWhileIssuing(CredentialDto credentialData) {
+  void shouldReturnErrorWhenNewCredentialRevokedWithKnownIssuance(CredentialDto credentialData) {
     Claims claimsIssued = new DefaultClaims();
     claimsIssued.put("nonce", UUID.randomUUID().toString());
     claimsIssued.put("SerialNumber", CREDENTIAL_ID);
@@ -430,10 +379,11 @@ class IssuanceServiceTest {
     when(cachingDelegate.getCredentialData(any())).thenReturn(Optional.of(credentialData));
     when(cachingDelegate.getTraineeIdentifier(any())).thenReturn(Optional.of(TIS_ID));
 
+    Instant now = Instant.now();
     when(cachingDelegate.getIssuanceTimestamp(UUID.fromString(STATE_VALUE))).thenReturn(
-        Optional.of(Instant.MAX));
-    when(revocationService.getLastModifiedDate(TIS_ID,
-        credentialData.getCredentialType())).thenReturn(Optional.of(Instant.MIN));
+        Optional.of(now));
+    when(revocationService.revokeIfStale(TIS_ID, credentialData.getCredentialType(),
+        now)).thenReturn(true);
 
     URI uri = issuanceService.completeCredentialVerification(CODE_VALUE, STATE_VALUE, null, null);
 
@@ -442,8 +392,30 @@ class IssuanceServiceTest {
     assertThat("Unexpected error.", queryParams.get("error"), is("stale_data"));
     assertThat("Unexpected error description.", queryParams.get("error_description"),
         is("The issued credential data was stale and has been revoked"));
+  }
 
-    verify(revocationService).revoke(any(), any(), any());
+  @ParameterizedTest
+  @MethodSource("credentialMethodSource")
+  void shouldNotReturnErrorWhenNewCredentialNotRevoked(CredentialDto credentialData) {
+    Claims claimsIssued = new DefaultClaims();
+    claimsIssued.put("nonce", UUID.randomUUID().toString());
+    claimsIssued.put("SerialNumber", CREDENTIAL_ID);
+    claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
+    claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
+
+    when(gatewayService.getTokenClaims(any(), any(), any(), any())).thenReturn(claimsIssued);
+    when(cachingDelegate.getCredentialData(any())).thenReturn(Optional.of(credentialData));
+    when(cachingDelegate.getTraineeIdentifier(any())).thenReturn(Optional.of(TIS_ID));
+
+    Instant now = Instant.now();
+    when(cachingDelegate.getIssuanceTimestamp(UUID.fromString(STATE_VALUE))).thenReturn(
+        Optional.of(now));
+    when(revocationService.revokeIfStale(TIS_ID, credentialData.getCredentialType(),
+        now)).thenReturn(false);
+
+    URI uri = issuanceService.completeCredentialVerification(CODE_VALUE, STATE_VALUE, null, null);
+
+    assertThat("Unexpected uri query.", uri.getQuery(), nullValue());
   }
 
   /**

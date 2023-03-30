@@ -139,6 +139,69 @@ class RevocationServiceTest {
 
   @ParameterizedTest
   @EnumSource(CredentialType.class)
+  void shouldRevokeStaleWhenModifiedAfterBaseline(CredentialType credentialType) {
+    Instant baseline = Instant.now();
+    Instant modified = baseline.plus(Duration.ofDays(1));
+
+    ModificationMetadata metadata = new ModificationMetadata(null, modified);
+    when(repository.findById(any())).thenReturn(Optional.of(metadata));
+
+    when(credentialMetadataRepository.findByCredentialTypeAndTisId(any(), any())).thenReturn(
+        Optional.of(new CredentialMetadata()));
+
+    boolean revoked = service.revokeIfStale(TIS_ID, credentialType, baseline);
+
+    assertThat("Unexpected revoked flag.", revoked, is(true));
+    verify(gatewayService).revokeCredential(any(), any());
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldNotRevokeStaleWhenModifiedBeforeBaseline(CredentialType credentialType) {
+    Instant baseline = Instant.now();
+    Instant modified = baseline.minus(Duration.ofDays(1));
+
+    ModificationMetadata metadata = new ModificationMetadata(null, modified);
+    when(repository.findById(any())).thenReturn(Optional.of(metadata));
+
+    boolean revoked = service.revokeIfStale(TIS_ID, credentialType, baseline);
+
+    assertThat("Unexpected revoked flag.", revoked, is(false));
+    verifyNoInteractions(gatewayService);
+    verifyNoInteractions(credentialMetadataRepository);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldNotRevokeStaleWhenModifiedEqualsBaseline(CredentialType credentialType) {
+    Instant baseline = Instant.now();
+
+    ModificationMetadata metadata = new ModificationMetadata(null, baseline);
+    when(repository.findById(any())).thenReturn(Optional.of(metadata));
+
+    boolean revoked = service.revokeIfStale(TIS_ID, credentialType, baseline);
+
+    assertThat("Unexpected revoked flag.", revoked, is(false));
+    verifyNoInteractions(gatewayService);
+    verifyNoInteractions(credentialMetadataRepository);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldNotRevokeStaleWhenNotModified(CredentialType credentialType) {
+    Instant baseline = Instant.now();
+
+    when(repository.findById(any())).thenReturn(Optional.empty());
+
+    boolean revoked = service.revokeIfStale(TIS_ID, credentialType, baseline);
+
+    assertThat("Unexpected revoked flag.", revoked, is(false));
+    verifyNoInteractions(gatewayService);
+    verifyNoInteractions(credentialMetadataRepository);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
   void shouldStoreLastModifiedDateWhenRevoking(CredentialType credentialType) {
     service.revoke(TIS_ID, credentialType, null);
 

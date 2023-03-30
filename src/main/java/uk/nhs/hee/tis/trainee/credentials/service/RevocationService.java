@@ -77,7 +77,16 @@ public class RevocationService {
   public void revoke(String tisId, CredentialType credentialType,
       @Nullable Instant modifiedTimestamp) {
     saveLastModifiedDate(tisId, credentialType, modifiedTimestamp);
+    revoke(tisId, credentialType);
+  }
 
+  /**
+   * Revoke any issued credentials for matching credential type and ID.
+   *
+   * @param tisId          The TIS ID of the modified object.
+   * @param credentialType The credential type of the modified object.
+   */
+  private void revoke(String tisId, CredentialType credentialType) {
     // Find this credential in the credential metadata repository. If it exists, then revoke it.
     Optional<CredentialMetadata> metadata =
         credentialMetadataRepository.findByCredentialTypeAndTisId(
@@ -91,6 +100,25 @@ public class RevocationService {
     } else {
       log.info("No {} credential issued for TIS ID {}, skipped revocation.", credentialType, tisId);
     }
+  }
+
+  /**
+   * Revoke a credential if it's data is stale.
+   *
+   * @param tisId          The TIS ID of the modified object.
+   * @param credentialType The credential type of the modified object.
+   * @param since          The timestamp to check for modifications since.
+   * @return Whether the data was stale and revoked.
+   */
+  public boolean revokeIfStale(String tisId, CredentialType credentialType, Instant since) {
+    Optional<Instant> lastModifiedDate = getLastModifiedDate(tisId, credentialType);
+
+    if (lastModifiedDate.isPresent() && lastModifiedDate.get().isAfter(since)) {
+      revoke(tisId, credentialType);
+      return true;
+    }
+
+    return false;
   }
 
   /**
