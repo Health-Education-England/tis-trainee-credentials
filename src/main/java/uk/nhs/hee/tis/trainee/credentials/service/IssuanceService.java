@@ -129,7 +129,8 @@ public class IssuanceService {
         CredentialDto credentialData = optionalCredentialData.get();
         IssueResponseDto issueResponseDto = fromIssuedResponse(claims, traineeId.get());
 
-        Optional<Error> staleDataError = revokeIfCredentialStale(stateUuid, credentialData);
+        Optional<Error> staleDataError = revokeIfCredentialStale(issueResponseDto.credentialId(),
+            credentialData, stateUuid);
         if (staleDataError.isPresent()) {
           error = staleDataError.get().code();
           errorDescription = staleDataError.get().description();
@@ -176,11 +177,13 @@ public class IssuanceService {
   /**
    * Revoke the newly issued credential if the data used is stale.
    *
-   * @param internalState The issue request state.
+   * @param credentialId  The credential serial number.
    * @param credentialDto The issued credential data.
+   * @param internalState The issue request state.
    * @return Associated errors if the data was stale, else empty.
    */
-  private Optional<Error> revokeIfCredentialStale(UUID internalState, CredentialDto credentialDto) {
+  private Optional<Error> revokeIfCredentialStale(String credentialId, CredentialDto credentialDto,
+      UUID internalState) {
     Error error = null;
 
     String tisId = credentialDto.getTisId();
@@ -188,7 +191,7 @@ public class IssuanceService {
     Optional<Instant> issuanceTimestamp = cachingDelegate.getIssuanceTimestamp(internalState);
 
     // If unknown issuance timestamp then force staleness if modification exists.
-    boolean revoked = revocationService.revokeIfStale(tisId, credentialType,
+    boolean revoked = revocationService.revokeIfStale(credentialId, tisId, credentialType,
         issuanceTimestamp.orElse(Instant.MIN));
 
     if (revoked) {

@@ -354,8 +354,9 @@ class IssuanceServiceTest {
 
     when(cachingDelegate.getIssuanceTimestamp(UUID.fromString(STATE_VALUE))).thenReturn(
         Optional.empty());
-    when(revocationService.revokeIfStale(TIS_ID, credentialData.getCredentialType(),
-        Instant.MIN)).thenReturn(true);
+    when(revocationService.revokeIfStale(CREDENTIAL_ID, TIS_ID, credentialData.getCredentialType(),
+        Instant.MIN)).thenReturn(
+        true);
 
     URI uri = issuanceService.completeCredentialVerification(CODE_VALUE, STATE_VALUE, null, null);
 
@@ -382,7 +383,7 @@ class IssuanceServiceTest {
     Instant now = Instant.now();
     when(cachingDelegate.getIssuanceTimestamp(UUID.fromString(STATE_VALUE))).thenReturn(
         Optional.of(now));
-    when(revocationService.revokeIfStale(TIS_ID, credentialData.getCredentialType(),
+    when(revocationService.revokeIfStale(CREDENTIAL_ID, TIS_ID, credentialData.getCredentialType(),
         now)).thenReturn(true);
 
     URI uri = issuanceService.completeCredentialVerification(CODE_VALUE, STATE_VALUE, null, null);
@@ -410,7 +411,7 @@ class IssuanceServiceTest {
     Instant now = Instant.now();
     when(cachingDelegate.getIssuanceTimestamp(UUID.fromString(STATE_VALUE))).thenReturn(
         Optional.of(now));
-    when(revocationService.revokeIfStale(TIS_ID, credentialData.getCredentialType(),
+    when(revocationService.revokeIfStale(CREDENTIAL_ID, TIS_ID, credentialData.getCredentialType(),
         now)).thenReturn(false);
 
     URI uri = issuanceService.completeCredentialVerification(CODE_VALUE, STATE_VALUE, null, null);

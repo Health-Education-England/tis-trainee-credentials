@@ -149,7 +149,7 @@ class RevocationServiceTest {
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(any(), any())).thenReturn(
         Optional.of(new CredentialMetadata()));
 
-    boolean revoked = service.revokeIfStale(TIS_ID, credentialType, baseline);
+    boolean revoked = service.revokeIfStale(CREDENTIAL_ID, TIS_ID, credentialType, baseline);
 
     assertThat("Unexpected revoked flag.", revoked, is(true));
     verify(gatewayService).revokeCredential(any(), any());
@@ -164,7 +164,7 @@ class RevocationServiceTest {
     ModificationMetadata metadata = new ModificationMetadata(null, modified);
     when(repository.findById(any())).thenReturn(Optional.of(metadata));
 
-    boolean revoked = service.revokeIfStale(TIS_ID, credentialType, baseline);
+    boolean revoked = service.revokeIfStale(CREDENTIAL_ID, TIS_ID, credentialType, baseline);
 
     assertThat("Unexpected revoked flag.", revoked, is(false));
     verifyNoInteractions(gatewayService);
@@ -179,7 +179,7 @@ class RevocationServiceTest {
     ModificationMetadata metadata = new ModificationMetadata(null, baseline);
     when(repository.findById(any())).thenReturn(Optional.of(metadata));
 
-    boolean revoked = service.revokeIfStale(TIS_ID, credentialType, baseline);
+    boolean revoked = service.revokeIfStale(CREDENTIAL_ID, TIS_ID, credentialType, baseline);
 
     assertThat("Unexpected revoked flag.", revoked, is(false));
     verifyNoInteractions(gatewayService);
@@ -193,7 +193,7 @@ class RevocationServiceTest {
 
     when(repository.findById(any())).thenReturn(Optional.empty());
 
-    boolean revoked = service.revokeIfStale(TIS_ID, credentialType, baseline);
+    boolean revoked = service.revokeIfStale(CREDENTIAL_ID, TIS_ID, credentialType, baseline);
 
     assertThat("Unexpected revoked flag.", revoked, is(false));
     verifyNoInteractions(gatewayService);

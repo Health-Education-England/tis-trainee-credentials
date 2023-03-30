@@ -105,16 +105,19 @@ public class RevocationService {
   /**
    * Revoke a credential if it's data is stale.
    *
+   * @param credentialId   The credential serial number.
    * @param tisId          The TIS ID of the modified object.
    * @param credentialType The credential type of the modified object.
    * @param since          The timestamp to check for modifications since.
    * @return Whether the data was stale and revoked.
    */
-  public boolean revokeIfStale(String tisId, CredentialType credentialType, Instant since) {
+  public boolean revokeIfStale(String credentialId, String tisId, CredentialType credentialType,
+      Instant since) {
     Optional<Instant> lastModifiedDate = getLastModifiedDate(tisId, credentialType);
 
     if (lastModifiedDate.isPresent() && lastModifiedDate.get().isAfter(since)) {
-      revoke(tisId, credentialType);
+      log.info("Issued credential {} found for TIS ID {}, revoking.", credentialType, tisId);
+      gatewayService.revokeCredential(credentialType.getTemplateName(), credentialId);
       return true;
     }
 
