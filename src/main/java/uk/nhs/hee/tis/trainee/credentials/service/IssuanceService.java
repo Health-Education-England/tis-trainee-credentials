@@ -184,6 +184,7 @@ public class IssuanceService {
    */
   private Optional<Error> revokeIfCredentialStale(String credentialId, CredentialDto credentialDto,
       UUID internalState) {
+    log.info("Checking whether issued credential {} needs to be revoked.", credentialId);
     Error error = null;
 
     String tisId = credentialDto.getTisId();
@@ -196,9 +197,13 @@ public class IssuanceService {
 
     if (revoked) {
       if (issuanceTimestamp.isEmpty()) {
+        log.info("Unknown data freshness for credential {} for {} with ID {}", credentialId, tisId,
+            credentialType);
         error = new Error("unknown_data_freshness",
             "The issued credential data could not be verified and has been revoked");
       } else {
+        log.info("Stale data found for credential {} for {} with ID {}", credentialId, tisId,
+            credentialType);
         error = new Error("stale_data",
             "The issued credential data was stale and has been revoked");
       }
