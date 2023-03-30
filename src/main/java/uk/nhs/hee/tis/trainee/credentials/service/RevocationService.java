@@ -113,10 +113,11 @@ public class RevocationService {
    */
   public boolean revokeIfStale(String credentialId, String tisId, CredentialType credentialType,
       Instant since) {
+    log.info("Checking issued credential {} for staleness.", credentialId);
     Optional<Instant> lastModifiedDate = getLastModifiedDate(tisId, credentialType);
 
     if (lastModifiedDate.isPresent() && lastModifiedDate.get().isAfter(since)) {
-      log.info("Issued credential {} found for TIS ID {}, revoking.", credentialType, tisId);
+      log.info("Stale credential {} found for TIS ID {}, revoking.", credentialType, tisId);
       gatewayService.revokeCredential(credentialType.getTemplateName(), credentialId);
       return true;
     }
