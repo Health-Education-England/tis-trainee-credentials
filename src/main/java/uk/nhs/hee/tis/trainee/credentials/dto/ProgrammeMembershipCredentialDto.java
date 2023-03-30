@@ -60,6 +60,11 @@ public record ProgrammeMembershipCredentialDto(
   }
 
   @Override
+  public CredentialType getCredentialType() {
+    return CredentialType.TRAINING_PROGRAMME;
+  }
+
+  @Override
   public String getTisId() {
     return tisId;
   }

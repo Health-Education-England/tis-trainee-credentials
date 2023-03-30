@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.dto.IssueResponseDto;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialMetadataMapper;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
@@ -46,6 +47,7 @@ public class IssuanceService {
 
   private final GatewayService gatewayService;
   private final JwtService jwtService;
+  private final RevocationService revocationService;
   private final CachingDelegate cachingDelegate;
   private final CredentialMetadataRepository credentialMetadataRepository;
   private final CredentialMetadataMapper credentialMetadataMapper;
@@ -59,10 +61,12 @@ public class IssuanceService {
    * @param cachingDelegate The caching delegate for caching data between requests.
    */
   IssuanceService(GatewayService gatewayService, JwtService jwtService,
-      CachingDelegate cachingDelegate, CredentialMetadataRepository credentialMetadataRepository,
+      RevocationService revocationService, CachingDelegate cachingDelegate,
+      CredentialMetadataRepository credentialMetadataRepository,
       CredentialMetadataMapper credentialMetadataMapper, IssuingProperties properties) {
     this.gatewayService = gatewayService;
     this.jwtService = jwtService;
+    this.revocationService = revocationService;
     this.cachingDelegate = cachingDelegate;
     this.credentialMetadataRepository = credentialMetadataRepository;
     this.credentialMetadataMapper = credentialMetadataMapper;
@@ -120,11 +124,19 @@ public class IssuanceService {
       UUID nonceUuid = UUID.fromString(claims.get("nonce", String.class));
 
       Optional<String> traineeId = cachingDelegate.getTraineeIdentifier(stateUuid);
-      Optional<CredentialDto> credentialData = cachingDelegate.getCredentialData(nonceUuid);
-      if (traineeId.isPresent() && credentialData.isPresent()) {
+      Optional<CredentialDto> optionalCredentialData = cachingDelegate.getCredentialData(nonceUuid);
+      if (traineeId.isPresent() && optionalCredentialData.isPresent()) {
+        CredentialDto credentialData = optionalCredentialData.get();
         IssueResponseDto issueResponseDto = fromIssuedResponse(claims, traineeId.get());
-        credentialMetadata = credentialMetadataMapper
-            .toCredentialMetadata(traineeId.get(), credentialData.get(), issueResponseDto);
+
+        Optional<Error> staleDataError = revokeIfCredentialStale(stateUuid, credentialData);
+        if (staleDataError.isPresent()) {
+          error = staleDataError.get().code();
+          errorDescription = staleDataError.get().description();
+        } else {
+          credentialMetadata = credentialMetadataMapper
+              .toCredentialMetadata(traineeId.get(), credentialData, issueResponseDto);
+        }
       }
     } else {
       log.info("Credential was not issued.");
@@ -159,5 +171,51 @@ public class IssuanceService {
     Instant expiresAt = Instant.ofEpochSecond(claims.get("exp", Long.class));
 
     return new IssueResponseDto(credentialId, traineeTisId, issuedAt, expiresAt);
+  }
+
+  /**
+   * Revoke the newly issued credential if the data used is stale.
+   *
+   * @param internalState The issue request state.
+   * @param credentialDto The issued credential data.
+   * @return Associated errors if the data was stale, else empty.
+   */
+  private Optional<Error> revokeIfCredentialStale(UUID internalState, CredentialDto credentialDto) {
+    Error error = null;
+
+    String tisId = credentialDto.getTisId();
+    CredentialType credentialType = credentialDto.getCredentialType();
+    Optional<Instant> lastModified = revocationService.getLastModifiedDate(tisId, credentialType);
+
+    if (lastModified.isPresent()) {
+      Optional<Instant> issuanceTimestamp = cachingDelegate.getIssuanceTimestamp(internalState);
+
+      if (issuanceTimestamp.isPresent()) {
+
+        if (lastModified.get().isBefore(issuanceTimestamp.get())) {
+          error = new Error("stale_data",
+              "The issued credential data was stale and has been revoked");
+        }
+      } else {
+        error = new Error("unknown_data_freshness",
+            "The issued credential data could not be verified and has been revoked");
+      }
+
+      if (error != null) {
+        revocationService.revoke(tisId, credentialType, lastModified.orElse(null));
+      }
+    }
+
+    return Optional.ofNullable(error);
+  }
+
+  /**
+   * Represents an error code and message.
+   *
+   * @param code        The error's code.
+   * @param description The error's description.
+   */
+  private record Error(String code, String description) {
+
   }
 }
