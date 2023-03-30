@@ -27,6 +27,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import java.security.PublicKey;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
@@ -84,6 +85,19 @@ class CachingDelegateTest {
   }
 
   @Test
+  void shouldReturnCachedIssuanceTimestamp() {
+    Instant timestamp = Instant.now();
+    Instant cachedTimestamp = delegate.cacheIssuanceTimestamp(UUID.randomUUID(), timestamp);
+    assertThat("Unexpected issuance timestamp.", cachedTimestamp, is(timestamp));
+  }
+
+  @Test
+  void shouldGetEmptyIssuanceTimestamp() {
+    Optional<Instant> timestamp = delegate.getIssuanceTimestamp(UUID.randomUUID());
+    assertThat("Unexpected issuance timestamp.", timestamp, is(Optional.empty()));
+  }
+
+  @Test
   void shouldReturnCachedIdentityData() {
     IdentityDataDto identityData = new IdentityDataDto("Anthony", "Gilliam", LocalDate.now());
     IdentityDataDto returnValue = delegate.cacheIdentityData(UUID.randomUUID(), identityData);
@@ -129,7 +143,7 @@ class CachingDelegateTest {
   }
 
   @Test
-  void shouldGetEmptyunVerifiedSession() {
+  void shouldGetEmptyUnverifiedSession() {
     Optional<String> unverifiedSession = delegate.getUnverifiedSessionIdentifier(UUID.randomUUID());
     assertThat("Unexpected verified session.", unverifiedSession, is(Optional.empty()));
   }

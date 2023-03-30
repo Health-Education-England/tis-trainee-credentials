@@ -23,6 +23,7 @@ package uk.nhs.hee.tis.trainee.credentials;
 
 import java.time.Instant;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 
 /**
  * An implementation of {@link CredentialDto} for test purposes.
@@ -42,5 +43,10 @@ public record TestCredentialDto(String tisId) implements CredentialDto {
   @Override
   public String getScope() {
     return "test.Credential";
+  }
+
+  @Override
+  public CredentialType getCredentialType() {
+    return null;
   }
 }

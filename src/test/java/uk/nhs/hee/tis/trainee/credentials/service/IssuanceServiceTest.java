@@ -35,6 +35,7 @@ import static org.mockito.Mockito.when;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.impl.DefaultClaims;
 import java.net.URI;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -78,6 +79,7 @@ class IssuanceServiceTest {
   private IssuanceService issuanceService;
   private GatewayService gatewayService;
   private JwtService jwtService;
+  private RevocationService revocationService;
   private CachingDelegate cachingDelegate;
   private CredentialMetadataRepository credentialMetadataRepository;
 
@@ -85,6 +87,7 @@ class IssuanceServiceTest {
   void setUp() {
     gatewayService = mock(GatewayService.class);
     jwtService = mock(JwtService.class);
+    revocationService = mock(RevocationService.class);
     cachingDelegate = mock(CachingDelegate.class);
     credentialMetadataRepository = mock(CredentialMetadataRepository.class);
     var credentialMetadataMapper = Mappers.getMapper(CredentialMetadataMapper.class);
@@ -92,8 +95,8 @@ class IssuanceServiceTest {
     var properties = new IssuingProperties("", "", TOKEN_ENDPOINT.toString(), null,
         REDIRECT_URI.toString());
 
-    issuanceService = new IssuanceService(gatewayService, jwtService, cachingDelegate,
-        credentialMetadataRepository, credentialMetadataMapper, properties);
+    issuanceService = new IssuanceService(gatewayService, jwtService, revocationService,
+        cachingDelegate, credentialMetadataRepository, credentialMetadataMapper, properties);
   }
 
   /**
@@ -163,6 +166,30 @@ class IssuanceServiceTest {
     UUID cacheKey = cacheKeyCaptor.getValue();
     String requestState = requestStateCaptor.getValue();
     assertThat("Unexpected state cache key.", cacheKey.toString(), is(requestState));
+  }
+
+  @Test
+  void shouldCacheIssuanceTimestampAgainstInternalStateWhenStartingIssuance() {
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims());
+
+    issuanceService.startCredentialIssuance(AUTH_TOKEN, null, null);
+
+    ArgumentCaptor<UUID> cacheKeyCaptor = ArgumentCaptor.forClass(UUID.class);
+    ArgumentCaptor<Instant> timestampCaptor = ArgumentCaptor.forClass(Instant.class);
+    verify(cachingDelegate).cacheIssuanceTimestamp(cacheKeyCaptor.capture(),
+        timestampCaptor.capture());
+
+    ArgumentCaptor<String> requestStateCaptor = ArgumentCaptor.forClass(String.class);
+    verify(gatewayService).getCredentialUri(any(), any(), requestStateCaptor.capture());
+
+    UUID cacheKey = cacheKeyCaptor.getValue();
+    String requestState = requestStateCaptor.getValue();
+    assertThat("Unexpected state cache key.", cacheKey.toString(), is(requestState));
+
+    Instant timestamp = timestampCaptor.getValue();
+    Instant now = Instant.now();
+    int delta = (int) Duration.between(timestamp, now).toMinutes();
+    assertThat("Unexpected issuance timestamp delta.", delta, is(0));
   }
 
   @Test
@@ -264,6 +291,7 @@ class IssuanceServiceTest {
     verifyNoInteractions(credentialMetadataRepository);
   }
 
+  // TODO: rewrite test to check errors vs code null. Other tests may need code included.
   @Test
   void shouldReturnCredentialIssuedWhenGatewayIssueSuccessful() {
     URI uri = issuanceService.completeCredentialVerification(null, STATE_VALUE, null, null);
@@ -299,7 +327,7 @@ class IssuanceServiceTest {
 
     Map<String, String> queryParams = splitQueryParams(uri);
     assertThat("Unexpected query parameter count.", queryParams.size(), is(1));
-    assertThat("Unexpected error.", queryParams.get("state"), is("some-client-state"));
+    assertThat("Unexpected state.", queryParams.get("state"), is("some-client-state"));
   }
 
   @Test
@@ -307,6 +335,86 @@ class IssuanceServiceTest {
     when(cachingDelegate.getClientState(UUID.fromString(STATE_VALUE))).thenReturn(Optional.empty());
 
     URI uri = issuanceService.completeCredentialVerification(null, STATE_VALUE, null, null);
+
+    assertThat("Unexpected uri query.", uri.getQuery(), nullValue());
+  }
+
+  @ParameterizedTest
+  @MethodSource("credentialMethodSource")
+  void shouldReturnErrorWhenNewCredentialRevokedWithUnknownIssuance(CredentialDto credentialData) {
+    Claims claimsIssued = new DefaultClaims();
+    claimsIssued.put("nonce", UUID.randomUUID().toString());
+    claimsIssued.put("SerialNumber", CREDENTIAL_ID);
+    claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
+    claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
+
+    when(gatewayService.getTokenClaims(any(), any(), any(), any())).thenReturn(claimsIssued);
+    when(cachingDelegate.getCredentialData(any())).thenReturn(Optional.of(credentialData));
+    when(cachingDelegate.getTraineeIdentifier(any())).thenReturn(Optional.of(TIS_ID));
+
+    when(cachingDelegate.getIssuanceTimestamp(UUID.fromString(STATE_VALUE))).thenReturn(
+        Optional.empty());
+    when(revocationService.revokeIfStale(CREDENTIAL_ID, TIS_ID, credentialData.getCredentialType(),
+        Instant.MIN)).thenReturn(
+        true);
+
+    URI uri = issuanceService.completeCredentialVerification(CODE_VALUE, STATE_VALUE, null, null);
+
+    Map<String, String> queryParams = splitQueryParams(uri);
+    assertThat("Unexpected query parameter count.", queryParams.size(), is(2));
+    assertThat("Unexpected error.", queryParams.get("error"), is("unknown_data_freshness"));
+    assertThat("Unexpected error description.", queryParams.get("error_description"),
+        is("The issued credential data could not be verified and has been revoked"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("credentialMethodSource")
+  void shouldReturnErrorWhenNewCredentialRevokedWithKnownIssuance(CredentialDto credentialData) {
+    Claims claimsIssued = new DefaultClaims();
+    claimsIssued.put("nonce", UUID.randomUUID().toString());
+    claimsIssued.put("SerialNumber", CREDENTIAL_ID);
+    claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
+    claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
+
+    when(gatewayService.getTokenClaims(any(), any(), any(), any())).thenReturn(claimsIssued);
+    when(cachingDelegate.getCredentialData(any())).thenReturn(Optional.of(credentialData));
+    when(cachingDelegate.getTraineeIdentifier(any())).thenReturn(Optional.of(TIS_ID));
+
+    Instant now = Instant.now();
+    when(cachingDelegate.getIssuanceTimestamp(UUID.fromString(STATE_VALUE))).thenReturn(
+        Optional.of(now));
+    when(revocationService.revokeIfStale(CREDENTIAL_ID, TIS_ID, credentialData.getCredentialType(),
+        now)).thenReturn(true);
+
+    URI uri = issuanceService.completeCredentialVerification(CODE_VALUE, STATE_VALUE, null, null);
+
+    Map<String, String> queryParams = splitQueryParams(uri);
+    assertThat("Unexpected query parameter count.", queryParams.size(), is(2));
+    assertThat("Unexpected error.", queryParams.get("error"), is("stale_data"));
+    assertThat("Unexpected error description.", queryParams.get("error_description"),
+        is("The issued credential data was stale and has been revoked"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("credentialMethodSource")
+  void shouldNotReturnErrorWhenNewCredentialNotRevoked(CredentialDto credentialData) {
+    Claims claimsIssued = new DefaultClaims();
+    claimsIssued.put("nonce", UUID.randomUUID().toString());
+    claimsIssued.put("SerialNumber", CREDENTIAL_ID);
+    claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
+    claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
+
+    when(gatewayService.getTokenClaims(any(), any(), any(), any())).thenReturn(claimsIssued);
+    when(cachingDelegate.getCredentialData(any())).thenReturn(Optional.of(credentialData));
+    when(cachingDelegate.getTraineeIdentifier(any())).thenReturn(Optional.of(TIS_ID));
+
+    Instant now = Instant.now();
+    when(cachingDelegate.getIssuanceTimestamp(UUID.fromString(STATE_VALUE))).thenReturn(
+        Optional.of(now));
+    when(revocationService.revokeIfStale(CREDENTIAL_ID, TIS_ID, credentialData.getCredentialType(),
+        now)).thenReturn(false);
+
+    URI uri = issuanceService.completeCredentialVerification(CODE_VALUE, STATE_VALUE, null, null);
 
     assertThat("Unexpected uri query.", uri.getQuery(), nullValue());
   }

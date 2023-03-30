@@ -76,6 +76,11 @@ public record PlacementCredentialDto(
   }
 
   @Override
+  public CredentialType getCredentialType() {
+    return CredentialType.TRAINING_PLACEMENT;
+  }
+
+  @Override
   public String getTisId() {
     return tisId;
   }

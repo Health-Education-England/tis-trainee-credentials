@@ -26,6 +26,7 @@ import static uk.nhs.hee.tis.trainee.credentials.config.CacheConfiguration.VERIF
 import static uk.nhs.hee.tis.trainee.credentials.config.CacheConfiguration.VERIFIED_SESSION_DATA;
 
 import java.security.PublicKey;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.cache.annotation.CacheEvict;
@@ -46,6 +47,7 @@ class CachingDelegate {
   private static final String CODE_VERIFIER = "CodeVerifier";
   private static final String CREDENTIAL_DATA = "CredentialData";
   private static final String IDENTITY_DATA = "IdentityData";
+  private static final String ISSUANCE_TIMESTAMP = "IssuanceTimestamp";
   private static final String PUBLIC_KEY = "PublicKey";
   private static final String TRAINEE_ID = "TraineeIdentifier";
   private static final String UNVERIFIED_SESSION_IDENTIFIER = "SessionIdentifier::Unverified";
@@ -96,6 +98,30 @@ class CachingDelegate {
   @Cacheable(cacheNames = CREDENTIAL_DATA, cacheManager = CREDENTIAL_METADATA)
   @CacheEvict(CREDENTIAL_DATA)
   public Optional<CredentialDto> getCredentialData(UUID key) {
+    return Optional.empty();
+  }
+
+  /**
+   * Cache an issuance timestamp for later retrieval.
+   *
+   * @param key       The cache key.
+   * @param timestamp The issuance timestamp to cache.
+   * @return The cached issuance timestamp.
+   */
+  @CachePut(cacheNames = ISSUANCE_TIMESTAMP, cacheManager = CREDENTIAL_METADATA, key = "#key")
+  public Instant cacheIssuanceTimestamp(UUID key, Instant timestamp) {
+    return timestamp;
+  }
+
+  /**
+   * Get the issuance timestamp associated with the given key, any cached value will be removed.
+   *
+   * @param key The cache key.
+   * @return The cached issuance timestamp, or an empty optional if not found.
+   */
+  @Cacheable(cacheNames = ISSUANCE_TIMESTAMP, cacheManager = CREDENTIAL_METADATA)
+  @CacheEvict(ISSUANCE_TIMESTAMP)
+  public Optional<Instant> getIssuanceTimestamp(UUID key) {
     return Optional.empty();
   }
 

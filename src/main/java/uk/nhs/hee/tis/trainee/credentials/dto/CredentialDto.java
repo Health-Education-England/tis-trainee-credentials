@@ -53,4 +53,12 @@ public interface CredentialDto extends Serializable {
    */
   @JsonIgnore
   String getScope();
+
+  /**
+   * Get internal credential type.
+   *
+   * @return The credential's type.
+   */
+  @JsonIgnore
+  CredentialType getCredentialType();
 }

@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.dto.IssueResponseDto;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialMetadataMapper;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
@@ -46,6 +47,7 @@ public class IssuanceService {
 
   private final GatewayService gatewayService;
   private final JwtService jwtService;
+  private final RevocationService revocationService;
   private final CachingDelegate cachingDelegate;
   private final CredentialMetadataRepository credentialMetadataRepository;
   private final CredentialMetadataMapper credentialMetadataMapper;
@@ -59,10 +61,12 @@ public class IssuanceService {
    * @param cachingDelegate The caching delegate for caching data between requests.
    */
   IssuanceService(GatewayService gatewayService, JwtService jwtService,
-      CachingDelegate cachingDelegate, CredentialMetadataRepository credentialMetadataRepository,
+      RevocationService revocationService, CachingDelegate cachingDelegate,
+      CredentialMetadataRepository credentialMetadataRepository,
       CredentialMetadataMapper credentialMetadataMapper, IssuingProperties properties) {
     this.gatewayService = gatewayService;
     this.jwtService = jwtService;
+    this.revocationService = revocationService;
     this.cachingDelegate = cachingDelegate;
     this.credentialMetadataRepository = credentialMetadataRepository;
     this.credentialMetadataMapper = credentialMetadataMapper;
@@ -73,13 +77,13 @@ public class IssuanceService {
    * Start the issuance of a credential.
    *
    * @param authToken   The request's authorization token.
-   * @param dto         The user's identity data.
+   * @param dto         The user's credential data.
    * @param clientState The state sent by client when making the request to start verification.
    * @return The URI to continue the issuing via credential gateway, or empty if issuing failed.
    */
   public Optional<URI> startCredentialIssuance(String authToken, CredentialDto dto,
       @Nullable String clientState) {
-    // Cache the provided identity data against the nonce.
+    // Cache the provided credential data against the nonce.
     UUID nonce = UUID.randomUUID();
     cachingDelegate.cacheCredentialData(nonce, dto);
 
@@ -91,6 +95,9 @@ public class IssuanceService {
     Claims authClaims = jwtService.getClaims(authToken);
     String traineeId = authClaims.get("custom:tisId", String.class);
     cachingDelegate.cacheTraineeIdentifier(internalState, traineeId);
+
+    // Cache the current timestamp as the start of the issuance.
+    cachingDelegate.cacheIssuanceTimestamp(internalState, Instant.now());
 
     return gatewayService.getCredentialUri(dto, nonce.toString(), internalState.toString());
   }
@@ -117,11 +124,20 @@ public class IssuanceService {
       UUID nonceUuid = UUID.fromString(claims.get("nonce", String.class));
 
       Optional<String> traineeId = cachingDelegate.getTraineeIdentifier(stateUuid);
-      Optional<CredentialDto> credentialData = cachingDelegate.getCredentialData(nonceUuid);
-      if (traineeId.isPresent() && credentialData.isPresent()) {
+      Optional<CredentialDto> optionalCredentialData = cachingDelegate.getCredentialData(nonceUuid);
+      if (traineeId.isPresent() && optionalCredentialData.isPresent()) {
+        CredentialDto credentialData = optionalCredentialData.get();
         IssueResponseDto issueResponseDto = fromIssuedResponse(claims, traineeId.get());
-        credentialMetadata = credentialMetadataMapper
-            .toCredentialMetadata(traineeId.get(), credentialData.get(), issueResponseDto);
+
+        Optional<Error> staleDataError = revokeIfCredentialStale(issueResponseDto.credentialId(),
+            credentialData, stateUuid);
+        if (staleDataError.isPresent()) {
+          error = staleDataError.get().code();
+          errorDescription = staleDataError.get().description();
+        } else {
+          credentialMetadata = credentialMetadataMapper
+              .toCredentialMetadata(traineeId.get(), credentialData, issueResponseDto);
+        }
       }
     } else {
       log.info("Credential was not issued.");
@@ -156,5 +172,48 @@ public class IssuanceService {
     Instant expiresAt = Instant.ofEpochSecond(claims.get("exp", Long.class));
 
     return new IssueResponseDto(credentialId, traineeTisId, issuedAt, expiresAt);
+  }
+
+  /**
+   * Revoke the newly issued credential if the data used is stale.
+   *
+   * @param credentialId  The credential serial number.
+   * @param credentialDto The issued credential data.
+   * @param internalState The issue request state.
+   * @return Associated errors if the data was stale, else empty.
+   */
+  private Optional<Error> revokeIfCredentialStale(String credentialId, CredentialDto credentialDto,
+      UUID internalState) {
+    Error error = null;
+
+    String tisId = credentialDto.getTisId();
+    CredentialType credentialType = credentialDto.getCredentialType();
+    Optional<Instant> issuanceTimestamp = cachingDelegate.getIssuanceTimestamp(internalState);
+
+    // If unknown issuance timestamp then force staleness if modification exists.
+    boolean revoked = revocationService.revokeIfStale(credentialId, tisId, credentialType,
+        issuanceTimestamp.orElse(Instant.MIN));
+
+    if (revoked) {
+      if (issuanceTimestamp.isEmpty()) {
+        error = new Error("unknown_data_freshness",
+            "The issued credential data could not be verified and has been revoked");
+      } else {
+        error = new Error("stale_data",
+            "The issued credential data was stale and has been revoked");
+      }
+    }
+
+    return Optional.ofNullable(error);
+  }
+
+  /**
+   * Represents an error code and message.
+   *
+   * @param code        The error's code.
+   * @param description The error's description.
+   */
+  private record Error(String code, String description) {
+
   }
 }
