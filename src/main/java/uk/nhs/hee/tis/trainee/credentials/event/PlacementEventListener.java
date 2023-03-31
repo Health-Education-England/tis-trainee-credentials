@@ -51,7 +51,6 @@ public class PlacementEventListener {
   @SqsListener(value = "${application.aws.sqs.delete-placement}", deletionPolicy = ON_SUCCESS)
   void deletePlacement(DeleteEventDto deletedPlacement) {
     log.info("Received delete event for placement {}.", deletedPlacement);
-    revocationService.revoke(deletedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT,
-        deletedPlacement.timestamp());
+    revocationService.revoke(deletedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT);
   }
 }
