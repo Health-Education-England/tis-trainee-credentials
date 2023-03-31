@@ -63,9 +63,7 @@ public class PlacementEventListener {
   @SqsListener(value = "${application.aws.sqs.update-placement}", deletionPolicy = ON_SUCCESS)
   void updatePlacement(UpdateEventDto updatedPlacement) {
     log.info("Received update event for placement {}.", updatedPlacement);
-    // TODO be selective with revoking credentials depending on the actual data changed.
-    // For now, we simply revoke
-    revocationService.revoke(updatedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT,
-        updatedPlacement.timestamp());
+    // For now, we simply revoke regardless of which fields have updated (pending TIS21-4152)
+    revocationService.revoke(updatedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT);
   }
 }

@@ -57,29 +57,10 @@ class PlacementEventListenerTest {
 
   @Test
   void shouldUpdatePlacement() {
-    UpdateEventDto dto = new UpdateEventDto(TIS_ID, null, null);
+    UpdateEventDto dto = new UpdateEventDto(TIS_ID, null);
 
     listener.updatePlacement(dto);
 
     verify(service).revoke(eq(TIS_ID), eq(CredentialType.TRAINING_PLACEMENT), any());
-  }
-
-  @Test
-  void shouldPassNullTimestampWhenUpdatingPlacementWithNoTimestamp() {
-    UpdateEventDto dto = new UpdateEventDto(TIS_ID, null, null);
-
-    listener.updatePlacement(dto);
-
-    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT, null);
-  }
-
-  @Test
-  void shouldPassProvidedTimestampWhenUpdatingPlacementWithTimestamp() {
-    Instant now = Instant.now().minus(Duration.ofDays(1));
-    UpdateEventDto dto = new UpdateEventDto(TIS_ID, now, null);
-
-    listener.updatePlacement(dto);
-
-    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT, now);
   }
 }

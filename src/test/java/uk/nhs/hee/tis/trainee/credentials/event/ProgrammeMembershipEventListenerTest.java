@@ -57,29 +57,10 @@ class ProgrammeMembershipEventListenerTest {
 
   @Test
   void shouldUpdateProgrammeMembership() {
-    UpdateEventDto dto = new UpdateEventDto(TIS_ID, null, null);
+    UpdateEventDto dto = new UpdateEventDto(TIS_ID, null);
 
     listener.updateProgrammeMembership(dto);
 
     verify(service).revoke(eq(TIS_ID), eq(CredentialType.TRAINING_PROGRAMME), any());
-  }
-
-  @Test
-  void shouldPassNullTimestampWhenUpdatingProgrammeMembershipWithNoTimestamp() {
-    UpdateEventDto dto = new UpdateEventDto(TIS_ID, null, null);
-
-    listener.updateProgrammeMembership(dto);
-
-    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PROGRAMME, null);
-  }
-
-  @Test
-  void shouldPassProvidedTimestampWhenUpdatingProgrammeMembershipWithTimestamp() {
-    Instant now = Instant.now().minus(Duration.ofDays(1));
-    UpdateEventDto dto = new UpdateEventDto(TIS_ID, now, null);
-
-    listener.updateProgrammeMembership(dto);
-
-    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PROGRAMME, now);
   }
 }

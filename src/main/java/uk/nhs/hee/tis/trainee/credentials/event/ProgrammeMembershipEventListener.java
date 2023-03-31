@@ -65,9 +65,7 @@ public class ProgrammeMembershipEventListener {
   @SqsListener(value = "${application.aws.sqs.update-programme-membership}", deletionPolicy = ON_SUCCESS)
   void updateProgrammeMembership(UpdateEventDto updatedProgrammeMembership) {
     log.info("Received update event for programme membership {}.", updatedProgrammeMembership);
-    // TODO be selective with revoking credentials depending on the actual data changed.
-    // For now, we simply revoke
-    revocationService.revoke(updatedProgrammeMembership.tisId(), CredentialType.TRAINING_PROGRAMME,
-        updatedProgrammeMembership.timestamp());
+    // For now, we simply revoke regardless of which fields have updated (pending TIS21-4152)
+    revocationService.revoke(updatedProgrammeMembership.tisId(), CredentialType.TRAINING_PROGRAMME);
   }
 }
