@@ -34,6 +34,8 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -92,7 +94,7 @@ class RevocationServiceTest {
   void shouldNotAttemptRevocationWhenCredentialNotIssued(CredentialType credentialType) {
     when(
         credentialMetadataRepository.findByCredentialTypeAndTisId(credentialType.getIssuanceScope(),
-            TIS_ID)).thenReturn(Optional.empty());
+            TIS_ID)).thenReturn(Collections.emptyList());
 
     service.revoke(TIS_ID, credentialType);
 
@@ -109,7 +111,7 @@ class RevocationServiceTest {
     String scope = credentialType.getIssuanceScope();
 
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
-        Optional.of(credentialMetadata));
+        List.of(credentialMetadata));
     doThrow(ResponseStatusException.class).when(gatewayService)
         .revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
 
@@ -129,12 +131,37 @@ class RevocationServiceTest {
     String scope = credentialType.getIssuanceScope();
 
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
-        Optional.of(credentialMetadata));
+        List.of(credentialMetadata));
 
     service.revoke(TIS_ID, credentialType);
 
     verify(gatewayService).revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
     verify(credentialMetadataRepository).deleteById(CREDENTIAL_ID);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldDeleteMultipleCredentialMetadataWhenRevocationSuccessful(
+      CredentialType credentialType) {
+    CredentialMetadata credentialMetadata = new CredentialMetadata();
+    credentialMetadata.setTisId(TIS_ID);
+    credentialMetadata.setCredentialId(CREDENTIAL_ID);
+
+    String credentialId2 = UUID.randomUUID().toString();
+    CredentialMetadata credentialMetadata2 = new CredentialMetadata();
+    credentialMetadata2.setTisId(TIS_ID);
+    credentialMetadata2.setCredentialId(credentialId2);
+
+    String scope = credentialType.getIssuanceScope();
+
+    when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
+        List.of(credentialMetadata, credentialMetadata2));
+
+    service.revoke(TIS_ID, credentialType);
+
+    verify(gatewayService).revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
+    verify(credentialMetadataRepository).deleteById(CREDENTIAL_ID);
+    verify(credentialMetadataRepository).deleteById(credentialId2);
   }
 
   @ParameterizedTest
@@ -147,7 +174,7 @@ class RevocationServiceTest {
     when(repository.findById(any())).thenReturn(Optional.of(metadata));
 
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(any(), any())).thenReturn(
-        Optional.of(new CredentialMetadata()));
+        List.of(new CredentialMetadata()));
 
     boolean revoked = service.revokeIfStale(CREDENTIAL_ID, TIS_ID, credentialType, baseline);
 

@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.repository;
 
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
@@ -35,7 +36,7 @@ public interface CredentialMetadataRepository extends MongoRepository<Credential
   @Override
   Optional<CredentialMetadata> findById(String id);
 
-  Optional<CredentialMetadata> findByCredentialTypeAndTisId(String credentialType, String tisId);
+  List<CredentialMetadata> findByCredentialTypeAndTisId(String credentialType, String tisId);
 
   @Override
   <T extends CredentialMetadata> T save(T entity);
