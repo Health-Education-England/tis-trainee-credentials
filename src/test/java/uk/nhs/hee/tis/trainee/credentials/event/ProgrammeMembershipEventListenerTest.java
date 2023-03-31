@@ -61,6 +61,6 @@ class ProgrammeMembershipEventListenerTest {
 
     listener.updateProgrammeMembership(dto);
 
-    verify(service).revoke(eq(TIS_ID), eq(CredentialType.TRAINING_PROGRAMME), any());
+    verify(service).revoke(eq(TIS_ID), eq(CredentialType.TRAINING_PROGRAMME));
   }
 }

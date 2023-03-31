@@ -61,6 +61,6 @@ class PlacementEventListenerTest {
 
     listener.updatePlacement(dto);
 
-    verify(service).revoke(eq(TIS_ID), eq(CredentialType.TRAINING_PLACEMENT), any());
+    verify(service).revoke(eq(TIS_ID), eq(CredentialType.TRAINING_PLACEMENT));
   }
 }
