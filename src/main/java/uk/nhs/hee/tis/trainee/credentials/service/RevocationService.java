@@ -22,6 +22,7 @@
 package uk.nhs.hee.tis.trainee.credentials.service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
@@ -81,15 +82,19 @@ public class RevocationService {
     log.debug("Stored last modified time {} for {} {}.", timestamp, credentialType, tisId);
 
     // Find this credential in the credential metadata repository. If it exists, then revoke it.
-    Optional<CredentialMetadata> metadata =
+    List<CredentialMetadata> credentialMetadataList =
         credentialMetadataRepository.findByCredentialTypeAndTisId(
             credentialType.getIssuanceScope(), tisId);
-    if (metadata.isPresent()) {
-      log.info("Issued credential {} found for TIS ID {}, revoking.", credentialType, tisId);
-      gatewayService.revokeCredential(credentialType.getTemplateName(),
-          metadata.get().getCredentialId());
-      credentialMetadataRepository.deleteById(metadata.get().getCredentialId());
-      log.info("Credential {} for TIS ID {} has been revoked.", credentialType, tisId);
+    if (!credentialMetadataList.isEmpty()) {
+      log.info("{} Issued credential(s) of type {} found for TIS ID {}, revoking.",
+          credentialMetadataList.size(), credentialType, tisId);
+      credentialMetadataList.forEach(metadata -> {
+        gatewayService.revokeCredential(credentialType.getTemplateName(),
+            metadata.getCredentialId());
+        credentialMetadataRepository.deleteById(metadata.getCredentialId());
+        log.info("Credential {} for TIS ID {} has been revoked.", credentialType, tisId);
+      });
+
     } else {
       log.info("No {} credential issued for TIS ID {}, skipped revocation.", credentialType, tisId);
     }
