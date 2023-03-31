@@ -21,7 +21,6 @@
 
 package uk.nhs.hee.tis.trainee.credentials.event;
 
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -30,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.dto.DeleteEventDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.UpdateEventDto;
 import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
 
 class PlacementEventListenerTest {
@@ -50,6 +50,15 @@ class PlacementEventListenerTest {
     DeleteEventDto dto = new DeleteEventDto(TIS_ID);
 
     listener.deletePlacement(dto);
+
+    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT);
+  }
+
+  @Test
+  void shouldUpdatePlacement() {
+    UpdateEventDto dto = new UpdateEventDto(TIS_ID, null);
+
+    listener.updatePlacement(dto);
 
     verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT);
   }

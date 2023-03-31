@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.dto.DeleteEventDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.UpdateEventDto;
 import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
 
 /**
@@ -53,5 +54,19 @@ public class ProgrammeMembershipEventListener {
   void deleteProgrammeMembership(DeleteEventDto deletedProgrammeMembership) {
     log.info("Received delete event for programme membership {}.", deletedProgrammeMembership);
     revocationService.revoke(deletedProgrammeMembership.tisId(), CredentialType.TRAINING_PROGRAMME);
+  }
+
+
+  /**
+   * Listener for update events.
+   *
+   * @param updatedProgrammeMembership The updated programme membership.
+   */
+  @SqsListener(value = "${application.aws.sqs.update-programme-membership}",
+      deletionPolicy = ON_SUCCESS)
+  void updateProgrammeMembership(UpdateEventDto updatedProgrammeMembership) {
+    log.info("Received update event for programme membership {}.", updatedProgrammeMembership);
+    // For now, we simply revoke regardless of which fields have updated (pending TIS21-4152)
+    revocationService.revoke(updatedProgrammeMembership.tisId(), CredentialType.TRAINING_PROGRAMME);
   }
 }

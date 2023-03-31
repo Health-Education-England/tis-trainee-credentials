@@ -8,6 +8,8 @@ application:
     sqs:
       delete-placement: ${DELETE_PLACEMENT_QUEUE_URL:}
       delete-programme-membership: ${DELETE_PROGRAMME_MEMBERSHIP_QUEUE_URL:}
+      update-placement: ${UPDATE_PLACEMENT_QUEUE_URL:}
+      update-programme-membership: ${UPDATE_PROGRAMME_MEMBERSHIP_QUEUE_URL:}
   cache:
     key-prefix: Credentials
     time-to-live:
