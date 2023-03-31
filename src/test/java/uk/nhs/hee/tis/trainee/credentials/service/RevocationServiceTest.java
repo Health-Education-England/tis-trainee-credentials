@@ -94,7 +94,7 @@ class RevocationServiceTest {
         credentialMetadataRepository.findByCredentialTypeAndTisId(credentialType.getIssuanceScope(),
             TIS_ID)).thenReturn(Optional.empty());
 
-    service.revoke(TIS_ID, credentialType, null);
+    service.revoke(TIS_ID, credentialType);
 
     verifyNoInteractions(gatewayService);
   }
@@ -113,7 +113,7 @@ class RevocationServiceTest {
     doThrow(ResponseStatusException.class).when(gatewayService)
         .revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
 
-    assertThrows(ResponseStatusException.class, () -> service.revoke(TIS_ID, credentialType, null));
+    assertThrows(ResponseStatusException.class, () -> service.revoke(TIS_ID, credentialType));
 
     verify(credentialMetadataRepository).findByCredentialTypeAndTisId(scope, TIS_ID);
     verifyNoMoreInteractions(credentialMetadataRepository);
@@ -131,7 +131,7 @@ class RevocationServiceTest {
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
         Optional.of(credentialMetadata));
 
-    service.revoke(TIS_ID, credentialType, null);
+    service.revoke(TIS_ID, credentialType);
 
     verify(gatewayService).revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
     verify(credentialMetadataRepository).deleteById(CREDENTIAL_ID);
@@ -203,7 +203,7 @@ class RevocationServiceTest {
   @ParameterizedTest
   @EnumSource(CredentialType.class)
   void shouldStoreLastModifiedDateWhenRevoking(CredentialType credentialType) {
-    service.revoke(TIS_ID, credentialType, null);
+    service.revoke(TIS_ID, credentialType);
 
     ArgumentCaptor<ModificationMetadata> metadataCaptor = ArgumentCaptor.forClass(
         ModificationMetadata.class);
@@ -212,35 +212,10 @@ class RevocationServiceTest {
     ModificationMetadata metadata = metadataCaptor.getValue();
     assertThat("Unexpected TIS ID.", metadata.id().tisId(), is(TIS_ID));
     assertThat("Unexpected credential type.", metadata.id().credentialType(), is(credentialType));
-  }
 
-  @ParameterizedTest
-  @EnumSource(CredentialType.class)
-  void shouldStoreLastModifiedDateAsNowWhenTimestampNull(CredentialType credentialType) {
-    service.revoke(TIS_ID, credentialType, null);
-
-    ArgumentCaptor<ModificationMetadata> metadataCaptor = ArgumentCaptor.forClass(
-        ModificationMetadata.class);
-    verify(repository).save(metadataCaptor.capture());
-
-    ModificationMetadata metadata = metadataCaptor.getValue();
     Instant timestamp = metadata.lastModifiedDate();
     Instant now = Instant.now();
     int delta = (int) Duration.between(timestamp, now).toMinutes();
     assertThat("Unexpected modification timestamp delta.", delta, is(0));
-  }
-
-  @ParameterizedTest
-  @EnumSource(CredentialType.class)
-  void shouldStoreLastModifiedDateAsGivenWhenTimestampNotNull(CredentialType credentialType) {
-    Instant now = Instant.now().minus(Duration.ofDays(1));
-    service.revoke(TIS_ID, credentialType, now);
-
-    ArgumentCaptor<ModificationMetadata> metadataCaptor = ArgumentCaptor.forClass(
-        ModificationMetadata.class);
-    verify(repository).save(metadataCaptor.capture());
-
-    ModificationMetadata metadata = metadataCaptor.getValue();
-    assertThat("Unexpected modification timestamp.", metadata.lastModifiedDate(), is(now));
   }
 }

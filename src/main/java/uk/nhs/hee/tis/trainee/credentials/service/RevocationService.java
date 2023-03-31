@@ -70,23 +70,16 @@ public class RevocationService {
   /**
    * Revoke any issued credentials for matching credential type and ID.
    *
-   * @param tisId             The TIS ID of the modified object.
-   * @param credentialType    The credential type of the modified object.
-   * @param modifiedTimestamp The timestamp of the modification, will use current time if null.
-   */
-  public void revoke(String tisId, CredentialType credentialType,
-      @Nullable Instant modifiedTimestamp) {
-    saveLastModifiedDate(tisId, credentialType, modifiedTimestamp);
-    revoke(tisId, credentialType);
-  }
-
-  /**
-   * Revoke any issued credentials for matching credential type and ID.
-   *
    * @param tisId          The TIS ID of the modified object.
    * @param credentialType The credential type of the modified object.
    */
-  private void revoke(String tisId, CredentialType credentialType) {
+  public void revoke(String tisId, CredentialType credentialType) {
+    // Update the modified timestamp.
+    Instant timestamp = Instant.now();
+    var modificationMetadata = new ModificationMetadata(tisId, credentialType, timestamp);
+    modificationMetadataRepository.save(modificationMetadata);
+    log.debug("Stored last modified time {} for {} {}.", timestamp, credentialType, tisId);
+
     // Find this credential in the credential metadata repository. If it exists, then revoke it.
     Optional<CredentialMetadata> metadata =
         credentialMetadataRepository.findByCredentialTypeAndTisId(
@@ -123,27 +116,5 @@ public class RevocationService {
     }
 
     return false;
-  }
-
-  /**
-   * Save the last modified date for the object being revoked.
-   *
-   * @param tisId             The TIS ID of the modified object.
-   * @param credentialType    The credential type of the modified object.
-   * @param modifiedTimestamp The timestamp of the modification, will use current time if null.
-   */
-  private void saveLastModifiedDate(String tisId, CredentialType credentialType,
-      @Nullable Instant modifiedTimestamp) {
-    // Default timestamp to current time if null.
-    if (modifiedTimestamp == null) {
-      log.debug("No modified timestamp provided for {} {}, defaulting to current timestamp.",
-          credentialType, tisId);
-      modifiedTimestamp = Instant.now();
-    }
-
-    ModificationMetadata metadata = new ModificationMetadata(tisId, credentialType,
-        modifiedTimestamp);
-    modificationMetadataRepository.save(metadata);
-    log.debug("Stored last modified time {} for {} {}.", modifiedTimestamp, credentialType, tisId);
   }
 }

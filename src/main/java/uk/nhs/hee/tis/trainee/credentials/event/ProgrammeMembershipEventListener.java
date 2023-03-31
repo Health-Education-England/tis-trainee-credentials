@@ -52,7 +52,6 @@ public class ProgrammeMembershipEventListener {
       deletionPolicy = ON_SUCCESS)
   void deleteProgrammeMembership(DeleteEventDto deletedProgrammeMembership) {
     log.info("Received delete event for programme membership {}.", deletedProgrammeMembership);
-    revocationService.revoke(deletedProgrammeMembership.tisId(), CredentialType.TRAINING_PROGRAMME,
-        deletedProgrammeMembership.timestamp());
+    revocationService.revoke(deletedProgrammeMembership.tisId(), CredentialType.TRAINING_PROGRAMME);
   }
 }
