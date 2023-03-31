@@ -21,7 +21,6 @@
 
 package uk.nhs.hee.tis.trainee.credentials.event;
 
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -61,6 +60,6 @@ class ProgrammeMembershipEventListenerTest {
 
     listener.updateProgrammeMembership(dto);
 
-    verify(service).revoke(eq(TIS_ID), eq(CredentialType.TRAINING_PROGRAMME));
+    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PROGRAMME);
   }
 }

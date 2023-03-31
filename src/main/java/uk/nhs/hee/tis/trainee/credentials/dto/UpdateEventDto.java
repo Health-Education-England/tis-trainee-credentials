@@ -21,16 +21,16 @@
 
 package uk.nhs.hee.tis.trainee.credentials.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotEmpty;
 import java.io.Serializable;
 
 /**
  * A DTO representing data update events.
  *
- * @param tisId     The id of the record.
- * @
+ * @param tisId The id of the record.
  */
 public record UpdateEventDto(
-    @NotEmpty String tisId, RecordDto record) implements Serializable {
+    @NotEmpty String tisId, @JsonProperty("record") RecordDto recrd) implements Serializable {
 
 }

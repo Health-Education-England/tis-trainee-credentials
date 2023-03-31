@@ -62,7 +62,8 @@ public class ProgrammeMembershipEventListener {
    *
    * @param updatedProgrammeMembership The updated programme membership.
    */
-  @SqsListener(value = "${application.aws.sqs.update-programme-membership}", deletionPolicy = ON_SUCCESS)
+  @SqsListener(value = "${application.aws.sqs.update-programme-membership}",
+      deletionPolicy = ON_SUCCESS)
   void updateProgrammeMembership(UpdateEventDto updatedProgrammeMembership) {
     log.info("Received update event for programme membership {}.", updatedProgrammeMembership);
     // For now, we simply revoke regardless of which fields have updated (pending TIS21-4152)
