@@ -55,12 +55,14 @@ import org.springframework.web.client.RestTemplate;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties.TokenProperties;
+import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.VerificationProperties;
 import uk.nhs.hee.tis.trainee.credentials.service.PublicKeyResolver.Jwks;
 import uk.nhs.hee.tis.trainee.credentials.service.PublicKeyResolver.Jwks.Jwk;
 
 class PublicKeyResolverTest {
 
   private static final String HOST = "https://credential.gateway";
+  private static final String HOST_ISSUER = "https://credential.gateway/oidc";
   private static final String ISSUING_TOKEN_AUDIENCE = "https://credential.gateway/issuer";
   private static final String JWKS_ENDPOINT = "https://credential.gateway/.well-known/openid-configuration/jwks";
 
@@ -77,8 +79,9 @@ class PublicKeyResolverTest {
 
     TokenProperties tokenProperties = new TokenProperties(ISSUING_TOKEN_AUDIENCE, "", "");
     IssuingProperties issuingProperties = new IssuingProperties("", "", "", tokenProperties, "");
+    VerificationProperties verificationProperties = new VerificationProperties(HOST_ISSUER, "", "", "");
     GatewayProperties gatewayProperties = new GatewayProperties(HOST, "", "", "", JWKS_ENDPOINT,
-        issuingProperties, null, null);
+        issuingProperties, verificationProperties, null);
     resolver = new PublicKeyResolver(cachingDelegate, restTemplate, gatewayProperties);
   }
 
@@ -106,7 +109,7 @@ class PublicKeyResolverTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {HOST, ISSUING_TOKEN_AUDIENCE})
+  @ValueSource(strings = {HOST_ISSUER, ISSUING_TOKEN_AUDIENCE})
   void shouldGetWellKnownPublicKeyWhenPublicKeyNotCached(String tokenIssuer) {
     KeyPair keyPair = Keys.keyPairFor(SignatureAlgorithm.RS256);
     RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
@@ -130,7 +133,7 @@ class PublicKeyResolverTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {HOST, ISSUING_TOKEN_AUDIENCE})
+  @ValueSource(strings = {HOST_ISSUER, ISSUING_TOKEN_AUDIENCE})
   void shouldCachePublicKeyWhenRetrievedFromWellKnown(String tokenIssuer) {
     KeyPair keyPair = Keys.keyPairFor(SignatureAlgorithm.RS256);
     RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
@@ -230,7 +233,7 @@ class PublicKeyResolverTest {
     when(restTemplate.getForObject(JWKS_ENDPOINT, Jwks.class)).thenReturn(jwks);
 
     DefaultJwsHeader header = new DefaultJwsHeader(Map.of(JwsHeader.KEY_ID, KEY_ID));
-    Claims claims = new DefaultClaims().setIssuer(HOST);
+    Claims claims = new DefaultClaims().setIssuer(HOST_ISSUER);
 
     Throwable cause = assertThrows(IllegalArgumentException.class,
         () -> resolver.resolveSigningKey(header, claims)).getCause();

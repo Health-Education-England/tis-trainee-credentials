@@ -95,8 +95,8 @@ public class PublicKeyResolver extends SigningKeyResolverAdapter {
   private Jwks getJwks(Claims claims) {
     String issuer = claims.getIssuer();
 
-    if (Objects.equals(issuer, properties.host()) || Objects.equals(issuer,
-        properties.issuing().token().audience())) {
+    if (Objects.equals(issuer, properties.verification().issuingEndpoint())
+        || Objects.equals(issuer, properties.issuing().token().audience())) {
       Jwks jwks = restTemplate.getForObject(properties.jwksEndpoint(), Jwks.class);
 
       if (jwks != null) {

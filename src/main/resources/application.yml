@@ -21,7 +21,7 @@ application:
     organisation-id: ${GATEWAY_ORGANISATION_ID}
     client-id: ${GATEWAY_CLIENT_ID}
     client-secret: ${GATEWAY_CLIENT_SECRET}
-    jwks-endpoint: ${application.gateway.host}/issuing/.well-known/openid-configuration/jwks
+    jwks-endpoint: ${application.gateway.host}/.well-known/openid-configuration/jwks
     issuing:
       par-endpoint: ${application.gateway.host}/oidc/par
       authorize-endpoint: ${application.gateway.host}/oidc/authorize?client_id=${application.gateway.client-id}
@@ -32,6 +32,7 @@ application:
         signing-key: ${GATEWAY_TOKEN_SIGNING_KEY}
       redirect-uri: ${GATEWAY_ISSUING_REDIRECT_URI}
     verification:
+      issuing-endpoint: ${application.gateway.host}/oidc
       authorize-endpoint: ${application.gateway.host}/oidc/authorizev1?client_id=${application.gateway.client-id}&response_type=code&redirect_uri=${application.gateway.verification.redirect-uri}&response_mode=query
       token-endpoint: ${application.gateway.host}/oidc/token
       redirect-uri: ${GATEWAY_VERIFICATION_REDIRECT_URI}

@@ -91,7 +91,7 @@ class GatewayServiceTest {
 
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
         "", null, REDIRECT_URI);
-    VerificationProperties verificationProperties = new VerificationProperties("", "", "");
+    VerificationProperties verificationProperties = new VerificationProperties("", "", "", "");
     RevocationProperties revocationProperties = new RevocationProperties(REVOCATION_ENDPOINT);
     GatewayProperties gatewayProperties = new GatewayProperties(HOST, ORGANISATION_ID, CLIENT_ID,
         CLIENT_SECRET, JWKS_ENDPOINT, issuingProperties, verificationProperties,
@@ -106,7 +106,7 @@ class GatewayServiceTest {
 
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
         "", null, REDIRECT_URI);
-    VerificationProperties verificationProperties = new VerificationProperties("", "", "");
+    VerificationProperties verificationProperties = new VerificationProperties("", "", "", "");
     RevocationProperties revocationProperties = new RevocationProperties("rev");
     GatewayProperties gatewayProperties = new GatewayProperties(HOST, ORGANISATION_ID, CLIENT_ID,
         CLIENT_SECRET, JWKS_ENDPOINT, issuingProperties, verificationProperties,

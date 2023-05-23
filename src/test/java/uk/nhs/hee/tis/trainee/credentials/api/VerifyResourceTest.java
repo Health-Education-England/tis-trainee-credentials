@@ -244,38 +244,10 @@ class VerifyResourceTest {
   }
 
   @Test
-  void shouldFailValidationWhenScopeNotProvided() throws Exception {
-    mockMvc.perform(
-            get(("/api/verify/callback"))
-                .queryParam(CODE_PARAM, CODE_VALUE)
-                .queryParam(STATE_PARARM, STATE_VALUE))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$").doesNotExist());
-
-    verifyNoInteractions(service);
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"", "not-a-valid-scope"})
-  void shouldFailValidationWhenScopeInvalid(String scope) throws Exception {
-    mockMvc.perform(
-            get(("/api/verify/callback"))
-                .queryParam(CODE_PARAM, CODE_VALUE)
-                .queryParam(SCOPE_PARAM, scope)
-                .queryParam(STATE_PARARM, STATE_VALUE))
-        .andExpect(status().isBadRequest())
-        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.scope").value(is("not a supported scope")));
-
-    verifyNoInteractions(service);
-  }
-
-  @Test
   void shouldFailValidationWhenStateNotProvided() throws Exception {
     mockMvc.perform(
             get(("/api/verify/callback"))
-                .queryParam(CODE_PARAM, CODE_VALUE)
-                .queryParam(SCOPE_PARAM, SCOPE_VALUE))
+                .queryParam(CODE_PARAM, CODE_VALUE))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$").doesNotExist());
 
@@ -288,25 +260,9 @@ class VerifyResourceTest {
     mockMvc.perform(
             get(("/api/verify/callback"))
                 .queryParam(CODE_PARAM, CODE_VALUE)
-                .queryParam(SCOPE_PARAM, SCOPE_VALUE)
                 .queryParam(STATE_PARARM, state))
         .andExpect(status().isBadRequest())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.state").value(is("must be a valid UUID")));
-
-    verifyNoInteractions(service);
-  }
-
-  @Test
-  void shouldFailValidationWhenMultipleParametersInvalid() throws Exception {
-    mockMvc.perform(
-            get(("/api/verify/callback"))
-                .queryParam(CODE_PARAM, CODE_VALUE)
-                .queryParam(SCOPE_PARAM, "")
-                .queryParam(STATE_PARARM, ""))
-        .andExpect(status().isBadRequest())
-        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.scope").value(is("not a supported scope")))
         .andExpect(jsonPath("$.state").value(is("must be a valid UUID")));
 
     verifyNoInteractions(service);

@@ -56,6 +56,8 @@ import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
 
 class VerificationServiceTest {
 
+  private static final URI ISSUING_ENDPOINT = URI.create(
+      "https://credential.gateway/oidc");
   private static final URI AUTHORIZE_ENDPOINT = URI.create(
       "https://credential.gateway/authorize/endpoint");
   private static final URI TOKEN_ENDPOINT = URI.create("https://credential.gateway/token/endpoint");
@@ -88,8 +90,8 @@ class VerificationServiceTest {
     gatewayService = mock(GatewayService.class);
     jwtService = mock(JwtService.class);
     cachingDelegate = spy(CachingDelegate.class);
-    var properties = new VerificationProperties(AUTHORIZE_ENDPOINT.toString(),
-        TOKEN_ENDPOINT.toString(), REDIRECT_URI.toString());
+    var properties = new VerificationProperties(ISSUING_ENDPOINT.toString(),
+        AUTHORIZE_ENDPOINT.toString(), TOKEN_ENDPOINT.toString(), REDIRECT_URI.toString());
     verificationService = new VerificationService(gatewayService, jwtService, cachingDelegate,
         properties);
   }
