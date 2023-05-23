@@ -546,7 +546,8 @@ class VerificationServiceTest {
    */
   private void setDefaultClaimsMocks(DefaultClaims claims, UUID nonce, String codeVerifier) {
     TokenResponse tokenResponse = new TokenResponse("id token", IDENTITY_SCOPE);
-    ResponseEntity<TokenResponse> tokenResponseEntity = new ResponseEntity<>(tokenResponse, HttpStatus.OK);
+    ResponseEntity<TokenResponse> tokenResponseEntity
+        = new ResponseEntity<>(tokenResponse, HttpStatus.OK);
 
     when(gatewayService.getTokenResponse(TOKEN_ENDPOINT, REDIRECT_URI, CODE, codeVerifier))
         .thenReturn(tokenResponseEntity);
