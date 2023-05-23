@@ -270,7 +270,7 @@ class VerifyResourceTest {
 
   @Test
   void shouldRedirectWhenVerificationCompleted() throws Exception {
-    when(service.completeCredentialVerification(CODE_VALUE, SCOPE_VALUE, STATE_VALUE)).thenReturn(
+    when(service.completeCredentialVerification(CODE_VALUE, STATE_VALUE)).thenReturn(
         URI.create("test-redirect"));
 
     mockMvc.perform(

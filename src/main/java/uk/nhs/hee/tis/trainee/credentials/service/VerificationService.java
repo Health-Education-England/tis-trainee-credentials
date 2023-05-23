@@ -32,11 +32,13 @@ import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.VerificationProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
+import uk.nhs.hee.tis.trainee.credentials.service.GatewayService.TokenResponse;
 
 /**
  * A service providing credential verification functionality.
@@ -142,11 +144,10 @@ public class VerificationService {
    * Complete the credential verification process.
    *
    * @param code  The code provided by the credential gateway.
-   * @param scope The scope set in the initial gateway request.
    * @param state The state set in the initial gateway request.
    * @return The built redirect URI for completed verification.
    */
-  public URI completeCredentialVerification(String code, String scope, String state) {
+  public URI completeCredentialVerification(String code, String state) {
     UUID stateUuid = UUID.fromString(state);
     Optional<String> codeVerifier = cachingDelegate.getCodeVerifier(stateUuid);
     String failureCode;
@@ -156,8 +157,11 @@ public class VerificationService {
     } else {
       URI tokenEndpoint = URI.create(properties.tokenEndpoint());
       URI redirectEndpoint = URI.create(properties.redirectUri());
-      Claims claims = gatewayService.getTokenClaims(tokenEndpoint, redirectEndpoint, code,
+      ResponseEntity<TokenResponse> tokenResponseEntity
+          = gatewayService.getTokenResponse(tokenEndpoint, redirectEndpoint, code,
           codeVerifier.get());
+      Claims claims = gatewayService.getTokenClaims(tokenResponseEntity);
+      String scope = gatewayService.getTokenScope(tokenResponseEntity);
       String credentialType = scope.replace(CREDENTIAL_PREFIX, "");
 
       if (credentialType.equals(CREDENTIAL_TYPE_IDENTITY)) {
