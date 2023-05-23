@@ -191,6 +191,22 @@ public class GatewayService {
   }
 
   /**
+   * Call a token code endpoint and return the token claims.
+   *
+   * @param endpoint     The token endpoint.
+   * @param redirectUri  The redirect endpoint sent with the initial request.
+   * @param code         The code resulting from the initial request.
+   * @param codeVerifier The code PKCE code verifier matching the challenge sent with the initial
+   *                     request.
+   * @return The token claims.
+   */
+  public Claims getTokenClaims(URI endpoint, URI redirectUri, String code, String codeVerifier) {
+    ResponseEntity<TokenResponse> tokenResponse
+        = getTokenResponse(endpoint, redirectUri, code, codeVerifier);
+    return getTokenClaims(tokenResponse);
+  }
+
+  /**
    * Extract the claims from a token response entity.
    *
    * @param tokenResponse     The token response entity.
@@ -235,22 +251,6 @@ public class GatewayService {
     }
 
     return body.scope();
-  }
-
-  /**
-   * Call a token code endpoint and return the token claims.
-   *
-   * @param endpoint     The token endpoint.
-   * @param redirectUri  The redirect endpoint sent with the initial request.
-   * @param code         The code resulting from the initial request.
-   * @param codeVerifier The code PKCE code verifier matching the challenge sent with the initial
-   *                     request.
-   * @return The token claims.
-   */
-  public Claims getTokenClaims(URI endpoint, URI redirectUri, String code, String codeVerifier) {
-    ResponseEntity<TokenResponse> tokenResponse
-        = getTokenResponse(endpoint, redirectUri, code, codeVerifier);
-    return getTokenClaims(tokenResponse);
   }
 
   /**

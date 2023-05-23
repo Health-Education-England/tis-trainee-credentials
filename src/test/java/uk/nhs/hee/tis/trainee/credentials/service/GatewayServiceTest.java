@@ -403,11 +403,8 @@ class GatewayServiceTest {
 
     String token = "tokenString";
     var response = ResponseEntity.ok().body(new TokenResponse(token, SCOPE));
-    when(restTemplate.postForEntity(eq(tokenEndpoint), any(), eq(TokenResponse.class))).thenReturn(
-        response);
 
-    String scope = service.getTokenScope(
-        service.getTokenResponse(tokenEndpoint,URI.create(REDIRECT_URI), "", ""));
+    String scope = service.getTokenScope(response);
 
     assertThat("Unexpected scope.", scope, is(SCOPE));
   }

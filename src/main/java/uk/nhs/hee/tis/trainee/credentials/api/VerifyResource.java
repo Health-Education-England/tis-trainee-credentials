@@ -48,8 +48,6 @@ import uk.nhs.hee.tis.trainee.credentials.service.VerificationService;
 @Validated
 public class VerifyResource {
 
-  private static final String VERIFY_SCOPE = "openid Identity";
-
   private final VerificationService service;
 
   VerifyResource(VerificationService service) {
