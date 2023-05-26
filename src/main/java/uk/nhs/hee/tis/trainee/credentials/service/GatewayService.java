@@ -171,24 +171,48 @@ public class GatewayService {
   }
 
   /**
-   * Call a token code endpoint and extract the claims from the resulting token.
+   * Call a token code endpoint and return the token response entity.
    *
    * @param endpoint     The token endpoint.
    * @param redirectUri  The redirect endpoint sent with the initial request.
    * @param code         The code resulting from the initial request.
    * @param codeVerifier The code PKCE code verifier matching the challenge sent with the initial
    *                     request.
-   * @return The extracted claims.
+   * @return The token response entity.
    */
-  public Claims getTokenClaims(URI endpoint, URI redirectUri, String code, String codeVerifier) {
+  public ResponseEntity<TokenResponse> getTokenResponse(URI endpoint, URI redirectUri, String code,
+      String codeVerifier) {
     String state = UUID.randomUUID().toString();
     HttpEntity<MultiValueMap<String, String>> request = buildTokenRequest(redirectUri, code,
         codeVerifier, state);
 
     log.info("Sending token request.");
-    ResponseEntity<TokenResponse> tokenResponse = restTemplate.postForEntity(endpoint, request,
-        TokenResponse.class);
+    return restTemplate.postForEntity(endpoint, request, TokenResponse.class);
+  }
 
+  /**
+   * Call a token code endpoint and return the token claims.
+   *
+   * @param endpoint     The token endpoint.
+   * @param redirectUri  The redirect endpoint sent with the initial request.
+   * @param code         The code resulting from the initial request.
+   * @param codeVerifier The code PKCE code verifier matching the challenge sent with the initial
+   *                     request.
+   * @return The token claims.
+   */
+  public Claims getTokenClaims(URI endpoint, URI redirectUri, String code, String codeVerifier) {
+    ResponseEntity<TokenResponse> tokenResponse
+        = getTokenResponse(endpoint, redirectUri, code, codeVerifier);
+    return getTokenClaims(tokenResponse);
+  }
+
+  /**
+   * Extract the claims from a token response entity.
+   *
+   * @param tokenResponse     The token response entity.
+   * @return The extracted claims.
+   */
+  public Claims getTokenClaims(ResponseEntity<TokenResponse> tokenResponse) {
     if (tokenResponse.getStatusCode().isError()) {
       log.error("Token request failed with code {}.", tokenResponse.getStatusCode());
       return new DefaultClaims();
@@ -204,6 +228,29 @@ public class GatewayService {
 
     String signedToken = body.idToken();
     return jwtService.getClaims(signedToken, true);
+  }
+
+  /**
+   * Extract the scope from a token response entity.
+   *
+   * @param tokenResponse     The token response entity.
+   * @return The extracted scope, or an empty string on error.
+   */
+  public String getTokenScope(ResponseEntity<TokenResponse> tokenResponse) {
+    if (tokenResponse.getStatusCode().isError()) {
+      log.error("Token request failed with code {}.", tokenResponse.getStatusCode());
+      return "";
+    }
+    log.info("Received token response.");
+
+    TokenResponse body = tokenResponse.getBody();
+
+    if (body == null) {
+      log.error("Token response was empty.");
+      return "";
+    }
+
+    return body.scope();
   }
 
   /**
@@ -237,7 +284,8 @@ public class GatewayService {
     return new HttpEntity<>(bodyPair, headers);
   }
 
-  record TokenResponse(@JsonProperty("id_token") String idToken) {
+  record TokenResponse(@JsonProperty("id_token") String idToken,
+                       @JsonProperty("scope") String scope) {
 
   }
 

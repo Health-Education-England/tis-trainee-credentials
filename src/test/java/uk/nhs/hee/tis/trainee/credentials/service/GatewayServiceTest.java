@@ -77,6 +77,7 @@ class GatewayServiceTest {
 
   private static final String NONCE = UUID.randomUUID().toString();
   private static final String STATE = "some-client-state";
+  private static final String SCOPE = "openid Identity";
 
   private static final String CREDENTIAL_ID = UUID.randomUUID().toString();
 
@@ -91,7 +92,7 @@ class GatewayServiceTest {
 
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
         "", null, REDIRECT_URI);
-    VerificationProperties verificationProperties = new VerificationProperties("", "", "");
+    VerificationProperties verificationProperties = new VerificationProperties("", "", "", "");
     RevocationProperties revocationProperties = new RevocationProperties(REVOCATION_ENDPOINT);
     GatewayProperties gatewayProperties = new GatewayProperties(HOST, ORGANISATION_ID, CLIENT_ID,
         CLIENT_SECRET, JWKS_ENDPOINT, issuingProperties, verificationProperties,
@@ -106,7 +107,7 @@ class GatewayServiceTest {
 
     IssuingProperties issuingProperties = new IssuingProperties(PAR_ENDPOINT, AUTHORIZE_ENDPOINT,
         "", null, REDIRECT_URI);
-    VerificationProperties verificationProperties = new VerificationProperties("", "", "");
+    VerificationProperties verificationProperties = new VerificationProperties("", "", "", "");
     RevocationProperties revocationProperties = new RevocationProperties("rev");
     GatewayProperties gatewayProperties = new GatewayProperties(HOST, ORGANISATION_ID, CLIENT_ID,
         CLIENT_SECRET, JWKS_ENDPOINT, issuingProperties, verificationProperties,
@@ -363,11 +364,25 @@ class GatewayServiceTest {
   }
 
   @Test
+  void shouldReturnEmptyScopeWhenTokenResponseNotOk() {
+    String scope = service.getTokenScope(ResponseEntity.notFound().build());
+
+    assertThat("Unexpected scope.", scope, is(""));
+  }
+
+  @Test
+  void shouldReturnEmptyScopeWhenTokenResponseEmpty() {
+    String scope = service.getTokenScope(ResponseEntity.ok().build());
+
+    assertThat("Unexpected scope.", scope, is(""));
+  }
+
+  @Test
   void shouldReturnTokenClaimsWhenTokenResponseOk() {
     URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
 
     String token = "tokenString";
-    var response = ResponseEntity.ok().body(new TokenResponse(token));
+    var response = ResponseEntity.ok().body(new TokenResponse(token, SCOPE));
     when(restTemplate.postForEntity(eq(tokenEndpoint), any(), eq(TokenResponse.class))).thenReturn(
         response);
     when(jwtService.getClaims(token, true)).thenReturn(new DefaultClaims(Map.of(
@@ -380,6 +395,18 @@ class GatewayServiceTest {
     assertThat("Unexpected claim count.", claims.size(), is(2));
     assertThat("Unexpected claim value.", claims.get("claim1"), is("value1"));
     assertThat("Unexpected claim value.", claims.get("claim2"), is("value2"));
+  }
+
+  @Test
+  void shouldReturnTokenScopeWhenTokenResponseOk() {
+    URI tokenEndpoint = URI.create(TOKEN_ENDPOINT);
+
+    String token = "tokenString";
+    var response = ResponseEntity.ok().body(new TokenResponse(token, SCOPE));
+
+    String scope = service.getTokenScope(response);
+
+    assertThat("Unexpected scope.", scope, is(SCOPE));
   }
 
   @Test

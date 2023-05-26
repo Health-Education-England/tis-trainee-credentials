@@ -38,7 +38,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
 import uk.nhs.hee.tis.trainee.credentials.service.VerificationService;
-import uk.nhs.hee.tis.trainee.credentials.validator.ValidScope;
 
 /**
  * API endpoints for verifying trainee digital credentials.
@@ -68,10 +67,9 @@ public class VerifyResource {
 
   @GetMapping("/callback")
   ResponseEntity<String> handleVerification(@RequestParam String code,
-      @ValidScope @RequestParam String scope,
       @UUID @RequestParam String state) {
     log.info("Received callback for credential verification.");
-    URI uri = service.completeCredentialVerification(code, scope, state);
+    URI uri = service.completeCredentialVerification(code, state);
 
     log.info("Credential verification completed.");
     return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();

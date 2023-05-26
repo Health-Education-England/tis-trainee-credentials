@@ -83,6 +83,7 @@ public record GatewayProperties(
    */
   @ConfigurationProperties(prefix = "application.gateway.verification")
   public record VerificationProperties(
+      String issuingEndpoint,
       String authorizeEndpoint,
       String tokenEndpoint,
       String redirectUri) {
