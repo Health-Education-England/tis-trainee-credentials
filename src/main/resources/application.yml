@@ -27,7 +27,7 @@ application:
       authorize-endpoint: ${application.gateway.host}/oidc/authorize?client_id=${application.gateway.client-id}
       token-endpoint: ${application.gateway.host}/oidc/token
       token:
-        audience: ${application.gateway.host}/issuing
+        audience: ${application.gateway.host}/oidc
         issuer: ${application.gateway.client-id}
         signing-key: ${GATEWAY_TOKEN_SIGNING_KEY}
       redirect-uri: ${GATEWAY_ISSUING_REDIRECT_URI}
