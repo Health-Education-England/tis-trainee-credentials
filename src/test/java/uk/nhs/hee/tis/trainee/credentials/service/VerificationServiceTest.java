@@ -48,6 +48,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -414,8 +416,14 @@ class VerificationServiceTest {
     assertThat("Unexpected invalid reason.", reason, is("identity_verification_failed"));
   }
 
-  @Test
-  void shouldReturnCredentialVerifiedWhenIdentityVerificationPasses() {
+  @ParameterizedTest
+  @CsvSource(delimiter = '|', textBlock = """
+      anthony | gilliam
+      Anthony | Gilliam
+      ANTHONY | GILLIAM
+      """)
+  void shouldReturnCredentialVerifiedWhenIdentityVerificationPasses(String forenames,
+      String surname) {
     UUID state = UUID.randomUUID();
     String codeVerifier = "code-verifier";
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.of(codeVerifier));
@@ -423,8 +431,8 @@ class VerificationServiceTest {
     UUID nonce = UUID.randomUUID();
     DefaultClaims claims = new DefaultClaims(Map.of(
         CLAIM_NONCE, nonce.toString(),
-        CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
-        CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
+        CLAIM_FIRST_NAME, forenames,
+        CLAIM_FAMILY_NAME, surname,
         CLAIM_BIRTH_DATE, IDENTITY_DOB.toString()));
     setDefaultClaimsMocks(claims, nonce, codeVerifier);
     when(cachingDelegate.getUnverifiedSessionIdentifier(nonce)).thenReturn(
@@ -540,9 +548,9 @@ class VerificationServiceTest {
   /**
    * Set the gateway service default claims mocks.
    *
-   * @param claims        the default claims.
-   * @param nonce         the nonce.
-   * @param codeVerifier  the code verifier.
+   * @param claims       the default claims.
+   * @param nonce        the nonce.
+   * @param codeVerifier the code verifier.
    */
   private void setDefaultClaimsMocks(DefaultClaims claims, UUID nonce, String codeVerifier) {
     TokenResponse tokenResponse = new TokenResponse("id token", IDENTITY_SCOPE);

@@ -204,8 +204,8 @@ public class VerificationService {
       String claimFamilyName = claims.get(CLAIM_FAMILY_NAME, String.class);
       LocalDate claimBirthDate = LocalDate.parse(claims.get(CLAIM_BIRTH_DATE, String.class));
 
-      if (identityData.forenames().equals(claimFirstName) && identityData.surname()
-          .equals(claimFamilyName) && identityData.dateOfBirth().equals(claimBirthDate)) {
+      if (identityData.forenames().equalsIgnoreCase(claimFirstName) && identityData.surname()
+          .equalsIgnoreCase(claimFamilyName) && identityData.dateOfBirth().equals(claimBirthDate)) {
         Optional<String> sessionIdentifier = cachingDelegate.getUnverifiedSessionIdentifier(nonce);
 
         // If the unverified session is cached, move it to the verified session cache.
