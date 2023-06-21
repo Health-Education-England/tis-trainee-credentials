@@ -108,9 +108,10 @@ class IssuanceServiceTest {
   private static Stream<CredentialDto> credentialMethodSource() {
     return Stream.of(
         new TestCredentialDto(TIS_ID),
-        new PlacementCredentialDto(TIS_ID, "", "", "", "", "", LocalDate.MIN, LocalDate.MAX),
-        new ProgrammeMembershipCredentialDto(TIS_ID, "", LocalDate.MIN, LocalDate.MAX)
-
+        new PlacementCredentialDto(TIS_ID, "", "", "", "", "", LocalDate.MIN, LocalDate.MAX,
+            "", "", "", "", "", "", "", LocalDate.now()),
+        new ProgrammeMembershipCredentialDto(TIS_ID, "", LocalDate.MIN, LocalDate.MAX,
+            "", "", "", "", "", "", "", LocalDate.now())
     );
   }
 
