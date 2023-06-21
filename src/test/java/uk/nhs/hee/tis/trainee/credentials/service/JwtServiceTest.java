@@ -69,6 +69,15 @@ class JwtServiceTest {
   private static final String PLACEMENT_EMPLOYING_BODY = "placement employing body";
   private static final String PLACEMENT_SITE = "placement site";
 
+  private static final String METADATA_ORIGIN_VALUE = "NHS England";
+  private static final String METADATA_ASSURANCE_POLICY_VALUE = "GPG45";
+  private static final String METADATA_ASSURANCE_OUTCOME_VALUE = "High";
+  private static final String METADATA_PROVIDER_VALUE = "NHS England";
+  private static final String METADATA_VERIFIER_VALUE = "Origin";
+  private static final String METADATA_VERIFICATION_METHOD_VALUE = "Record Verification";
+  private static final String METADATA_PEDIGREE_VALUE = "Authoritative";
+  private static final LocalDate METADATA_LAST_REFRESH_VALUE = LocalDate.now();
+
   private static final String AUDIENCE = "https://test.tis.nhs.uk/audience";
   private static final String ISSUER = "some-identifier";
 
@@ -142,19 +151,38 @@ class JwtServiceTest {
 
   @Test
   void shouldGenerateTokenWithProgrammeMembershipClaims() {
-    var dto = new ProgrammeMembershipCredentialDto(TIS_ID, PROGRAMME_NAME, START_DATE, END_DATE);
+    var dto = new ProgrammeMembershipCredentialDto(TIS_ID, PROGRAMME_NAME, START_DATE, END_DATE,
+        METADATA_ORIGIN_VALUE, METADATA_ASSURANCE_POLICY_VALUE, METADATA_ASSURANCE_OUTCOME_VALUE,
+        METADATA_PROVIDER_VALUE, METADATA_VERIFIER_VALUE, METADATA_VERIFICATION_METHOD_VALUE,
+        METADATA_PEDIGREE_VALUE, METADATA_LAST_REFRESH_VALUE);
 
     String tokenString = service.generateToken(dto);
 
     Jwt<?, Claims> token = parser.parse(tokenString);
     Claims tokenClaims = token.getBody();
 
-    assertThat("Unexpected number of claims.", tokenClaims.size(), is(DEFAULT_CLAIM_COUNT + 3));
+    assertThat("Unexpected number of claims.", tokenClaims.size(), is(DEFAULT_CLAIM_COUNT + 11));
     assertThat("Unexpected programme name.", tokenClaims.get("TPR-Name"), is(PROGRAMME_NAME));
     assertThat("Unexpected programme start date.", tokenClaims.get("TPR-ProgrammeStartDate"),
         is(START_DATE.toString()));
     assertThat("Unexpected programme end date.", tokenClaims.get("TPR-ProgrammeEndDate"),
         is(END_DATE.toString()));
+    assertThat("Unexpected origin", tokenClaims.get("TPR-Origin"),
+        is(METADATA_ORIGIN_VALUE));
+    assertThat("Unexpected assurance policy", tokenClaims.get("TPR-AssurancePolicy"),
+        is(METADATA_ASSURANCE_POLICY_VALUE));
+    assertThat("Unexpected assurance outcome", tokenClaims.get("TPR-AssuranceOutcome"),
+        is(METADATA_ASSURANCE_OUTCOME_VALUE));
+    assertThat("Unexpected provider", tokenClaims.get("TPR-Provider"),
+        is(METADATA_PROVIDER_VALUE));
+    assertThat("Unexpected verifier", tokenClaims.get("TPR-Verifier"),
+        is(METADATA_VERIFIER_VALUE));
+    assertThat("Unexpected verification method", tokenClaims.get("TPR-VerificationMethod"),
+        is(METADATA_VERIFICATION_METHOD_VALUE));
+    assertThat("Unexpected pedigree", tokenClaims.get("TPR-Pedigree"),
+        is(METADATA_PEDIGREE_VALUE));
+    assertThat("Unexpected last refresh", tokenClaims.get("TPR-LastRefresh"),
+        is(METADATA_LAST_REFRESH_VALUE.toString()));
 
     Instant issuedAt = tokenClaims.getIssuedAt().toInstant();
     Instant expectedExpiration = dto.getExpiration(issuedAt).truncatedTo(ChronoUnit.SECONDS);
@@ -166,14 +194,17 @@ class JwtServiceTest {
   void shouldGenerateTokenWithPlacementClaims() {
     var dto = new PlacementCredentialDto(TIS_ID,
         PLACEMENT_SPECIALTY, PLACEMENT_GRADE, PLACEMENT_NATIONAL_POST_NUMBER,
-        PLACEMENT_EMPLOYING_BODY, PLACEMENT_SITE, START_DATE, END_DATE);
+        PLACEMENT_EMPLOYING_BODY, PLACEMENT_SITE, START_DATE, END_DATE,
+        METADATA_ORIGIN_VALUE, METADATA_ASSURANCE_POLICY_VALUE, METADATA_ASSURANCE_OUTCOME_VALUE,
+        METADATA_PROVIDER_VALUE, METADATA_VERIFIER_VALUE, METADATA_VERIFICATION_METHOD_VALUE,
+        METADATA_PEDIGREE_VALUE, METADATA_LAST_REFRESH_VALUE);
 
     String tokenString = service.generateToken(dto);
 
     Jwt<?, Claims> token = parser.parse(tokenString);
     Claims tokenClaims = token.getBody();
 
-    assertThat("Unexpected number of claims.", tokenClaims.size(), is(DEFAULT_CLAIM_COUNT + 7));
+    assertThat("Unexpected number of claims.", tokenClaims.size(), is(DEFAULT_CLAIM_COUNT + 15));
     assertThat("Unexpected placement specialty.", tokenClaims.get("TPL-Specialty"),
         is(PLACEMENT_SPECIALTY));
     assertThat("Unexpected placement grade.", tokenClaims.get("TPL-Grade"),
@@ -189,6 +220,22 @@ class JwtServiceTest {
         is(START_DATE.toString()));
     assertThat("Unexpected placement end date.", tokenClaims.get("TPL-PlacementEndDate"),
         is(END_DATE.toString()));
+    assertThat("Unexpected origin", tokenClaims.get("TPL-Origin"),
+        is(METADATA_ORIGIN_VALUE));
+    assertThat("Unexpected assurance policy", tokenClaims.get("TPL-AssurancePolicy"),
+        is(METADATA_ASSURANCE_POLICY_VALUE));
+    assertThat("Unexpected assurance outcome", tokenClaims.get("TPL-AssuranceOutcome"),
+        is(METADATA_ASSURANCE_OUTCOME_VALUE));
+    assertThat("Unexpected provider", tokenClaims.get("TPL-Provider"),
+        is(METADATA_PROVIDER_VALUE));
+    assertThat("Unexpected verifier", tokenClaims.get("TPL-Verifier"),
+        is(METADATA_VERIFIER_VALUE));
+    assertThat("Unexpected verification method", tokenClaims.get("TPL-VerificationMethod"),
+        is(METADATA_VERIFICATION_METHOD_VALUE));
+    assertThat("Unexpected pedigree", tokenClaims.get("TPL-Pedigree"),
+        is(METADATA_PEDIGREE_VALUE));
+    assertThat("Unexpected last refresh", tokenClaims.get("TPL-LastRefresh"),
+        is(METADATA_LAST_REFRESH_VALUE.toString()));
 
     Instant issuedAt = tokenClaims.getIssuedAt().toInstant();
     Instant expectedExpiration = dto.getExpiration(issuedAt).truncatedTo(ChronoUnit.SECONDS);

@@ -46,7 +46,31 @@ public record ProgrammeMembershipCredentialDto(
     LocalDate startDate,
 
     @JsonProperty("TPR-ProgrammeEndDate")
-    LocalDate endDate
+    LocalDate endDate,
+
+    @JsonProperty("TPR-Origin")
+    String metadataOrigin,
+
+    @JsonProperty("TPR-AssurancePolicy")
+    String metadataAssurancePolicy,
+
+    @JsonProperty("TPR-AssuranceOutcome")
+    String metadataAssuranceOutcome,
+
+    @JsonProperty("TPR-Provider")
+    String metadataProvider,
+
+    @JsonProperty("TPR-Verifier")
+    String metadataVerifier,
+
+    @JsonProperty("TPR-VerificationMethod")
+    String metadataVerificationMethod,
+
+    @JsonProperty("TPR-Pedigree")
+    String metadataPedigree,
+
+    @JsonProperty("TPR-LastRefresh")
+    LocalDate metadataLastRefresh
 ) implements CredentialDto {
 
   @Override

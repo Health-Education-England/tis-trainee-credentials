@@ -22,6 +22,7 @@
 package uk.nhs.hee.tis.trainee.credentials.mapper;
 
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants.ComponentModel;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto;
@@ -34,12 +35,28 @@ import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
 @Mapper(componentModel = ComponentModel.SPRING)
 public interface CredentialDataMapper {
 
+  String METADATA_ORIGIN_VALUE = "NHS England";
+  String METADATA_ASSURANCE_POLICY_VALUE = "GPG45";
+  String METADATA_ASSURANCE_OUTCOME_VALUE = "High";
+  String METADATA_PROVIDER_VALUE = "NHS England";
+  String METADATA_VERIFIER_VALUE = "Origin";
+  String METADATA_VERIFICATION_METHOD_VALUE = "Record Verification";
+  String METADATA_PEDIGREE_VALUE = "Authoritative";
+
   /**
    * Map a programme membership data DTO to the equivalent credential DTO.
    *
    * @param data The programme membership data to map.
    * @return The mapped programme membership credential.
    */
+  @Mapping(target = "metadataOrigin", constant = METADATA_ORIGIN_VALUE)
+  @Mapping(target = "metadataAssurancePolicy", constant = METADATA_ASSURANCE_POLICY_VALUE)
+  @Mapping(target = "metadataAssuranceOutcome", constant = METADATA_ASSURANCE_OUTCOME_VALUE)
+  @Mapping(target = "metadataProvider", constant = METADATA_PROVIDER_VALUE)
+  @Mapping(target = "metadataVerifier", constant = METADATA_VERIFIER_VALUE)
+  @Mapping(target = "metadataVerificationMethod", constant = METADATA_VERIFICATION_METHOD_VALUE)
+  @Mapping(target = "metadataPedigree", constant = METADATA_PEDIGREE_VALUE)
+  @Mapping(target = "metadataLastRefresh", expression = "java(LocalDate.now())")
   ProgrammeMembershipCredentialDto toCredential(ProgrammeMembershipDataDto data);
 
   /**
@@ -48,5 +65,13 @@ public interface CredentialDataMapper {
    * @param data The placement data to map.
    * @return The mapped placement credential.
    */
+  @Mapping(target = "metadataOrigin", constant = METADATA_ORIGIN_VALUE)
+  @Mapping(target = "metadataAssurancePolicy", constant = METADATA_ASSURANCE_POLICY_VALUE)
+  @Mapping(target = "metadataAssuranceOutcome", constant = METADATA_ASSURANCE_OUTCOME_VALUE)
+  @Mapping(target = "metadataProvider", constant = METADATA_PROVIDER_VALUE)
+  @Mapping(target = "metadataVerifier", constant = METADATA_VERIFIER_VALUE)
+  @Mapping(target = "metadataVerificationMethod", constant = METADATA_VERIFICATION_METHOD_VALUE)
+  @Mapping(target = "metadataPedigree", constant = METADATA_PEDIGREE_VALUE)
+  @Mapping(target = "metadataLastRefresh", expression = "java(LocalDate.now())")
   PlacementCredentialDto toCredential(PlacementDataDto data);
 }

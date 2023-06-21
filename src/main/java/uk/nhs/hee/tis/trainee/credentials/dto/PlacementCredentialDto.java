@@ -62,7 +62,31 @@ public record PlacementCredentialDto(
     LocalDate startDate,
 
     @JsonProperty("TPL-PlacementEndDate")
-    LocalDate endDate
+    LocalDate endDate,
+
+    @JsonProperty("TPL-Origin")
+    String metadataOrigin,
+
+    @JsonProperty("TPL-AssurancePolicy")
+    String metadataAssurancePolicy,
+
+    @JsonProperty("TPL-AssuranceOutcome")
+    String metadataAssuranceOutcome,
+
+    @JsonProperty("TPL-Provider")
+    String metadataProvider,
+
+    @JsonProperty("TPL-Verifier")
+    String metadataVerifier,
+
+    @JsonProperty("TPL-VerificationMethod")
+    String metadataVerificationMethod,
+
+    @JsonProperty("TPL-Pedigree")
+    String metadataPedigree,
+
+    @JsonProperty("TPL-LastRefresh")
+    LocalDate metadataLastRefresh
 ) implements CredentialDto {
 
   @Override
