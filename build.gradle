@@ -51,7 +51,7 @@ dependencies {
   implementation "io.awspring.cloud:spring-cloud-starter-aws"
   implementation "io.awspring.cloud:spring-cloud-aws-messaging"
 
-  implementation "commons-codec:commons-codec:1.15"
+  implementation "commons-codec:commons-codec:1.16.0"
 
   ext.jjwtVersion = "0.11.5"
   implementation "io.jsonwebtoken:jjwt-api:$jjwtVersion"
