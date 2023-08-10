@@ -80,6 +80,7 @@ class VerificationServiceTest {
   private static final String CLAIM_FAMILY_NAME = "Identity.ID-LegalSurname";
   private static final String CLAIM_BIRTH_DATE = "Identity.ID-BirthDate";
   private static final String CLAIM_TOKEN_IDENTIFIER = "origin_jti";
+  private static final String CLAIM_UNIQUE_IDENTIFIER = "UniqueIdentifier";
 
   private static final String IDENTITY_FORENAMES = "Anthony";
   private static final String IDENTITY_SURNAME = "Gilliam";
@@ -312,7 +313,8 @@ class VerificationServiceTest {
         CLAIM_NONCE, nonce.toString(),
         CLAIM_FIRST_NAME, "mismatch",
         CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
-        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString()));
+        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
+        CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
     setDefaultClaimsMocks(claims, nonce, codeVerifier);
     when(cachingDelegate.getUnverifiedSessionIdentifier(nonce)).thenReturn(
         Optional.of("session123"));
@@ -341,7 +343,8 @@ class VerificationServiceTest {
         CLAIM_NONCE, nonce.toString(),
         CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
         CLAIM_FAMILY_NAME, "mismatch",
-        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString()));
+        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
+        CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
     setDefaultClaimsMocks(claims, nonce, codeVerifier);
     when(cachingDelegate.getUnverifiedSessionIdentifier(nonce)).thenReturn(
         Optional.of("session123"));
@@ -370,7 +373,8 @@ class VerificationServiceTest {
         CLAIM_NONCE, nonce.toString(),
         CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
         CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
-        CLAIM_BIRTH_DATE, LocalDate.now().toString()));
+        CLAIM_BIRTH_DATE, LocalDate.now().toString(),
+        CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
     setDefaultClaimsMocks(claims, nonce, codeVerifier);
     when(cachingDelegate.getUnverifiedSessionIdentifier(nonce)).thenReturn(
         Optional.of("session123"));
@@ -399,9 +403,39 @@ class VerificationServiceTest {
         CLAIM_NONCE, nonce.toString(),
         CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
         CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
-        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString()));
+        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
+        CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
     setDefaultClaimsMocks(claims, nonce, codeVerifier);
     when(cachingDelegate.getUnverifiedSessionIdentifier(nonce)).thenReturn(Optional.empty());
+
+    IdentityDataDto identityData = new IdentityDataDto(IDENTITY_FORENAMES, IDENTITY_SURNAME,
+        IDENTITY_DOB);
+    when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
+
+    URI uri = verificationService.completeCredentialVerification(CODE, state.toString());
+
+    assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
+
+    Map<String, String> queryParams = splitQueryParams(uri);
+    String reason = queryParams.get(QUERY_PARAM_REASON);
+    assertThat("Unexpected invalid reason.", reason, is("identity_verification_failed"));
+  }
+
+  @Test
+  void shouldReturnInvalidCredentialWhenIdentityVerificationFailsOnMissingUniqueIdentifier() {
+    UUID state = UUID.randomUUID();
+    String codeVerifier = "code-verifier";
+    when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.of(codeVerifier));
+
+    UUID nonce = UUID.randomUUID();
+    DefaultClaims claims = new DefaultClaims(Map.of(
+        CLAIM_NONCE, nonce.toString(),
+        CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
+        CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
+        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString()));
+    setDefaultClaimsMocks(claims, nonce, codeVerifier);
+    when(cachingDelegate.getUnverifiedSessionIdentifier(nonce)).thenReturn(
+        Optional.of("session123"));
 
     IdentityDataDto identityData = new IdentityDataDto(IDENTITY_FORENAMES, IDENTITY_SURNAME,
         IDENTITY_DOB);
@@ -433,7 +467,8 @@ class VerificationServiceTest {
         CLAIM_NONCE, nonce.toString(),
         CLAIM_FIRST_NAME, forenames,
         CLAIM_FAMILY_NAME, surname,
-        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString()));
+        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
+        CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
     setDefaultClaimsMocks(claims, nonce, codeVerifier);
     when(cachingDelegate.getUnverifiedSessionIdentifier(nonce)).thenReturn(
         Optional.of("session123"));
@@ -454,11 +489,13 @@ class VerificationServiceTest {
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.of(codeVerifier));
 
     UUID nonce = UUID.randomUUID();
+    UUID identityId = UUID.randomUUID();
     DefaultClaims claims = new DefaultClaims(Map.of(
         CLAIM_NONCE, nonce.toString(),
         CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
         CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
-        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString()));
+        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
+        CLAIM_UNIQUE_IDENTIFIER, identityId.toString()));
     setDefaultClaimsMocks(claims, nonce, codeVerifier);
     when(cachingDelegate.getUnverifiedSessionIdentifier(nonce)).thenReturn(
         Optional.of("session123"));
@@ -469,7 +506,7 @@ class VerificationServiceTest {
 
     verificationService.completeCredentialVerification(CODE, state.toString());
 
-    verify(cachingDelegate).cacheVerifiedSessionIdentifier("session123");
+    verify(cachingDelegate).cacheVerifiedSessionIdentityIdentifier("session123", identityId);
   }
 
   @Test
@@ -508,8 +545,8 @@ class VerificationServiceTest {
     request.addHeader(HttpHeaders.AUTHORIZATION, token);
 
     when(jwtService.getClaims(token)).thenReturn(claims);
-    when(cachingDelegate.getVerifiedSessionIdentifier(tokenIdentifier)).thenReturn(
-        Optional.of(tokenIdentifier));
+    when(cachingDelegate.getVerifiedSessionIdentityIdentifier(tokenIdentifier)).thenReturn(
+        Optional.of(UUID.randomUUID()));
 
     boolean hasVerifiedSession = verificationService.hasVerifiedSession(request);
     assertThat("Unexpected verified session state.", hasVerifiedSession, is(true));
@@ -525,7 +562,7 @@ class VerificationServiceTest {
     request.addHeader(HttpHeaders.AUTHORIZATION, token);
 
     when(jwtService.getClaims(token)).thenReturn(claims);
-    when(cachingDelegate.getVerifiedSessionIdentifier(tokenIdentifier)).thenReturn(
+    when(cachingDelegate.getVerifiedSessionIdentityIdentifier(tokenIdentifier)).thenReturn(
         Optional.empty());
 
     boolean hasVerifiedSession = verificationService.hasVerifiedSession(request);

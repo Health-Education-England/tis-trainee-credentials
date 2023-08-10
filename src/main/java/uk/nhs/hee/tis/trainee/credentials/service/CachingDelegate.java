@@ -247,24 +247,25 @@ class CachingDelegate {
   }
 
   /**
-   * Cache a verified session identifier for later retrieval.
+   * Cache a verified session's identity unique identifier for later retrieval.
    *
-   * @param sessionId The identifier of the verified session to cache.
+   * @param sessionId  The identifier of the verified session to cache.
+   * @param identityId The verified identity's unique identifier.
    * @return The cached session identifier.
    */
-  @CachePut(cacheNames = VERIFIED_SESSION_IDENTIFIER, cacheManager = VERIFIED_SESSION_DATA)
-  public String cacheVerifiedSessionIdentifier(String sessionId) {
-    return sessionId;
+  @CachePut(cacheNames = VERIFIED_SESSION_IDENTIFIER, cacheManager = VERIFIED_SESSION_DATA, key = "#sessionId")
+  public UUID cacheVerifiedSessionIdentityIdentifier(String sessionId, UUID identityId) {
+    return identityId;
   }
 
   /**
-   * Get the verified session identifier.
+   * Get the verified session's identity unique identifier.
    *
    * @param sessionId The identifier of the verified session.
-   * @return The cached session identifier, or an empty optional if not found.
+   * @return The cached identity's unique identifier, or an empty optional if not found.
    */
   @Cacheable(cacheNames = VERIFIED_SESSION_IDENTIFIER, cacheManager = VERIFIED_SESSION_DATA)
-  public Optional<String> getVerifiedSessionIdentifier(String sessionId) {
+  public Optional<UUID> getVerifiedSessionIdentityIdentifier(String sessionId) {
     return Optional.empty();
   }
 }

@@ -55,6 +55,7 @@ public class VerificationService {
   private static final String CLAIM_FAMILY_NAME = "Identity.ID-LegalSurname";
   private static final String CLAIM_BIRTH_DATE = "Identity.ID-BirthDate";
   private static final String CLAIM_TOKEN_IDENTIFIER = "origin_jti";
+  private static final String CLAIM_UNIQUE_IDENTIFIER = "UniqueIdentifier";
 
   private final GatewayService gatewayService;
   private final JwtService jwtService;
@@ -203,14 +204,17 @@ public class VerificationService {
       String claimFirstName = claims.get(CLAIM_FIRST_NAME, String.class);
       String claimFamilyName = claims.get(CLAIM_FAMILY_NAME, String.class);
       LocalDate claimBirthDate = LocalDate.parse(claims.get(CLAIM_BIRTH_DATE, String.class));
+      String identityId = claims.get(CLAIM_UNIQUE_IDENTIFIER, String.class);
 
       if (identityData.forenames().equalsIgnoreCase(claimFirstName) && identityData.surname()
-          .equalsIgnoreCase(claimFamilyName) && identityData.dateOfBirth().equals(claimBirthDate)) {
+          .equalsIgnoreCase(claimFamilyName) && identityData.dateOfBirth().equals(claimBirthDate)
+          && identityId != null) {
         Optional<String> sessionIdentifier = cachingDelegate.getUnverifiedSessionIdentifier(nonce);
 
         // If the unverified session is cached, move it to the verified session cache.
         if (sessionIdentifier.isPresent()) {
-          cachingDelegate.cacheVerifiedSessionIdentifier(sessionIdentifier.get());
+          cachingDelegate.cacheVerifiedSessionIdentityIdentifier(sessionIdentifier.get(),
+              UUID.fromString(identityId));
           return true;
         }
       }
@@ -229,8 +233,9 @@ public class VerificationService {
     String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
     Claims authClaims = jwtService.getClaims(authorization);
     String sessionId = authClaims.get(CLAIM_TOKEN_IDENTIFIER, String.class);
-    Optional<String> verifiedSession = cachingDelegate.getVerifiedSessionIdentifier(sessionId);
+    Optional<UUID> verifiedIdentityId = cachingDelegate.getVerifiedSessionIdentityIdentifier(
+        sessionId);
 
-    return verifiedSession.isPresent();
+    return verifiedIdentityId.isPresent();
   }
 }
