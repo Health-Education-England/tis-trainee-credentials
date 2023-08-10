@@ -253,7 +253,8 @@ class CachingDelegate {
    * @param identityId The verified identity's unique identifier.
    * @return The cached session identifier.
    */
-  @CachePut(cacheNames = VERIFIED_SESSION_IDENTIFIER, cacheManager = VERIFIED_SESSION_DATA, key = "#sessionId")
+  @CachePut(cacheNames = VERIFIED_SESSION_IDENTIFIER,
+      cacheManager = VERIFIED_SESSION_DATA, key = "#sessionId")
   public UUID cacheVerifiedIdentityIdentifier(String sessionId, UUID identityId) {
     return identityId;
   }

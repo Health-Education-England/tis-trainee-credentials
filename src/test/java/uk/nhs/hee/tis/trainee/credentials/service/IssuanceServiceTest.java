@@ -175,8 +175,8 @@ class IssuanceServiceTest {
     when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
         Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
-    BiFunction<TisDataDto, UUID, CredentialDto> mapper = (data, id) -> new CredentialDataMapperImpl().toCredential(
-        (ProgrammeMembershipDataDto) data, id);
+    BiFunction<TisDataDto, UUID, CredentialDto> mapper = (data, id) ->
+        new CredentialDataMapperImpl().toCredential((ProgrammeMembershipDataDto) data, id);
 
     issuanceService.startCredentialIssuance(null, tisData, mapper, null);
 
@@ -204,8 +204,8 @@ class IssuanceServiceTest {
     when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
         Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
-    BiFunction<TisDataDto, UUID, CredentialDto> mapper = (data, id) -> new CredentialDataMapperImpl().toCredential(
-        (PlacementDataDto) data, id);
+    BiFunction<TisDataDto, UUID, CredentialDto> mapper = (data, id) ->
+        new CredentialDataMapperImpl().toCredential((PlacementDataDto) data, id);
 
     issuanceService.startCredentialIssuance(null, tisData, mapper, null);
 
