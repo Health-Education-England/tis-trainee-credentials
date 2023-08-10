@@ -66,8 +66,8 @@ public class IssueResource {
       @Validated @RequestBody ProgrammeMembershipDataDto dataDto,
       @RequestParam(required = false) String state) {
     log.info("Received request to issue Programme Membership credential.");
-    BiFunction<TisDataDto, UUID, CredentialDto> mappingFunction = (data, uniqueIdentifier) -> mapper.toCredential(
-        (ProgrammeMembershipDataDto) data, uniqueIdentifier);
+    BiFunction<TisDataDto, UUID, CredentialDto> mappingFunction = (data, id) -> mapper.toCredential(
+        (ProgrammeMembershipDataDto) data, id);
     Optional<URI> credentialUri = service.startCredentialIssuance(token, dataDto, mappingFunction,
         state);
 

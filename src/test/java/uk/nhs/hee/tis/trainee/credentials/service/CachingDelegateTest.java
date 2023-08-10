@@ -151,14 +151,14 @@ class CachingDelegateTest {
   @Test
   void shouldReturnCachedVerifiedSessionIdentityIdentifier() {
     UUID identityId = UUID.randomUUID();
-    UUID cachedIdentityId = delegate.cacheVerifiedSessionIdentityIdentifier("verifiedSession1",
+    UUID cachedIdentityId = delegate.cacheVerifiedIdentityIdentifier("verifiedSession1",
         identityId);
     assertThat("Unexpected identity identifier.", cachedIdentityId, is(identityId));
   }
 
   @Test
   void shouldGetEmptyVerifiedSessionIdentityIdentifier() {
-    Optional<UUID> identityIdentifier = delegate.getVerifiedSessionIdentityIdentifier(
+    Optional<UUID> identityIdentifier = delegate.getVerifiedIdentityIdentifier(
         "verifiedSession1");
     assertThat("Unexpected identity identifier.", identityIdentifier, is(Optional.empty()));
   }

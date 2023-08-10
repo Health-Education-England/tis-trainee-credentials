@@ -135,7 +135,7 @@ class IssuanceServiceTest {
     TestTisDataDto tisData = new TestTisDataDto();
     when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(defaultClaims);
 
-    when(cachingDelegate.getVerifiedSessionIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
         Optional.empty());
 
     Optional<URI> uri = issuanceService.startCredentialIssuance(AUTH_TOKEN, tisData, null, null);
@@ -150,7 +150,7 @@ class IssuanceServiceTest {
     TestTisDataDto tisData = new TestTisDataDto();
 
     when(jwtService.getClaims(any())).thenReturn(defaultClaims);
-    when(cachingDelegate.getVerifiedSessionIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
         Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
     BiFunction<TisDataDto, UUID, CredentialDto> mapper = mock(BiFunction.class);
@@ -172,7 +172,7 @@ class IssuanceServiceTest {
         LocalDate.MIN, LocalDate.MAX);
 
     when(jwtService.getClaims(any())).thenReturn(defaultClaims);
-    when(cachingDelegate.getVerifiedSessionIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
         Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
     BiFunction<TisDataDto, UUID, CredentialDto> mapper = (data, id) -> new CredentialDataMapperImpl().toCredential(
@@ -201,7 +201,7 @@ class IssuanceServiceTest {
         "employingBody1", "site1", LocalDate.MIN, LocalDate.MAX);
 
     when(jwtService.getClaims(any())).thenReturn(defaultClaims);
-    when(cachingDelegate.getVerifiedSessionIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
         Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
     BiFunction<TisDataDto, UUID, CredentialDto> mapper = (data, id) -> new CredentialDataMapperImpl().toCredential(
@@ -234,7 +234,7 @@ class IssuanceServiceTest {
     CredentialDto credentialData = new TestCredentialDto("123");
 
     when(jwtService.getClaims(any())).thenReturn(defaultClaims);
-    when(cachingDelegate.getVerifiedSessionIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
         Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
     issuanceService.startCredentialIssuance(null, tisData, (data, id) -> credentialData, null);
@@ -253,7 +253,7 @@ class IssuanceServiceTest {
   @Test
   void shouldCacheClientStateAgainstInternalStateWhenStartingIssuance() {
     when(jwtService.getClaims(any())).thenReturn(defaultClaims);
-    when(cachingDelegate.getVerifiedSessionIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
         Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
     issuanceService.startCredentialIssuance(null, null, (data, id) -> null, "some-client-state");
@@ -273,7 +273,7 @@ class IssuanceServiceTest {
   void shouldCacheTraineeIdentifierAgainstInternalStateWhenStartingIssuance() {
     defaultClaims.put("custom:tisId", "123");
     when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(defaultClaims);
-    when(cachingDelegate.getVerifiedSessionIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
         Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
     issuanceService.startCredentialIssuance(AUTH_TOKEN, null, (data, id) -> null, null);
@@ -292,7 +292,7 @@ class IssuanceServiceTest {
   @Test
   void shouldCacheIssuanceTimestampAgainstInternalStateWhenStartingIssuance() {
     when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(defaultClaims);
-    when(cachingDelegate.getVerifiedSessionIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
         Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
     issuanceService.startCredentialIssuance(AUTH_TOKEN, null, (data, id) -> null, null);
@@ -321,7 +321,7 @@ class IssuanceServiceTest {
     CredentialDto credentialData = new TestCredentialDto("123");
 
     when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(defaultClaims);
-    when(cachingDelegate.getVerifiedSessionIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
         Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
     when(gatewayService.getCredentialUri(eq(credentialData), any(), any())).thenReturn(
@@ -339,7 +339,7 @@ class IssuanceServiceTest {
     CredentialDto credentialData = new TestCredentialDto("123");
 
     when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(defaultClaims);
-    when(cachingDelegate.getVerifiedSessionIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
         Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
     URI redirectUri = URI.create("/redirect-uri");

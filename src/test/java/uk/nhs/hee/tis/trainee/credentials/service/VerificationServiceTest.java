@@ -506,7 +506,7 @@ class VerificationServiceTest {
 
     verificationService.completeCredentialVerification(CODE, state.toString());
 
-    verify(cachingDelegate).cacheVerifiedSessionIdentityIdentifier("session123", identityId);
+    verify(cachingDelegate).cacheVerifiedIdentityIdentifier("session123", identityId);
   }
 
   @Test
@@ -545,7 +545,7 @@ class VerificationServiceTest {
     request.addHeader(HttpHeaders.AUTHORIZATION, token);
 
     when(jwtService.getClaims(token)).thenReturn(claims);
-    when(cachingDelegate.getVerifiedSessionIdentityIdentifier(tokenIdentifier)).thenReturn(
+    when(cachingDelegate.getVerifiedIdentityIdentifier(tokenIdentifier)).thenReturn(
         Optional.of(UUID.randomUUID()));
 
     boolean hasVerifiedSession = verificationService.hasVerifiedSession(request);
@@ -562,7 +562,7 @@ class VerificationServiceTest {
     request.addHeader(HttpHeaders.AUTHORIZATION, token);
 
     when(jwtService.getClaims(token)).thenReturn(claims);
-    when(cachingDelegate.getVerifiedSessionIdentityIdentifier(tokenIdentifier)).thenReturn(
+    when(cachingDelegate.getVerifiedIdentityIdentifier(tokenIdentifier)).thenReturn(
         Optional.empty());
 
     boolean hasVerifiedSession = verificationService.hasVerifiedSession(request);

@@ -213,7 +213,7 @@ public class VerificationService {
 
         // If the unverified session is cached, move it to the verified session cache.
         if (sessionIdentifier.isPresent()) {
-          cachingDelegate.cacheVerifiedSessionIdentityIdentifier(sessionIdentifier.get(),
+          cachingDelegate.cacheVerifiedIdentityIdentifier(sessionIdentifier.get(),
               UUID.fromString(identityId));
           return true;
         }
@@ -233,8 +233,7 @@ public class VerificationService {
     String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
     Claims authClaims = jwtService.getClaims(authorization);
     String sessionId = authClaims.get(CLAIM_TOKEN_IDENTIFIER, String.class);
-    Optional<UUID> verifiedIdentityId = cachingDelegate.getVerifiedSessionIdentityIdentifier(
-        sessionId);
+    Optional<UUID> verifiedIdentityId = cachingDelegate.getVerifiedIdentityIdentifier(sessionId);
 
     return verifiedIdentityId.isPresent();
   }

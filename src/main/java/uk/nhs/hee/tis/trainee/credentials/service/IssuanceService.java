@@ -88,8 +88,7 @@ public class IssuanceService {
       BiFunction<TisDataDto, UUID, CredentialDto> mapper, @Nullable String clientState) {
     Claims authClaims = jwtService.getClaims(authToken);
     String sessionIdentifier = authClaims.get("origin_jti", String.class);
-    Optional<UUID> identityId = cachingDelegate.getVerifiedSessionIdentityIdentifier(
-        sessionIdentifier);
+    Optional<UUID> identityId = cachingDelegate.getVerifiedIdentityIdentifier(sessionIdentifier);
 
     if (identityId.isEmpty()) {
       // This should get caught by the request filters, but handling here for additional safety.

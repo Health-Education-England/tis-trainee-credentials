@@ -391,7 +391,7 @@ class CachingDelegateIntegrationTest {
   @Test
   void shouldReturnEmptyVerifiedSessionWhenNotCached() {
     String verifiedSession = UUID.randomUUID().toString();
-    Optional<UUID> cachedOptional = delegate.getVerifiedSessionIdentityIdentifier(verifiedSession);
+    Optional<UUID> cachedOptional = delegate.getVerifiedIdentityIdentifier(verifiedSession);
     assertThat("Unexpected cached value.", cachedOptional, is(Optional.empty()));
   }
 
@@ -399,7 +399,7 @@ class CachingDelegateIntegrationTest {
   void shouldReturnCachedVerifiedSessionAfterCaching() {
     String verifiedSession = UUID.randomUUID().toString();
     UUID identityId = UUID.randomUUID();
-    UUID cachedUuid = delegate.cacheVerifiedSessionIdentityIdentifier(verifiedSession, identityId);
+    UUID cachedUuid = delegate.cacheVerifiedIdentityIdentifier(verifiedSession, identityId);
     assertThat("Unexpected cached value.", cachedUuid, is(identityId));
   }
 
@@ -407,9 +407,9 @@ class CachingDelegateIntegrationTest {
   void shouldGetCachedVerifiedSessionWhenCached() {
     String verifiedSession = UUID.randomUUID().toString();
     UUID identityId = UUID.randomUUID();
-    delegate.cacheVerifiedSessionIdentityIdentifier(verifiedSession, identityId);
+    delegate.cacheVerifiedIdentityIdentifier(verifiedSession, identityId);
 
-    Optional<UUID> cachedOptional = delegate.getVerifiedSessionIdentityIdentifier(verifiedSession);
+    Optional<UUID> cachedOptional = delegate.getVerifiedIdentityIdentifier(verifiedSession);
     assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(identityId)));
   }
 
@@ -417,12 +417,12 @@ class CachingDelegateIntegrationTest {
   void shouldNotRemoveVerifiedSessionWhenRetrieved() {
     String verifiedSession = UUID.randomUUID().toString();
     UUID identityId = UUID.randomUUID();
-    delegate.cacheVerifiedSessionIdentityIdentifier(verifiedSession, identityId);
+    delegate.cacheVerifiedIdentityIdentifier(verifiedSession, identityId);
 
     // Ignore this result, the cached value should not be evicted.
-    delegate.getVerifiedSessionIdentityIdentifier(verifiedSession);
+    delegate.getVerifiedIdentityIdentifier(verifiedSession);
 
-    Optional<UUID> cachedOptional = delegate.getVerifiedSessionIdentityIdentifier(verifiedSession);
+    Optional<UUID> cachedOptional = delegate.getVerifiedIdentityIdentifier(verifiedSession);
     assertThat("Unexpected cached value.", cachedOptional, is(Optional.of(identityId)));
   }
 }
