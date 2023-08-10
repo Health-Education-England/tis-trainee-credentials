@@ -23,6 +23,8 @@ package uk.nhs.hee.tis.trainee.credentials.api;
 
 import java.net.URI;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.function.BiFunction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -35,10 +37,10 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.TisDataDto;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
 import uk.nhs.hee.tis.trainee.credentials.service.IssuanceService;
 
@@ -64,8 +66,10 @@ public class IssueResource {
       @Validated @RequestBody ProgrammeMembershipDataDto dataDto,
       @RequestParam(required = false) String state) {
     log.info("Received request to issue Programme Membership credential.");
-    ProgrammeMembershipCredentialDto credentialDto = mapper.toCredential(dataDto);
-    Optional<URI> credentialUri = service.startCredentialIssuance(token, credentialDto, state);
+    BiFunction<TisDataDto, UUID, CredentialDto> mappingFunction = (data, uniqueIdentifier) -> mapper.toCredential(
+        (ProgrammeMembershipDataDto) data, uniqueIdentifier);
+    Optional<URI> credentialUri = service.startCredentialIssuance(token, dataDto, mappingFunction,
+        state);
 
     if (credentialUri.isPresent()) {
       URI uri = credentialUri.get();
@@ -83,8 +87,10 @@ public class IssueResource {
       @Validated @RequestBody PlacementDataDto dataDto,
       @RequestParam(required = false) String state) {
     log.info("Received request to issue Placement credential.");
-    PlacementCredentialDto credentialDto = mapper.toCredential(dataDto);
-    Optional<URI> credentialUri = service.startCredentialIssuance(token, credentialDto, state);
+    BiFunction<TisDataDto, UUID, CredentialDto> mappingFunction = (data, id) -> mapper.toCredential(
+        (PlacementDataDto) data, id);
+    Optional<URI> credentialUri = service.startCredentialIssuance(token, dataDto, mappingFunction,
+        state);
 
     if (credentialUri.isPresent()) {
       URI uri = credentialUri.get();

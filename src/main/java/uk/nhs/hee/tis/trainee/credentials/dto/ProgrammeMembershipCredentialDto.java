@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.util.UUID;
 
 /**
  * A DTO representing a Programme Membership credential.
@@ -70,7 +71,10 @@ public record ProgrammeMembershipCredentialDto(
     String metadataPedigree,
 
     @JsonProperty("TPR-LastRefresh")
-    LocalDate metadataLastRefresh
+    LocalDate metadataLastRefresh,
+
+    @JsonProperty("UniqueIdentifier")
+    UUID uniqueIdentifier
 ) implements CredentialDto {
 
   @Override
@@ -91,5 +95,10 @@ public record ProgrammeMembershipCredentialDto(
   @Override
   public String getTisId() {
     return tisId;
+  }
+
+  @Override
+  public UUID getUniqueIdentifier() {
+    return uniqueIdentifier;
   }
 }

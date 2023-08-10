@@ -37,6 +37,6 @@ public record ProgrammeMembershipDataDto(
     @NotEmpty String tisId,
     @NotEmpty String programmeName,
     @NotNull LocalDate startDate,
-    @NotNull LocalDate endDate) {
+    @NotNull LocalDate endDate) implements TisDataDto {
 
 }

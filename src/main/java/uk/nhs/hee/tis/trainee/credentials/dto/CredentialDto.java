@@ -24,6 +24,7 @@ package uk.nhs.hee.tis.trainee.credentials.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * An interface representing a DTO containing credential data.
@@ -61,4 +62,12 @@ public interface CredentialDto extends Serializable {
    */
   @JsonIgnore
   CredentialType getCredentialType();
+
+  /**
+   * Get the unique identifier for identity binding.
+   *
+   * @return The unique identifier to use for identity binding.
+   */
+  @JsonIgnore
+  UUID getUniqueIdentifier();
 }

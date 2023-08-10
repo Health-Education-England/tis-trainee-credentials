@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.util.UUID;
 
 /**
  * A DTO representing a Placement credential.
@@ -86,7 +87,10 @@ public record PlacementCredentialDto(
     String metadataPedigree,
 
     @JsonProperty("TPL-LastRefresh")
-    LocalDate metadataLastRefresh
+    LocalDate metadataLastRefresh,
+
+    @JsonProperty("UniqueIdentifier")
+    UUID uniqueIdentifier
 ) implements CredentialDto {
 
   @Override
@@ -107,5 +111,10 @@ public record PlacementCredentialDto(
   @Override
   public String getTisId() {
     return tisId;
+  }
+
+  @Override
+  public UUID getUniqueIdentifier() {
+    return uniqueIdentifier;
   }
 }

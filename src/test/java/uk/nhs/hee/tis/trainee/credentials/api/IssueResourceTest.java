@@ -57,9 +57,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.nhs.hee.tis.trainee.credentials.SignatureTestUtil;
-import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.TisDataDto;
 import uk.nhs.hee.tis.trainee.credentials.filter.FilterConfiguration;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapper;
 import uk.nhs.hee.tis.trainee.credentials.service.IssuanceService;
@@ -179,15 +179,15 @@ class IssueResourceTest {
 
   @ParameterizedTest
   @CsvSource(delimiter = '|', textBlock = """
-      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto
-      placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
+      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto
+      placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto
       """)
   void shouldReturnErrorWhenCredentialUriNotAvailable(String mapping,
-      Class<? extends CredentialDto> dtoClass)
+      Class<? extends TisDataDto> dtoClass)
       throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
-    when(issuanceService.startCredentialIssuance(any(), any(dtoClass), any())).thenReturn(
+    when(issuanceService.startCredentialIssuance(any(), any(dtoClass), any(), any())).thenReturn(
         Optional.empty());
 
     mockMvc.perform(
@@ -200,17 +200,17 @@ class IssueResourceTest {
 
   @ParameterizedTest
   @CsvSource(delimiter = '|', textBlock = """
-      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto
-      placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
+      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto
+      placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto
       """)
   void shouldReturnCreatedWhenCredentialUriAvailable(String mapping,
-      Class<? extends CredentialDto> dtoClass)
+      Class<? extends TisDataDto> dtoClass)
       throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
     String credentialUriString = "the-credential-uri";
     URI credentialUri = URI.create(credentialUriString);
-    when(issuanceService.startCredentialIssuance(any(), any(dtoClass), any())).thenReturn(
+    when(issuanceService.startCredentialIssuance(any(), any(dtoClass), any(), any())).thenReturn(
         Optional.of(credentialUri));
 
     mockMvc.perform(
@@ -237,11 +237,11 @@ class IssueResourceTest {
 
   @ParameterizedTest
   @CsvSource(delimiter = '|', textBlock = """
-      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto
-      placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
+      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto
+      placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto
       """)
   void shouldUseTokenFromAuthorizationHeader(String mapping,
-      Class<? extends CredentialDto> dtoClass) throws Exception {
+      Class<? extends TisDataDto> dtoClass) throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
     mockMvc.perform(
@@ -251,7 +251,8 @@ class IssueResourceTest {
             .contentType(MediaType.APPLICATION_JSON));
 
     ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
-    verify(issuanceService).startCredentialIssuance(tokenCaptor.capture(), any(dtoClass), any());
+    verify(issuanceService).startCredentialIssuance(tokenCaptor.capture(), any(dtoClass), any(),
+        any());
 
     String token = tokenCaptor.getValue();
     assertThat("Unexpected token.", token, is(AUTH_TOKEN));
@@ -259,11 +260,11 @@ class IssueResourceTest {
 
   @ParameterizedTest
   @CsvSource(delimiter = '|', textBlock = """
-      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto
-      placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
+      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto
+      placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto
       """)
   void shouldPassStateDownstreamWhenStateGiven(String mapping,
-      Class<? extends CredentialDto> dtoClass) throws Exception {
+      Class<? extends TisDataDto> dtoClass) throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
     mockMvc.perform(
@@ -274,7 +275,8 @@ class IssueResourceTest {
             .contentType(MediaType.APPLICATION_JSON));
 
     ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
-    verify(issuanceService).startCredentialIssuance(any(), any(dtoClass), stateCaptor.capture());
+    verify(issuanceService).startCredentialIssuance(any(), any(dtoClass), any(),
+        stateCaptor.capture());
 
     String state = stateCaptor.getValue();
     assertThat("Unexpected state.", state, is("some-state-value"));
@@ -282,11 +284,11 @@ class IssueResourceTest {
 
   @ParameterizedTest
   @CsvSource(delimiter = '|', textBlock = """
-      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto
-      placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto
+      programme-membership | uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto
+      placement            | uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto
       """)
   void shouldNotPassStateDownstreamWhenNoStateGiven(String mapping,
-      Class<? extends CredentialDto> dtoClass) throws Exception {
+      Class<? extends TisDataDto> dtoClass) throws Exception {
     String signedData = SignatureTestUtil.signData(UNSIGNED_DATA, secretKey);
 
     mockMvc.perform(
@@ -296,7 +298,8 @@ class IssueResourceTest {
             .contentType(MediaType.APPLICATION_JSON));
 
     ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
-    verify(issuanceService).startCredentialIssuance(any(), any(dtoClass), stateCaptor.capture());
+    verify(issuanceService).startCredentialIssuance(any(), any(dtoClass), any(),
+        stateCaptor.capture());
 
     String state = stateCaptor.getValue();
     assertThat("Unexpected state.", state, nullValue());
@@ -312,11 +315,11 @@ class IssueResourceTest {
             .content(signedData)
             .contentType(MediaType.APPLICATION_JSON));
 
-    ArgumentCaptor<ProgrammeMembershipCredentialDto> dtoCaptor = ArgumentCaptor.forClass(
-        ProgrammeMembershipCredentialDto.class);
-    verify(issuanceService).startCredentialIssuance(any(), dtoCaptor.capture(), any());
+    ArgumentCaptor<ProgrammeMembershipDataDto> dtoCaptor = ArgumentCaptor.forClass(
+        ProgrammeMembershipDataDto.class);
+    verify(issuanceService).startCredentialIssuance(any(), dtoCaptor.capture(), any(), any());
 
-    ProgrammeMembershipCredentialDto dto = dtoCaptor.getValue();
+    ProgrammeMembershipDataDto dto = dtoCaptor.getValue();
     assertThat("Unexpected programme name.", dto.programmeName(), is("programme one"));
     assertThat("Unexpected start date.", dto.startDate(), is(LocalDate.of(2022, 1, 1)));
     assertThat("Unexpected end date.", dto.endDate(), is(LocalDate.of(2022, 12, 31)));
@@ -378,11 +381,10 @@ class IssueResourceTest {
             .content(signedData)
             .contentType(MediaType.APPLICATION_JSON));
 
-    ArgumentCaptor<PlacementCredentialDto> dtoCaptor = ArgumentCaptor.forClass(
-        PlacementCredentialDto.class);
-    verify(issuanceService).startCredentialIssuance(any(), dtoCaptor.capture(), any());
+    ArgumentCaptor<PlacementDataDto> dtoCaptor = ArgumentCaptor.forClass(PlacementDataDto.class);
+    verify(issuanceService).startCredentialIssuance(any(), dtoCaptor.capture(), any(), any());
 
-    PlacementCredentialDto dto = dtoCaptor.getValue();
+    PlacementDataDto dto = dtoCaptor.getValue();
     assertThat("Unexpected specialty.", dto.specialty(), is("placement specialty"));
     assertThat("Unexpected grade.", dto.grade(), is("placement grade"));
     assertThat("Unexpected NPN.", dto.nationalPostNumber(), is("NPN"));

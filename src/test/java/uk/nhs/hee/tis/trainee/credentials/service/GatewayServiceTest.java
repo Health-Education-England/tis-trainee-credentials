@@ -217,7 +217,7 @@ class GatewayServiceTest {
   @Test
   void shouldIncludeProgrammeMembershipScopeInParRequest() {
     var dto = new ProgrammeMembershipCredentialDto("", "", LocalDate.MIN, LocalDate.MAX,
-        "", "", "", "", "", "", "", LocalDate.now());
+        "", "", "", "", "", "", "", LocalDate.now(), null);
 
     var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
@@ -235,7 +235,7 @@ class GatewayServiceTest {
   void shouldIncludePlacementScopeInParRequest() {
     PlacementCredentialDto dto
         = new PlacementCredentialDto("", "", "", "", "", "", LocalDate.MIN, LocalDate.MAX,
-        "", "", "", "", "", "", "", LocalDate.now());
+        "", "", "", "", "", "", "", LocalDate.now(), null);
 
     var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
     when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),

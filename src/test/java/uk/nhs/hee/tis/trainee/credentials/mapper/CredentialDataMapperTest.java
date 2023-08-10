@@ -25,7 +25,7 @@ class CredentialDataMapperTest {
     ProgrammeMembershipDataDto data = new ProgrammeMembershipDataDto("", "",
         LocalDate.MIN, LocalDate.MAX);
 
-    ProgrammeMembershipCredentialDto dto = mapper.toCredential(data);
+    ProgrammeMembershipCredentialDto dto = mapper.toCredential(data, null);
 
     assertThat("Unexpected origin", dto.metadataOrigin(),
         is(mapper.METADATA_ORIGIN_VALUE));
@@ -50,7 +50,7 @@ class CredentialDataMapperTest {
     PlacementDataDto data = new PlacementDataDto("", "", "", "",
         "", "", LocalDate.MIN, LocalDate.MAX);
 
-    PlacementCredentialDto dto = mapper.toCredential(data);
+    PlacementCredentialDto dto = mapper.toCredential(data, null);
 
     assertThat("Unexpected origin", dto.metadataOrigin(),
         is(mapper.METADATA_ORIGIN_VALUE));
