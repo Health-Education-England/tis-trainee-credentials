@@ -80,7 +80,7 @@ class VerificationServiceTest {
   private static final String CLAIM_FAMILY_NAME = "Identity.ID-LegalSurname";
   private static final String CLAIM_BIRTH_DATE = "Identity.ID-BirthDate";
   private static final String CLAIM_TOKEN_IDENTIFIER = "origin_jti";
-  private static final String CLAIM_UNIQUE_IDENTIFIER = "UniqueIdentifier";
+  private static final String CLAIM_UNIQUE_IDENTIFIER = "Identity.UniqueIdentifier";
 
   private static final String IDENTITY_FORENAMES = "Anthony";
   private static final String IDENTITY_SURNAME = "Gilliam";
