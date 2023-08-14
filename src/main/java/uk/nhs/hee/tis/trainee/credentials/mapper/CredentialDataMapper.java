@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.mapper;
 
+import java.util.UUID;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants.ComponentModel;
@@ -57,7 +58,8 @@ public interface CredentialDataMapper {
   @Mapping(target = "metadataVerificationMethod", constant = METADATA_VERIFICATION_METHOD_VALUE)
   @Mapping(target = "metadataPedigree", constant = METADATA_PEDIGREE_VALUE)
   @Mapping(target = "metadataLastRefresh", expression = "java(LocalDate.now())")
-  ProgrammeMembershipCredentialDto toCredential(ProgrammeMembershipDataDto data);
+  @Mapping(target = "uniqueIdentifier", source = "identityId")
+  ProgrammeMembershipCredentialDto toCredential(ProgrammeMembershipDataDto data, UUID identityId);
 
   /**
    * Map a placement data DTO to the equivalent credential DTO.
@@ -73,5 +75,6 @@ public interface CredentialDataMapper {
   @Mapping(target = "metadataVerificationMethod", constant = METADATA_VERIFICATION_METHOD_VALUE)
   @Mapping(target = "metadataPedigree", constant = METADATA_PEDIGREE_VALUE)
   @Mapping(target = "metadataLastRefresh", expression = "java(LocalDate.now())")
-  PlacementCredentialDto toCredential(PlacementDataDto data);
+  @Mapping(target = "uniqueIdentifier", source = "identityId")
+  PlacementCredentialDto toCredential(PlacementDataDto data, UUID identityId);
 }

@@ -47,6 +47,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -77,6 +78,7 @@ class JwtServiceTest {
   private static final String METADATA_VERIFICATION_METHOD_VALUE = "Record Verification";
   private static final String METADATA_PEDIGREE_VALUE = "Authoritative";
   private static final LocalDate METADATA_LAST_REFRESH_VALUE = LocalDate.now();
+  private static final UUID IDENTITY_IDENTIFIER_VALUE = UUID.randomUUID();
 
   private static final String AUDIENCE = "https://test.tis.nhs.uk/audience";
   private static final String ISSUER = "some-identifier";
@@ -128,6 +130,11 @@ class JwtServiceTest {
       public String getTisId() {
         return "";
       }
+
+      @Override
+      public UUID getUniqueIdentifier() {
+        return null;
+      }
     }
 
     final Instant now = Instant.now();
@@ -154,14 +161,14 @@ class JwtServiceTest {
     var dto = new ProgrammeMembershipCredentialDto(TIS_ID, PROGRAMME_NAME, START_DATE, END_DATE,
         METADATA_ORIGIN_VALUE, METADATA_ASSURANCE_POLICY_VALUE, METADATA_ASSURANCE_OUTCOME_VALUE,
         METADATA_PROVIDER_VALUE, METADATA_VERIFIER_VALUE, METADATA_VERIFICATION_METHOD_VALUE,
-        METADATA_PEDIGREE_VALUE, METADATA_LAST_REFRESH_VALUE);
+        METADATA_PEDIGREE_VALUE, METADATA_LAST_REFRESH_VALUE, IDENTITY_IDENTIFIER_VALUE);
 
     String tokenString = service.generateToken(dto);
 
     Jwt<?, Claims> token = parser.parse(tokenString);
     Claims tokenClaims = token.getBody();
 
-    assertThat("Unexpected number of claims.", tokenClaims.size(), is(DEFAULT_CLAIM_COUNT + 11));
+    assertThat("Unexpected number of claims.", tokenClaims.size(), is(DEFAULT_CLAIM_COUNT + 12));
     assertThat("Unexpected programme name.", tokenClaims.get("TPR-Name"), is(PROGRAMME_NAME));
     assertThat("Unexpected programme start date.", tokenClaims.get("TPR-ProgrammeStartDate"),
         is(START_DATE.toString()));
@@ -183,6 +190,8 @@ class JwtServiceTest {
         is(METADATA_PEDIGREE_VALUE));
     assertThat("Unexpected last refresh", tokenClaims.get("TPR-LastRefresh"),
         is(METADATA_LAST_REFRESH_VALUE.toString()));
+    assertThat("Unexpected identity identifier", tokenClaims.get("UniqueIdentifier"),
+        is(IDENTITY_IDENTIFIER_VALUE.toString()));
 
     Instant issuedAt = tokenClaims.getIssuedAt().toInstant();
     Instant expectedExpiration = dto.getExpiration(issuedAt).truncatedTo(ChronoUnit.SECONDS);
@@ -197,14 +206,14 @@ class JwtServiceTest {
         PLACEMENT_EMPLOYING_BODY, PLACEMENT_SITE, START_DATE, END_DATE,
         METADATA_ORIGIN_VALUE, METADATA_ASSURANCE_POLICY_VALUE, METADATA_ASSURANCE_OUTCOME_VALUE,
         METADATA_PROVIDER_VALUE, METADATA_VERIFIER_VALUE, METADATA_VERIFICATION_METHOD_VALUE,
-        METADATA_PEDIGREE_VALUE, METADATA_LAST_REFRESH_VALUE);
+        METADATA_PEDIGREE_VALUE, METADATA_LAST_REFRESH_VALUE, IDENTITY_IDENTIFIER_VALUE);
 
     String tokenString = service.generateToken(dto);
 
     Jwt<?, Claims> token = parser.parse(tokenString);
     Claims tokenClaims = token.getBody();
 
-    assertThat("Unexpected number of claims.", tokenClaims.size(), is(DEFAULT_CLAIM_COUNT + 15));
+    assertThat("Unexpected number of claims.", tokenClaims.size(), is(DEFAULT_CLAIM_COUNT + 16));
     assertThat("Unexpected placement specialty.", tokenClaims.get("TPL-Specialty"),
         is(PLACEMENT_SPECIALTY));
     assertThat("Unexpected placement grade.", tokenClaims.get("TPL-Grade"),
@@ -236,6 +245,8 @@ class JwtServiceTest {
         is(METADATA_PEDIGREE_VALUE));
     assertThat("Unexpected last refresh", tokenClaims.get("TPL-LastRefresh"),
         is(METADATA_LAST_REFRESH_VALUE.toString()));
+    assertThat("Unexpected identity identifier", tokenClaims.get("UniqueIdentifier"),
+        is(IDENTITY_IDENTIFIER_VALUE.toString()));
 
     Instant issuedAt = tokenClaims.getIssuedAt().toInstant();
     Instant expectedExpiration = dto.getExpiration(issuedAt).truncatedTo(ChronoUnit.SECONDS);

@@ -26,6 +26,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,7 @@ import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProper
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.dto.IssueResponseDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.TisDataDto;
 import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialMetadataMapper;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 import uk.nhs.hee.tis.trainee.credentials.repository.CredentialMetadataRepository;
@@ -77,29 +79,42 @@ public class IssuanceService {
    * Start the issuance of a credential.
    *
    * @param authToken   The request's authorization token.
-   * @param dto         The user's credential data.
+   * @param dataDto     The user's TIS data.
+   * @param mapper      A mapping function to convert from TIS data to credential data.
    * @param clientState The state sent by client when making the request to start verification.
    * @return The URI to continue the issuing via credential gateway, or empty if issuing failed.
    */
-  public Optional<URI> startCredentialIssuance(String authToken, CredentialDto dto,
-      @Nullable String clientState) {
+  public Optional<URI> startCredentialIssuance(String authToken, TisDataDto dataDto,
+      BiFunction<TisDataDto, UUID, CredentialDto> mapper, @Nullable String clientState) {
+    Claims authClaims = jwtService.getClaims(authToken);
+    String sessionIdentifier = authClaims.get("origin_jti", String.class);
+    Optional<UUID> identityId = cachingDelegate.getVerifiedIdentityIdentifier(sessionIdentifier);
+
+    if (identityId.isEmpty()) {
+      // This should get caught by the request filters, but handling here for additional safety.
+      log.info("Issuance rejected as no verified identity could be found.");
+      return Optional.empty();
+    }
+
+    CredentialDto credentialDto = mapper.apply(dataDto, identityId.get());
+
     // Cache the provided credential data against the nonce.
     UUID nonce = UUID.randomUUID();
-    cachingDelegate.cacheCredentialData(nonce, dto);
+    cachingDelegate.cacheCredentialData(nonce, credentialDto);
 
     // Generate new state for the internal request/callback and cache the client state.
     UUID internalState = UUID.randomUUID();
     cachingDelegate.cacheClientState(internalState, clientState);
 
     // Cache an ID from the token to represent the session.
-    Claims authClaims = jwtService.getClaims(authToken);
     String traineeId = authClaims.get("custom:tisId", String.class);
     cachingDelegate.cacheTraineeIdentifier(internalState, traineeId);
 
     // Cache the current timestamp as the start of the issuance.
     cachingDelegate.cacheIssuanceTimestamp(internalState, Instant.now());
 
-    return gatewayService.getCredentialUri(dto, nonce.toString(), internalState.toString());
+    return gatewayService.getCredentialUri(credentialDto, nonce.toString(),
+        internalState.toString());
   }
 
   /**

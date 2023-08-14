@@ -19,40 +19,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials;
-
-import java.time.Instant;
-import java.util.UUID;
-import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
-import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
+package uk.nhs.hee.tis.trainee.credentials.dto;
 
 /**
- * An implementation of {@link CredentialDto} for test purposes.
+ * A common interface for TIS data DTO objects.
  */
-public record TestCredentialDto(String tisId) implements CredentialDto {
+public interface TisDataDto {
 
-  @Override
-  public String getTisId() {
-    return tisId();
-  }
-
-  @Override
-  public Instant getExpiration(Instant issuedAt) {
-    return Instant.MAX;
-  }
-
-  @Override
-  public String getScope() {
-    return "test.Credential";
-  }
-
-  @Override
-  public CredentialType getCredentialType() {
-    return null;
-  }
-
-  @Override
-  public UUID getUniqueIdentifier() {
-    return null;
-  }
 }

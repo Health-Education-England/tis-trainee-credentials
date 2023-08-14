@@ -23,6 +23,7 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,20 +44,24 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mapstruct.factory.Mappers;
 import org.mockito.ArgumentCaptor;
 import uk.nhs.hee.tis.trainee.credentials.TestCredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.IssuingProperties;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.PlacementCredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.PlacementDataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipCredentialDto;
-import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialMetadataMapper;
+import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.TisDataDto;
+import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialDataMapperImpl;
+import uk.nhs.hee.tis.trainee.credentials.mapper.CredentialMetadataMapperImpl;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 import uk.nhs.hee.tis.trainee.credentials.repository.CredentialMetadataRepository;
 
@@ -76,12 +81,18 @@ class IssuanceServiceTest {
   private static final Instant ISSUED_AT = Instant.MIN.truncatedTo(ChronoUnit.SECONDS);
   private static final Instant EXPIRES_AT = Instant.MAX.truncatedTo(ChronoUnit.SECONDS);
 
+  private static final String SESSION_ID_FIELD = "origin_jti";
+  private static final String SESSION_ID_VALUE = UUID.randomUUID().toString();
+  private static final UUID VERIFIED_IDENTITY_IDENTIFIER = UUID.randomUUID();
+
   private IssuanceService issuanceService;
   private GatewayService gatewayService;
   private JwtService jwtService;
   private RevocationService revocationService;
   private CachingDelegate cachingDelegate;
   private CredentialMetadataRepository credentialMetadataRepository;
+
+  private DefaultClaims defaultClaims;
 
   @BeforeEach
   void setUp() {
@@ -90,13 +101,17 @@ class IssuanceServiceTest {
     revocationService = mock(RevocationService.class);
     cachingDelegate = mock(CachingDelegate.class);
     credentialMetadataRepository = mock(CredentialMetadataRepository.class);
-    var credentialMetadataMapper = Mappers.getMapper(CredentialMetadataMapper.class);
+    var credentialMetadataMapper = new CredentialMetadataMapperImpl();
 
     var properties = new IssuingProperties("", "", TOKEN_ENDPOINT.toString(), null,
         REDIRECT_URI.toString());
 
     issuanceService = new IssuanceService(gatewayService, jwtService, revocationService,
         cachingDelegate, credentialMetadataRepository, credentialMetadataMapper, properties);
+
+    defaultClaims = new DefaultClaims(Map.of(
+        SESSION_ID_FIELD, SESSION_ID_VALUE
+    ));
   }
 
   /**
@@ -109,18 +124,120 @@ class IssuanceServiceTest {
     return Stream.of(
         new TestCredentialDto(TIS_ID),
         new PlacementCredentialDto(TIS_ID, "", "", "", "", "", LocalDate.MIN, LocalDate.MAX,
-            "", "", "", "", "", "", "", LocalDate.now()),
+            "", "", "", "", "", "", "", LocalDate.now(), null),
         new ProgrammeMembershipCredentialDto(TIS_ID, "", LocalDate.MIN, LocalDate.MAX,
-            "", "", "", "", "", "", "", LocalDate.now())
+            "", "", "", "", "", "", "", LocalDate.now(), null)
     );
   }
 
   @Test
-  void shouldCacheCredentialDataAgainstNonceWhenStartingIssuance() {
-    CredentialDto credentialData = new TestCredentialDto("123");
-    when(jwtService.getClaims(any())).thenReturn(new DefaultClaims());
+  void shouldReturnEmptyWhenIdentityNotVerified() {
+    TestTisDataDto tisData = new TestTisDataDto();
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(defaultClaims);
 
-    issuanceService.startCredentialIssuance(null, credentialData, null);
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+        Optional.empty());
+
+    Optional<URI> uri = issuanceService.startCredentialIssuance(AUTH_TOKEN, tisData, null, null);
+
+    assertThat("Unexpected URI.", uri, is(Optional.empty()));
+
+    verifyNoInteractions(gatewayService);
+  }
+
+  @Test
+  void shouldMapPlacementDataToPlacementCredentialDataWhenStartingIssuance() {
+    TestTisDataDto tisData = new TestTisDataDto();
+
+    when(jwtService.getClaims(any())).thenReturn(defaultClaims);
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+        Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
+
+    BiFunction<TisDataDto, UUID, CredentialDto> mapper = mock(BiFunction.class);
+
+    issuanceService.startCredentialIssuance(null, tisData, mapper, null);
+
+    ArgumentCaptor<TisDataDto> tisDataCaptor = ArgumentCaptor.forClass(TisDataDto.class);
+    ArgumentCaptor<UUID> idCaptor = ArgumentCaptor.forClass(UUID.class);
+    verify(mapper).apply(tisDataCaptor.capture(), idCaptor.capture());
+
+    assertThat("Unexpected TIS data.", tisDataCaptor.getValue(), sameInstance(tisData));
+    assertThat("Unexpected identity identifier.", idCaptor.getValue(),
+        sameInstance(VERIFIED_IDENTITY_IDENTIFIER));
+  }
+
+  @Test
+  void shouldMapProgrammeMembershipDataToProgrammeMembershipCredentialDataWhenStartingIssuance() {
+    ProgrammeMembershipDataDto tisData = new ProgrammeMembershipDataDto(TIS_ID, "programme1",
+        LocalDate.MIN, LocalDate.MAX);
+
+    when(jwtService.getClaims(any())).thenReturn(defaultClaims);
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+        Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
+
+    BiFunction<TisDataDto, UUID, CredentialDto> mapper = (data, id) ->
+        new CredentialDataMapperImpl().toCredential((ProgrammeMembershipDataDto) data, id);
+
+    issuanceService.startCredentialIssuance(null, tisData, mapper, null);
+
+    ArgumentCaptor<ProgrammeMembershipCredentialDto> credentialDataCaptor = ArgumentCaptor.forClass(
+        ProgrammeMembershipCredentialDto.class);
+    verify(gatewayService).getCredentialUri(credentialDataCaptor.capture(), any(), any());
+
+    ProgrammeMembershipCredentialDto credentialData = credentialDataCaptor.getValue();
+    assertThat("Unexpected TIS ID.", credentialData.tisId(), is(TIS_ID));
+    assertThat("Unexpected programme name.", credentialData.programmeName(), is("programme1"));
+    assertThat("Unexpected start date.", credentialData.startDate(), is(LocalDate.MIN));
+    assertThat("Unexpected end date.", credentialData.endDate(), is(LocalDate.MAX));
+    assertThat("Unexpected unique identifier.", credentialData.uniqueIdentifier(),
+        is(VERIFIED_IDENTITY_IDENTIFIER));
+    assertThat("Unexpected unique identifier.", credentialData.getUniqueIdentifier(),
+        is(VERIFIED_IDENTITY_IDENTIFIER));
+  }
+
+  @Test
+  void shouldMapTisDataToCredentialDataWhenStartingIssuance() {
+    PlacementDataDto tisData = new PlacementDataDto(TIS_ID, "specialty1", "grade1", "npn1",
+        "employingBody1", "site1", LocalDate.MIN, LocalDate.MAX);
+
+    when(jwtService.getClaims(any())).thenReturn(defaultClaims);
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+        Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
+
+    BiFunction<TisDataDto, UUID, CredentialDto> mapper = (data, id) ->
+        new CredentialDataMapperImpl().toCredential((PlacementDataDto) data, id);
+
+    issuanceService.startCredentialIssuance(null, tisData, mapper, null);
+
+    ArgumentCaptor<PlacementCredentialDto> credentialDataCaptor = ArgumentCaptor.forClass(
+        PlacementCredentialDto.class);
+    verify(gatewayService).getCredentialUri(credentialDataCaptor.capture(), any(), any());
+
+    PlacementCredentialDto credentialData = credentialDataCaptor.getValue();
+    assertThat("Unexpected TIS ID.", credentialData.tisId(), is(TIS_ID));
+    assertThat("Unexpected specialty.", credentialData.specialty(), is("specialty1"));
+    assertThat("Unexpected grade.", credentialData.grade(), is("grade1"));
+    assertThat("Unexpected NPN.", credentialData.nationalPostNumber(), is("npn1"));
+    assertThat("Unexpected employing body.", credentialData.employingBody(), is("employingBody1"));
+    assertThat("Unexpected site.", credentialData.site(), is("site1"));
+    assertThat("Unexpected start date.", credentialData.startDate(), is(LocalDate.MIN));
+    assertThat("Unexpected end date.", credentialData.endDate(), is(LocalDate.MAX));
+    assertThat("Unexpected unique identifier.", credentialData.uniqueIdentifier(),
+        is(VERIFIED_IDENTITY_IDENTIFIER));
+    assertThat("Unexpected unique identifier.", credentialData.getUniqueIdentifier(),
+        is(VERIFIED_IDENTITY_IDENTIFIER));
+  }
+
+  @Test
+  void shouldCacheCredentialDataAgainstNonceWhenStartingIssuance() {
+    TestTisDataDto tisData = new TestTisDataDto();
+    CredentialDto credentialData = new TestCredentialDto("123");
+
+    when(jwtService.getClaims(any())).thenReturn(defaultClaims);
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+        Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
+
+    issuanceService.startCredentialIssuance(null, tisData, (data, id) -> credentialData, null);
 
     ArgumentCaptor<UUID> cacheKeyCaptor = ArgumentCaptor.forClass(UUID.class);
     verify(cachingDelegate).cacheCredentialData(cacheKeyCaptor.capture(), eq(credentialData));
@@ -135,9 +252,11 @@ class IssuanceServiceTest {
 
   @Test
   void shouldCacheClientStateAgainstInternalStateWhenStartingIssuance() {
-    when(jwtService.getClaims(any())).thenReturn(new DefaultClaims());
+    when(jwtService.getClaims(any())).thenReturn(defaultClaims);
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+        Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
-    issuanceService.startCredentialIssuance(null, null, "some-client-state");
+    issuanceService.startCredentialIssuance(null, null, (data, id) -> null, "some-client-state");
 
     ArgumentCaptor<UUID> cacheKeyCaptor = ArgumentCaptor.forClass(UUID.class);
     verify(cachingDelegate).cacheClientState(cacheKeyCaptor.capture(), eq("some-client-state"));
@@ -152,11 +271,12 @@ class IssuanceServiceTest {
 
   @Test
   void shouldCacheTraineeIdentifierAgainstInternalStateWhenStartingIssuance() {
-    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims(Map.of(
-        "custom:tisId", "123"
-    )));
+    defaultClaims.put("custom:tisId", "123");
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(defaultClaims);
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+        Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
-    issuanceService.startCredentialIssuance(AUTH_TOKEN, null, null);
+    issuanceService.startCredentialIssuance(AUTH_TOKEN, null, (data, id) -> null, null);
 
     ArgumentCaptor<UUID> cacheKeyCaptor = ArgumentCaptor.forClass(UUID.class);
     verify(cachingDelegate).cacheTraineeIdentifier(cacheKeyCaptor.capture(), eq("123"));
@@ -171,9 +291,11 @@ class IssuanceServiceTest {
 
   @Test
   void shouldCacheIssuanceTimestampAgainstInternalStateWhenStartingIssuance() {
-    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims());
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(defaultClaims);
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+        Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
-    issuanceService.startCredentialIssuance(AUTH_TOKEN, null, null);
+    issuanceService.startCredentialIssuance(AUTH_TOKEN, null, (data, id) -> null, null);
 
     ArgumentCaptor<UUID> cacheKeyCaptor = ArgumentCaptor.forClass(UUID.class);
     ArgumentCaptor<Instant> timestampCaptor = ArgumentCaptor.forClass(Instant.class);
@@ -195,27 +317,37 @@ class IssuanceServiceTest {
 
   @Test
   void shouldReturnEmptyWhenGatewayRequestFails() {
-    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims());
+    TestTisDataDto tisData = new TestTisDataDto();
     CredentialDto credentialData = new TestCredentialDto("123");
+
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(defaultClaims);
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+        Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
     when(gatewayService.getCredentialUri(eq(credentialData), any(), any())).thenReturn(
         Optional.empty());
 
-    Optional<URI> uri = issuanceService.startCredentialIssuance(AUTH_TOKEN, credentialData, null);
+    Optional<URI> uri = issuanceService.startCredentialIssuance(AUTH_TOKEN, tisData,
+        (data, id) -> credentialData, null);
 
     assertThat("Unexpected URI.", uri, is(Optional.empty()));
   }
 
   @Test
   void shouldReturnRedirectUriWhenGatewayRequestSuccessful() {
-    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(new DefaultClaims());
+    TestTisDataDto tisData = new TestTisDataDto();
     CredentialDto credentialData = new TestCredentialDto("123");
+
+    when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(defaultClaims);
+    when(cachingDelegate.getVerifiedIdentityIdentifier(SESSION_ID_VALUE)).thenReturn(
+        Optional.of(VERIFIED_IDENTITY_IDENTIFIER));
 
     URI redirectUri = URI.create("/redirect-uri");
     when(gatewayService.getCredentialUri(eq(credentialData), any(), any())).thenReturn(
         Optional.of(redirectUri));
 
-    Optional<URI> uri = issuanceService.startCredentialIssuance(AUTH_TOKEN, credentialData, null);
+    Optional<URI> uri = issuanceService.startCredentialIssuance(AUTH_TOKEN, tisData,
+        (data, id) -> credentialData, null);
 
     assertThat("Unexpected URI.", uri, is(Optional.of(redirectUri)));
   }
@@ -431,5 +563,12 @@ class IssuanceServiceTest {
             uri.getQuery().split("&"))
         .map(param -> param.split("="))
         .collect(Collectors.toMap(keyValue -> keyValue[0], keyValue -> keyValue[1]));
+  }
+
+  /**
+   * Test implementation of TisDataDto, allows more generic testing.
+   */
+  private record TestTisDataDto() implements TisDataDto {
+
   }
 }

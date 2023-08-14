@@ -45,6 +45,6 @@ public record PlacementDataDto(
     @NotEmpty String employingBody,
     @NotEmpty String site,
     @NotNull LocalDate startDate,
-    @NotNull LocalDate endDate) {
+    @NotNull LocalDate endDate) implements TisDataDto {
 
 }
