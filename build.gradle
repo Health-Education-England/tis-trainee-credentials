@@ -52,8 +52,7 @@ dependencies {
   implementation "io.awspring.cloud:spring-cloud-aws-messaging"
 
   //AWS X-ray
-  implementation "com.amazonaws:aws-xray-recorder-sdk-spring:2.13.0"
-  implementation "javax.servlet:javax.servlet-api:4.0.1"
+  implementation "com.amazonaws:aws-xray-recorder-sdk-spring:2.14.0"
 
   implementation "commons-codec:commons-codec:1.16.0"
 
@@ -65,7 +64,6 @@ dependencies {
   testImplementation "org.springframework.cloud:spring-cloud-starter-bootstrap"
   testImplementation "com.playtika.testcontainers:embedded-redis:2.3.2"
   testImplementation "org.testcontainers:junit-jupiter:1.18.3"
-  testImplementation "javax.servlet:javax.servlet-api:4.0.1"
 }
 
 dependencyManagement {
