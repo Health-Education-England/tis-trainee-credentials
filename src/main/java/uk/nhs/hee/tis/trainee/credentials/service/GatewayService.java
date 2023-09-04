@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.service;
 
+import com.amazonaws.xray.spring.aop.XRayEnabled;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.impl.DefaultClaims;
@@ -50,6 +51,7 @@ import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
  */
 @Slf4j
 @Service
+@XRayEnabled
 public class GatewayService {
 
   private static final String CLIENT_ID = "client_id";

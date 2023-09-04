@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.service;
 
+import com.amazonaws.xray.spring.aop.XRayEnabled;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -45,6 +46,7 @@ import uk.nhs.hee.tis.trainee.credentials.service.GatewayService.TokenResponse;
  */
 @Slf4j
 @Service
+@XRayEnabled
 public class VerificationService {
 
   private static final String CREDENTIAL_PREFIX = "openid ";

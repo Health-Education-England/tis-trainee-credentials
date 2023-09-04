@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.api;
 
+import com.amazonaws.xray.spring.aop.XRayEnabled;
 import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,6 +51,7 @@ import uk.nhs.hee.tis.trainee.credentials.service.IssuanceService;
 @Slf4j
 @RestController()
 @RequestMapping("/api/issue")
+@XRayEnabled
 public class IssueResource {
 
   private final IssuanceService service;

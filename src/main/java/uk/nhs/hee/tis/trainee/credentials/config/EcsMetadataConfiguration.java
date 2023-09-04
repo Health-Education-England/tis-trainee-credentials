@@ -30,6 +30,9 @@ import org.springframework.web.client.RestTemplate;
 import uk.nhs.hee.tis.trainee.credentials.config.EcsMetadataConfiguration.EcsMetadata.ContainerMetadata;
 import uk.nhs.hee.tis.trainee.credentials.config.EcsMetadataConfiguration.EcsMetadata.TaskMetadata;
 
+/**
+ * Configuration for retrieval of ECS metadata.
+ */
 @Configuration
 @ConditionalOnExpression("!T(org.springframework.util.StringUtils)"
     + ".isEmpty('${ecs.container.metadata.uri.v4:}')")
@@ -53,6 +56,12 @@ public class EcsMetadataConfiguration {
     return new EcsMetadata(taskMetadata, containerMetadata);
   }
 
+  /**
+   * A representation of ECS metadata.
+   *
+   * @param taskMetadata      The ECS task metadata.
+   * @param containerMetadata The ECS container metadata.
+   */
   public record EcsMetadata(
       @JsonProperty("TaskMetadata")
       TaskMetadata taskMetadata,
@@ -60,6 +69,14 @@ public class EcsMetadataConfiguration {
       @JsonProperty("ContainerMetadata")
       ContainerMetadata containerMetadata) {
 
+    /**
+     * A representation of ECS task metadata.
+     *
+     * @param cluster  The ECS cluster.
+     * @param taskArn  The running task's ARN.
+     * @param family   The task definition family.
+     * @param revision The task definition revision.
+     */
     record TaskMetadata(
         @JsonProperty("Cluster")
         String cluster,
@@ -75,6 +92,12 @@ public class EcsMetadataConfiguration {
 
     }
 
+    /**
+     * A representation of ECS container metadata.
+     *
+     * @param containerArn The ECS container ARN.
+     * @param logOptions   The container's log options.
+     */
     record ContainerMetadata(
 
         @JsonProperty("ContainerARN")
@@ -83,6 +106,13 @@ public class EcsMetadataConfiguration {
         @JsonProperty("LogOptions")
         LogOptions logOptions) {
 
+      /**
+       * A representation of ECS container log options.
+       *
+       * @param logGroup  The container's log group.
+       * @param region    The container's log region.
+       * @param logStream The container's current log stream.
+       */
       record LogOptions(
           @JsonProperty("awslogs-group")
           String logGroup,

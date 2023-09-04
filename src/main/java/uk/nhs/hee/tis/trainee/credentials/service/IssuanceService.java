@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.service;
 
+import com.amazonaws.xray.spring.aop.XRayEnabled;
 import io.jsonwebtoken.Claims;
 import java.net.URI;
 import java.time.Instant;
@@ -45,6 +46,7 @@ import uk.nhs.hee.tis.trainee.credentials.repository.CredentialMetadataRepositor
  */
 @Slf4j
 @Service
+@XRayEnabled
 public class IssuanceService {
 
   private final GatewayService gatewayService;

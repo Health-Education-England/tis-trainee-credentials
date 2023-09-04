@@ -22,18 +22,27 @@
 package uk.nhs.hee.tis.trainee.credentials.filter;
 
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.Mockito.mock;
 
+import com.amazonaws.xray.jakarta.servlet.AWSXRayServletFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import uk.nhs.hee.tis.trainee.credentials.service.VerificationService;
 
 class FilterConfigurationTest {
+
+  private static final String DAEMON_PROPERTY = "com.amazonaws.xray.emitters.daemon-address";
 
   private static final String SIGNATURE_SECRET_KEY = "test-secret-key";
 
@@ -42,6 +51,43 @@ class FilterConfigurationTest {
   @BeforeEach
   void setUp() {
     configuration = new FilterConfiguration();
+  }
+
+  @Test
+  void shouldNotRegisterTracingFilterWhenDaemonAddressNotSet() {
+    ApplicationContextRunner runner = new ApplicationContextRunner()
+        .withUserConfiguration(FilterConfiguration.class)
+        .withBean(SignedDataFilter.class, () -> new SignedDataFilter(null, null, null))
+        .withBean(VerifiedSessionFilter.class, () -> new VerifiedSessionFilter(null));
+
+    runner
+        .withPropertyValues(DAEMON_PROPERTY + "=")
+        .run(context -> assertThat("Unexpected bean presence.",
+            context.containsBean("registerTracingFilter"), is(false)));
+  }
+
+  @Test
+  void shouldRegisterTracingFilterWhenDaemonAddressSet() {
+    ApplicationContextRunner runner = new ApplicationContextRunner()
+        .withUserConfiguration(FilterConfiguration.class)
+        .withBean(SignedDataFilter.class, () -> new SignedDataFilter(null, null, null))
+        .withBean(VerifiedSessionFilter.class, () -> new VerifiedSessionFilter(null));
+
+    runner
+        .withPropertyValues(DAEMON_PROPERTY + "=https://localhost:1234")
+        .run(context -> assertAll(
+            () -> assertThat("Unexpected bean presence.",
+                context.containsBean("registerTracingFilter"), is(true)),
+            () -> assertThat("Unexpected bean type.", context.getBean("registerTracingFilter"),
+                instanceOf(FilterRegistrationBean.class))
+        ));
+  }
+
+  @Test
+  void shouldRegisterTracingFilter() {
+    var registrationBean = configuration.registerTracingFilter("test");
+    AWSXRayServletFilter registeredFilter = registrationBean.getFilter();
+    assertThat("Unexpected registered filter.", registeredFilter, notNullValue());
   }
 
   @Test

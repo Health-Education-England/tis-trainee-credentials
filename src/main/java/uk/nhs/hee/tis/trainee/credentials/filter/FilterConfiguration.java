@@ -21,9 +21,13 @@
 
 package uk.nhs.hee.tis.trainee.credentials.filter;
 
+import com.amazonaws.xray.jakarta.servlet.AWSXRayServletFilter;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 
 /**
  * A configuration for request filters.
@@ -32,12 +36,30 @@ import org.springframework.context.annotation.Configuration;
 public class FilterConfiguration {
 
   /**
+   * Configure the AWS Xray filter with the segment name set to service and environment.
+   *
+   * @param environment The environment to use.
+   * @return The {@link AWSXRayServletFilter} for the registration.
+   */
+  @Bean
+  @Order(0)
+  @ConditionalOnExpression("!T(org.springframework.util.StringUtils)"
+      + ".isEmpty('${com.amazonaws.xray.emitters.daemon-address}')")
+  public FilterRegistrationBean<AWSXRayServletFilter> registerTracingFilter(
+      @Value("${application.environment}") String environment) {
+    FilterRegistrationBean<AWSXRayServletFilter> registrationBean = new FilterRegistrationBean<>();
+    registrationBean.setFilter(new AWSXRayServletFilter("tis-trainee-credentials-" + environment));
+    return registrationBean;
+  }
+
+  /**
    * Register a {@link SignedDataFilter}.
    *
    * @param filter The filter to register.
    * @return The {@link FilterRegistrationBean} for the registration.
    */
   @Bean
+  @Order(1)
   public FilterRegistrationBean<SignedDataFilter> registerSignedDataFilter(
       SignedDataFilter filter) {
     FilterRegistrationBean<SignedDataFilter> registrationBean = new FilterRegistrationBean<>();
@@ -55,6 +77,7 @@ public class FilterConfiguration {
    * @return The {@link FilterRegistrationBean} for the registration.
    */
   @Bean
+  @Order(1)
   public FilterRegistrationBean<VerifiedSessionFilter> registerVerifiedSessionFilter(
       VerifiedSessionFilter filter) {
     FilterRegistrationBean<VerifiedSessionFilter> registrationBean = new FilterRegistrationBean<>();
