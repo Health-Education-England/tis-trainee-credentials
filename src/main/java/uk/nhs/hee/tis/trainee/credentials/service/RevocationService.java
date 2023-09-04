@@ -21,12 +21,10 @@
 
 package uk.nhs.hee.tis.trainee.credentials.service;
 
-import com.amazonaws.xray.spring.aop.XRayEnabled;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
@@ -40,7 +38,6 @@ import uk.nhs.hee.tis.trainee.credentials.repository.ModificationMetadataReposit
  */
 @Slf4j
 @Service
-@XRayEnabled
 public class RevocationService {
 
   private final CredentialMetadataRepository credentialMetadataRepository;
