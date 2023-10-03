@@ -25,7 +25,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -377,12 +376,18 @@ class IssuanceServiceTest {
 
     ArgumentCaptor<CredentialMetadata> argument = ArgumentCaptor.forClass(CredentialMetadata.class);
     verify(credentialMetadataRepository).save(argument.capture());
-    assertEquals(CREDENTIAL_ID, argument.getValue().getCredentialId());
-    assertEquals(credentialData.getScope(), argument.getValue().getCredentialType());
-    assertEquals(TIS_ID, argument.getValue().getTisId());
-    assertEquals(TRAINEE_ID, argument.getValue().getTraineeId());
-    assertEquals(ISSUED_AT, argument.getValue().getIssuedAt());
-    assertEquals(EXPIRES_AT, argument.getValue().getExpiresAt());
+
+    CredentialMetadata credentialMetadata = argument.getValue();
+    assertThat("Unexpected credential ID.", credentialMetadata.getCredentialId(),
+        is(CREDENTIAL_ID));
+    assertThat("Unexpected credential type.", credentialMetadata.getCredentialType(),
+        is(credentialData.getScope()));
+    assertThat("Unexpected TIS ID.", credentialMetadata.getTisId(), is(TIS_ID));
+    assertThat("Unexpected trainee ID.", credentialMetadata.getTraineeId(), is(TRAINEE_ID));
+
+    assertThat("Unexpected issued at.", credentialMetadata.getIssuedAt(), is(ISSUED_AT));
+    assertThat("Unexpected expires at.", credentialMetadata.getExpiresAt(), is(EXPIRES_AT));
+    assertThat("Unexpected revoked at.", credentialMetadata.getRevokedAt(), nullValue());
   }
 
   @Test

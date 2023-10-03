@@ -47,5 +47,6 @@ public class CredentialMetadata implements Serializable {
   private String credentialType;
   private String tisId;
   private Instant issuedAt;
+  private Instant revokedAt;
   private Instant expiresAt;
 }
