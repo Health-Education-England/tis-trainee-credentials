@@ -21,10 +21,12 @@
 
 package uk.nhs.hee.tis.trainee.credentials.mapper;
 
+import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants.ComponentModel;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.CredentialMetadataDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.IssueResponseDto;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 
@@ -51,4 +53,11 @@ public interface CredentialMetadataMapper {
   CredentialMetadata toCredentialMetadata(String traineeId, CredentialDto credentialData,
       IssueResponseDto responseDto);
 
+  /**
+   * Converts a list of CredentialMetadata entities to a list of CredentialMetadataDto objects.
+   *
+   * @param entities A list of CredentialMetadata entities to be converted.
+   * @return A list of CredentialMetadataDto objects representing the converted entities.
+   */
+  List<CredentialMetadataDto> toDtos(List<CredentialMetadata> entities);
 }
