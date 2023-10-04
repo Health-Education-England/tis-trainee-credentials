@@ -90,7 +90,9 @@ public class RevocationService {
       credentialMetadataList.forEach(metadata -> {
         gatewayService.revokeCredential(credentialType.getTemplateName(),
             metadata.getCredentialId());
-        credentialMetadataRepository.deleteById(metadata.getCredentialId());
+
+        metadata.setRevokedAt(Instant.now());
+        credentialMetadataRepository.save(metadata);
         log.info("Credential {} for TIS ID {} has been revoked.", credentialType, tisId);
       });
 

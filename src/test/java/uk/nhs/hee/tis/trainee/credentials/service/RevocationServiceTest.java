@@ -22,11 +22,13 @@
 package uk.nhs.hee.tis.trainee.credentials.service;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -103,7 +105,7 @@ class RevocationServiceTest {
 
   @ParameterizedTest
   @EnumSource(CredentialType.class)
-  void shouldNotDeleteCredentialMetadataWhenRevocationFails(CredentialType credentialType) {
+  void shouldNotUpdateCredentialMetadataWhenRevocationFails(CredentialType credentialType) {
     CredentialMetadata credentialMetadata = new CredentialMetadata();
     credentialMetadata.setTisId(TIS_ID);
     credentialMetadata.setCredentialId(CREDENTIAL_ID);
@@ -123,7 +125,7 @@ class RevocationServiceTest {
 
   @ParameterizedTest
   @EnumSource(CredentialType.class)
-  void shouldDeleteCredentialMetadataWhenRevocationSuccessful(CredentialType credentialType) {
+  void shouldUpdateCredentialMetadataWhenRevocationSuccessful(CredentialType credentialType) {
     CredentialMetadata credentialMetadata = new CredentialMetadata();
     credentialMetadata.setTisId(TIS_ID);
     credentialMetadata.setCredentialId(CREDENTIAL_ID);
@@ -136,12 +138,20 @@ class RevocationServiceTest {
     service.revoke(TIS_ID, credentialType);
 
     verify(gatewayService).revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
-    verify(credentialMetadataRepository).deleteById(CREDENTIAL_ID);
+
+    ArgumentCaptor<CredentialMetadata> metadataCaptor = ArgumentCaptor.forClass(
+        CredentialMetadata.class);
+    verify(credentialMetadataRepository).save(metadataCaptor.capture());
+
+    CredentialMetadata revokedMetadata = metadataCaptor.getValue();
+    assertThat("Unexpected credential ID.", revokedMetadata.getCredentialId(), is(CREDENTIAL_ID));
+    assertThat("Unexpected TIS ID.", revokedMetadata.getTisId(), is(TIS_ID));
+    assertThat("Unexpected revoked at.", revokedMetadata.getRevokedAt(), notNullValue());
   }
 
   @ParameterizedTest
   @EnumSource(CredentialType.class)
-  void shouldDeleteMultipleCredentialMetadataWhenRevocationSuccessful(
+  void shouldUpdateMultipleCredentialMetadataWhenRevocationSuccessful(
       CredentialType credentialType) {
     CredentialMetadata credentialMetadata = new CredentialMetadata();
     credentialMetadata.setTisId(TIS_ID);
@@ -159,9 +169,20 @@ class RevocationServiceTest {
 
     service.revoke(TIS_ID, credentialType);
 
-    verify(gatewayService).revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
-    verify(credentialMetadataRepository).deleteById(CREDENTIAL_ID);
-    verify(credentialMetadataRepository).deleteById(credentialId2);
+    ArgumentCaptor<CredentialMetadata> metadataCaptor = ArgumentCaptor.forClass(
+        CredentialMetadata.class);
+    verify(credentialMetadataRepository, times(2)).save(metadataCaptor.capture());
+
+    List<CredentialMetadata> revokedMetadata = metadataCaptor.getAllValues();
+    CredentialMetadata revokedMetadata1 = revokedMetadata.get(0);
+    assertThat("Unexpected credential ID.", revokedMetadata1.getCredentialId(), is(CREDENTIAL_ID));
+    assertThat("Unexpected TIS ID.", revokedMetadata1.getTisId(), is(TIS_ID));
+    assertThat("Unexpected revoked at.", revokedMetadata1.getRevokedAt(), notNullValue());
+
+    CredentialMetadata revokedMetadata2 = revokedMetadata.get(1);
+    assertThat("Unexpected credential ID.", revokedMetadata2.getCredentialId(), is(credentialId2));
+    assertThat("Unexpected TIS ID.", revokedMetadata2.getTisId(), is(TIS_ID));
+    assertThat("Unexpected revoked at.", revokedMetadata2.getRevokedAt(), notNullValue());
   }
 
   @ParameterizedTest
