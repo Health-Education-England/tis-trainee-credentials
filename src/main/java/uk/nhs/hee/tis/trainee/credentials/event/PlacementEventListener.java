@@ -21,9 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.event;
 
-import static io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy.ON_SUCCESS;
-
-import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
@@ -49,7 +47,7 @@ public class PlacementEventListener {
    *
    * @param deletedPlacement The deleted placement.
    */
-  @SqsListener(value = "${application.aws.sqs.delete-placement}", deletionPolicy = ON_SUCCESS)
+  @SqsListener("${application.aws.sqs.delete-placement}")
   void deletePlacement(DeleteEventDto deletedPlacement) {
     log.info("Received delete event for placement {}.", deletedPlacement);
     revocationService.revoke(deletedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT);
@@ -60,7 +58,7 @@ public class PlacementEventListener {
    *
    * @param updatedPlacement The updated placement.
    */
-  @SqsListener(value = "${application.aws.sqs.update-placement}", deletionPolicy = ON_SUCCESS)
+  @SqsListener("${application.aws.sqs.update-placement}")
   void updatePlacement(UpdateEventDto updatedPlacement) {
     log.info("Received update event for placement {}.", updatedPlacement);
     // For now, we simply revoke regardless of which fields have updated (pending TIS21-4152)
