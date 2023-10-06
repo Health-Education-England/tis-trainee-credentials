@@ -81,13 +81,17 @@ public class RevocationService {
     log.debug("Stored last modified time {} for {} {}.", timestamp, credentialType, tisId);
 
     // Find this credential in the credential metadata repository. If it exists, then revoke it.
-    List<CredentialMetadata> credentialMetadataList =
+    List<CredentialMetadata> credentialsMetadata =
         credentialMetadataRepository.findByCredentialTypeAndTisId(
             credentialType.getIssuanceScope(), tisId);
-    if (!credentialMetadataList.isEmpty()) {
+    List<CredentialMetadata> validCredentialsMetadata = credentialsMetadata.stream()
+        .filter(meta -> meta.getRevokedAt() == null)
+        .toList();
+
+    if (!validCredentialsMetadata.isEmpty()) {
       log.info("{} Issued credential(s) of type {} found for TIS ID {}, revoking.",
-          credentialMetadataList.size(), credentialType, tisId);
-      credentialMetadataList.forEach(metadata -> {
+          validCredentialsMetadata.size(), credentialType, tisId);
+      validCredentialsMetadata.forEach(metadata -> {
         gatewayService.revokeCredential(credentialType.getTemplateName(),
             metadata.getCredentialId());
 
