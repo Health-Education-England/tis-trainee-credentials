@@ -21,9 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.event;
 
-import static io.awspring.cloud.messaging.listener.SqsMessageDeletionPolicy.ON_SUCCESS;
-
-import io.awspring.cloud.messaging.listener.annotation.SqsListener;
+import io.awspring.cloud.sqs.annotation.SqsListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
@@ -49,21 +47,18 @@ public class ProgrammeMembershipEventListener {
    *
    * @param deletedProgrammeMembership The deleted programme membership.
    */
-  @SqsListener(value = "${application.aws.sqs.delete-programme-membership}",
-      deletionPolicy = ON_SUCCESS)
+  @SqsListener("${application.aws.sqs.delete-programme-membership}")
   void deleteProgrammeMembership(DeleteEventDto deletedProgrammeMembership) {
     log.info("Received delete event for programme membership {}.", deletedProgrammeMembership);
     revocationService.revoke(deletedProgrammeMembership.tisId(), CredentialType.TRAINING_PROGRAMME);
   }
-
 
   /**
    * Listener for update events.
    *
    * @param updatedProgrammeMembership The updated programme membership.
    */
-  @SqsListener(value = "${application.aws.sqs.update-programme-membership}",
-      deletionPolicy = ON_SUCCESS)
+  @SqsListener("${application.aws.sqs.update-programme-membership}")
   void updateProgrammeMembership(UpdateEventDto updatedProgrammeMembership) {
     log.info("Received update event for programme membership {}.", updatedProgrammeMembership);
     // For now, we simply revoke regardless of which fields have updated (pending TIS21-4152)

@@ -24,8 +24,6 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.amazonaws.services.sqs.AmazonSQSAsync;
-import io.awspring.cloud.autoconfigure.messaging.SqsAutoConfiguration;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import java.security.PublicKey;
@@ -35,9 +33,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import uk.nhs.hee.tis.trainee.credentials.TestCredentialDto;
@@ -45,13 +41,9 @@ import uk.nhs.hee.tis.trainee.credentials.dto.CredentialDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
 
 @SpringBootTest(properties = "embedded.containers.enabled=true")
-@ActiveProfiles("redis")
+@ActiveProfiles({"redis", "test"})
 @Testcontainers(disabledWithoutDocker = true)
-@EnableAutoConfiguration(exclude = SqsAutoConfiguration.class)
 class CachingDelegateIntegrationTest {
-
-  @MockBean
-  private AmazonSQSAsync amazonSqsAsync;
 
   @Autowired
   CachingDelegate delegate;

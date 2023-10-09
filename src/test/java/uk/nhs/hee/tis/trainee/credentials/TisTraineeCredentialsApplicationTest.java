@@ -21,19 +21,13 @@
 
 package uk.nhs.hee.tis.trainee.credentials;
 
-import com.amazonaws.services.sqs.AmazonSQSAsync;
-import io.awspring.cloud.autoconfigure.messaging.SqsAutoConfiguration;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@EnableAutoConfiguration(exclude = SqsAutoConfiguration.class)
+@ActiveProfiles("test")
 class TisTraineeCredentialsApplicationTest {
-
-  @MockBean
-  private AmazonSQSAsync amazonSqsAsync;
 
 
   @Test

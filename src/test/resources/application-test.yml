@@ -1,0 +1,30 @@
+application:
+  cache:
+    key-prefix: CredentialsTest
+    time-to-live:
+      verification-request: 60
+      verified-session: 60
+      credential-metadata: 60
+  gateway:
+    host: http://localhost
+    organisation-id: dummy-value
+    client-id: dummy-value
+    client-secret: dummy-value
+    issuing:
+      token:
+        signing-key: dummy-value
+      redirect-uri: http://localhost
+    verification:
+      redirect-uri: http://localhost
+  signature:
+    secret-key: test-secret-key
+
+spring:
+  cloud:
+    aws:
+      region:
+        static: aws-global
+      sqs:
+        enabled: false
+    compatibility-verifier:
+      enabled: false # TODO: For unknown reasons there is currently a flagged incompatibility between Spring Cloud 2022.0.4 and Spring Boot 3.1.x.

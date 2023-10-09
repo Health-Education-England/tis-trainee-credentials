@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "uk.nhs.tis.trainee"
-version = "0.18.1"
+version = "0.18.2"
 
 configurations {
   compileOnly {
@@ -20,6 +20,13 @@ configurations {
 
 repositories {
   mavenCentral()
+}
+
+dependencyManagement {
+  imports {
+    mavenBom "org.springframework.cloud:spring-cloud-dependencies:2022.0.4"
+    mavenBom "io.awspring.cloud:spring-cloud-aws-dependencies:3.0.2"
+  }
 }
 
 dependencies {
@@ -47,9 +54,7 @@ dependencies {
   implementation "io.sentry:sentry-logback:$sentryVersion"
 
   // Amazon SQS
-  implementation "org.springframework:spring-messaging:5.3.25"
-  implementation "io.awspring.cloud:spring-cloud-starter-aws"
-  implementation "io.awspring.cloud:spring-cloud-aws-messaging"
+  implementation "io.awspring.cloud:spring-cloud-aws-starter-sqs"
 
   //AWS X-ray
   implementation "com.amazonaws:aws-xray-recorder-sdk-spring:2.14.0"
@@ -64,13 +69,6 @@ dependencies {
   testImplementation "org.springframework.cloud:spring-cloud-starter-bootstrap"
   testImplementation "com.playtika.testcontainers:embedded-redis:2.3.2"
   testImplementation "org.testcontainers:junit-jupiter:1.19.0"
-}
-
-dependencyManagement {
-  imports {
-    mavenBom "org.springframework.cloud:spring-cloud-dependencies:2022.0.4"
-    mavenBom "io.awspring.cloud:spring-cloud-aws-dependencies:2.4.4"
-  }
 }
 
 checkstyle {
