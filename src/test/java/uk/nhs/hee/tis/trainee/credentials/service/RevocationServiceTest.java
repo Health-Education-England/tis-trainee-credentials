@@ -105,6 +105,23 @@ class RevocationServiceTest {
 
   @ParameterizedTest
   @EnumSource(CredentialType.class)
+  void shouldNotAttemptRevocationWhenCredentialAlreadyRevoked(CredentialType credentialType) {
+    CredentialMetadata credentialMetadata = new CredentialMetadata();
+    credentialMetadata.setTisId(TIS_ID);
+    credentialMetadata.setCredentialId(CREDENTIAL_ID);
+    credentialMetadata.setRevokedAt(Instant.now());
+
+    when(
+        credentialMetadataRepository.findByCredentialTypeAndTisId(credentialType.getIssuanceScope(),
+            TIS_ID)).thenReturn(List.of(credentialMetadata));
+
+    service.revoke(TIS_ID, credentialType);
+
+    verifyNoInteractions(gatewayService);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
   void shouldNotUpdateCredentialMetadataWhenRevocationFails(CredentialType credentialType) {
     CredentialMetadata credentialMetadata = new CredentialMetadata();
     credentialMetadata.setTisId(TIS_ID);
