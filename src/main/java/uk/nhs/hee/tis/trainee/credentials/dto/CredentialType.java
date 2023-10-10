@@ -31,21 +31,24 @@ import lombok.Getter;
 @Getter
 public enum CredentialType {
 
-  TRAINING_PLACEMENT("TrainingPlacement", "/api/issue/placement"),
-  TRAINING_PROGRAMME("TrainingProgramme", "/api/issue/programme-membership");
+  TRAINING_PLACEMENT("Training Placement", "TrainingPlacement", "/api/issue/placement"),
+  TRAINING_PROGRAMME("Training Programme", "TrainingProgramme", "/api/issue/programme-membership");
 
   private static final String ISSUANCE_SCOPE_PREFIX = "issue.";
 
+  private final String displayName;
   private final String templateName;
   private final String apiPath;
 
   /**
    * Construct a credential type.
    *
+   * @param displayName  The name displayed to users.
    * @param templateName The gateway credential template name.
    * @param apiPath      The API request path for the credential type.
    */
-  CredentialType(String templateName, String apiPath) {
+  CredentialType(String displayName, String templateName, String apiPath) {
+    this.displayName = displayName;
     this.templateName = templateName;
     this.apiPath = apiPath;
   }
@@ -59,6 +62,20 @@ public enum CredentialType {
   public static Optional<CredentialType> fromPath(String apiPath) {
     return Arrays.stream(CredentialType.values())
         .filter(ct -> ct.apiPath.equals(apiPath))
+        .findFirst();
+  }
+
+  /**
+   * Get the credential type matching the given issuance scope.
+   *
+   * @param issuanceScope The issuance scope to match.
+   * @return The matched credential type, or else empty.
+   */
+  public static Optional<CredentialType> fromIssuanceScope(String issuanceScope) {
+    String templateName = issuanceScope.replaceFirst(ISSUANCE_SCOPE_PREFIX, "");
+
+    return Arrays.stream(CredentialType.values())
+        .filter(ct -> ct.templateName.equals(templateName))
         .findFirst();
   }
 

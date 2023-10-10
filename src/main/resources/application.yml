@@ -5,6 +5,8 @@ server:
 
 application:
   aws:
+    sns:
+      revocation-topic: ${REVOKE_TOPIC_ARN:}
     sqs:
       delete-placement: ${DELETE_PLACEMENT_QUEUE_URL:}
       delete-programme-membership: ${DELETE_PROGRAMME_MEMBERSHIP_QUEUE_URL:}

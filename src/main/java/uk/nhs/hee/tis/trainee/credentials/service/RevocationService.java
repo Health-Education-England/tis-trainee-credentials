@@ -44,13 +44,15 @@ public class RevocationService {
 
   private final ModificationMetadataRepository modificationMetadataRepository;
   private final GatewayService gatewayService;
+  private final EventPublishingService eventPublishingService;
 
   RevocationService(CredentialMetadataRepository credentialMetadataRepository,
       ModificationMetadataRepository modificationMetadataRepository,
-      GatewayService gatewayService) {
+      GatewayService gatewayService, EventPublishingService eventPublishingService) {
     this.credentialMetadataRepository = credentialMetadataRepository;
     this.modificationMetadataRepository = modificationMetadataRepository;
     this.gatewayService = gatewayService;
+    this.eventPublishingService = eventPublishingService;
   }
 
   /**
@@ -97,6 +99,7 @@ public class RevocationService {
 
         metadata.setRevokedAt(Instant.now());
         credentialMetadataRepository.save(metadata);
+        eventPublishingService.publishRevocationEvent(metadata);
         log.info("Credential {} for TIS ID {} has been revoked.", credentialType, tisId);
       });
 
