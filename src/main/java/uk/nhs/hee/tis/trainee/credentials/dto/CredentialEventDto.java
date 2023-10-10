@@ -19,18 +19,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials;
+package uk.nhs.hee.tis.trainee.credentials.dto;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import java.util.UUID;
 
-@SpringBootTest
-@ActiveProfiles("test")
-class TisTraineeCredentialsApplicationTest {
+/**
+ * A credential event.
+ *
+ * @param credentialId   The identifier of the credential.
+ * @param credentialType The credential type's display name.
+ * @param traineeId      The trainee who the credential was issued to.
+ */
+public record CredentialEventDto(UUID credentialId, String credentialType, String traineeId) {
 
-  @Test
-  void contextLoads() {
-
-  }
 }

@@ -61,13 +61,16 @@ class RevocationServiceTest {
   private CredentialMetadataRepository credentialMetadataRepository;
   private ModificationMetadataRepository repository;
   private GatewayService gatewayService;
+  private EventPublishingService eventPublishingService;
 
   @BeforeEach
   void setUp() {
     credentialMetadataRepository = mock(CredentialMetadataRepository.class);
     repository = mock(ModificationMetadataRepository.class);
     gatewayService = mock(GatewayService.class);
-    service = new RevocationService(credentialMetadataRepository, repository, gatewayService);
+    eventPublishingService = mock(EventPublishingService.class);
+    service = new RevocationService(credentialMetadataRepository, repository, gatewayService,
+        eventPublishingService);
   }
 
   @Test
@@ -164,6 +167,88 @@ class RevocationServiceTest {
     assertThat("Unexpected credential ID.", revokedMetadata.getCredentialId(), is(CREDENTIAL_ID));
     assertThat("Unexpected TIS ID.", revokedMetadata.getTisId(), is(TIS_ID));
     assertThat("Unexpected revoked at.", revokedMetadata.getRevokedAt(), notNullValue());
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldNotPublishRevocationEventWhenRevocationFails(CredentialType credentialType) {
+    CredentialMetadata credentialMetadata = new CredentialMetadata();
+    credentialMetadata.setTisId(TIS_ID);
+    credentialMetadata.setCredentialId(CREDENTIAL_ID);
+
+    String scope = credentialType.getIssuanceScope();
+
+    when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
+        List.of(credentialMetadata));
+    doThrow(ResponseStatusException.class).when(gatewayService)
+        .revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
+
+    assertThrows(ResponseStatusException.class, () -> service.revoke(TIS_ID, credentialType));
+
+    verify(credentialMetadataRepository).findByCredentialTypeAndTisId(scope, TIS_ID);
+    verifyNoMoreInteractions(eventPublishingService);
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldPublishRevocationEventWhenRevocationSuccessful(CredentialType credentialType) {
+    CredentialMetadata credentialMetadata = new CredentialMetadata();
+    credentialMetadata.setTisId(TIS_ID);
+    credentialMetadata.setCredentialId(CREDENTIAL_ID);
+
+    String scope = credentialType.getIssuanceScope();
+
+    when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
+        List.of(credentialMetadata));
+
+    service.revoke(TIS_ID, credentialType);
+
+    verify(gatewayService).revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
+
+    ArgumentCaptor<CredentialMetadata> metadataCaptor = ArgumentCaptor.forClass(
+        CredentialMetadata.class);
+    verify(eventPublishingService).publishRevocationEvent(metadataCaptor.capture());
+
+    CredentialMetadata revokedMetadata = metadataCaptor.getValue();
+    assertThat("Unexpected credential ID.", revokedMetadata.getCredentialId(), is(CREDENTIAL_ID));
+    assertThat("Unexpected TIS ID.", revokedMetadata.getTisId(), is(TIS_ID));
+    assertThat("Unexpected revoked at.", revokedMetadata.getRevokedAt(), notNullValue());
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldPublishMultipleRevocationEventsWhenRevocationSuccessful(
+      CredentialType credentialType) {
+    CredentialMetadata credentialMetadata = new CredentialMetadata();
+    credentialMetadata.setTisId(TIS_ID);
+    credentialMetadata.setCredentialId(CREDENTIAL_ID);
+
+    String credentialId2 = UUID.randomUUID().toString();
+    CredentialMetadata credentialMetadata2 = new CredentialMetadata();
+    credentialMetadata2.setTisId(TIS_ID);
+    credentialMetadata2.setCredentialId(credentialId2);
+
+    String scope = credentialType.getIssuanceScope();
+
+    when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
+        List.of(credentialMetadata, credentialMetadata2));
+
+    service.revoke(TIS_ID, credentialType);
+
+    ArgumentCaptor<CredentialMetadata> metadataCaptor = ArgumentCaptor.forClass(
+        CredentialMetadata.class);
+    verify(eventPublishingService, times(2)).publishRevocationEvent(metadataCaptor.capture());
+
+    List<CredentialMetadata> revokedMetadata = metadataCaptor.getAllValues();
+    CredentialMetadata revokedMetadata1 = revokedMetadata.get(0);
+    assertThat("Unexpected credential ID.", revokedMetadata1.getCredentialId(), is(CREDENTIAL_ID));
+    assertThat("Unexpected TIS ID.", revokedMetadata1.getTisId(), is(TIS_ID));
+    assertThat("Unexpected revoked at.", revokedMetadata1.getRevokedAt(), notNullValue());
+
+    CredentialMetadata revokedMetadata2 = revokedMetadata.get(1);
+    assertThat("Unexpected credential ID.", revokedMetadata2.getCredentialId(), is(credentialId2));
+    assertThat("Unexpected TIS ID.", revokedMetadata2.getTisId(), is(TIS_ID));
+    assertThat("Unexpected revoked at.", revokedMetadata2.getRevokedAt(), notNullValue());
   }
 
   @ParameterizedTest
