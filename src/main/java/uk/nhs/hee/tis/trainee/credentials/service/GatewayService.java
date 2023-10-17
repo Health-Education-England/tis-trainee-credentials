@@ -64,6 +64,8 @@ public class GatewayService {
   private static final String NONCE = "nonce";
   private static final String ORGANIZATION_ID = "OrganisationId";
   private static final String REDIRECT_URI = "redirect_uri";
+  private static final String RESPONSE_MODE = "response_mode";
+  private static final String RESPONSE_TYPE = "response_type";
   private static final String REVOCATION_REASON = "RevocationReason";
   private static final String SCOPE = "scope";
   private static final String SERIAL_NUMBER = "SerialNumber";
@@ -123,6 +125,8 @@ public class GatewayService {
     bodyPair.add(REDIRECT_URI, properties.issuing().redirectUri());
     bodyPair.add(SCOPE, dto.getScope());
     bodyPair.add(ID_TOKEN_HINT, idTokenHint);
+    bodyPair.add(RESPONSE_TYPE, "code");
+    bodyPair.add(RESPONSE_MODE, "query");
     bodyPair.add(NONCE, nonce);
     bodyPair.add(STATE, state);
 

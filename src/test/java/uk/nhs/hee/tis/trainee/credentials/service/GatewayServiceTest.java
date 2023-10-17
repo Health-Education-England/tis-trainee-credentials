@@ -250,6 +250,36 @@ class GatewayServiceTest {
   }
 
   @Test
+  void shouldIncludeResponseTypeInParRequest() {
+    CredentialDto dto = mock(CredentialDto.class);
+
+    var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
+        eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
+
+    service.getCredentialUri(dto, NONCE, STATE);
+
+    var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
+    MultiValueMap<String, String> requestBody = request.getBody();
+    assertThat("Unexpected response type.", requestBody.get("response_type"), is(List.of("code")));
+  }
+
+  @Test
+  void shouldIncludeResponseModeInParRequest() {
+    CredentialDto dto = mock(CredentialDto.class);
+
+    var argumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+    when(restTemplate.postForEntity(eq(PAR_ENDPOINT), argumentCaptor.capture(),
+        eq(ParResponse.class))).thenReturn(ResponseEntity.ok(null));
+
+    service.getCredentialUri(dto, NONCE, STATE);
+
+    var request = (HttpEntity<MultiValueMap<String, String>>) argumentCaptor.getValue();
+    MultiValueMap<String, String> requestBody = request.getBody();
+    assertThat("Unexpected response mode.", requestBody.get("response_mode"), is(List.of("query")));
+  }
+
+  @Test
   void shouldIncludeStateInParRequest() {
     CredentialDto dto = mock(CredentialDto.class);
 
