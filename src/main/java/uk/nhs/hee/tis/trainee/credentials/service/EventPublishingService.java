@@ -24,6 +24,7 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 import io.awspring.cloud.sns.core.SnsNotification;
 import io.awspring.cloud.sns.core.SnsTemplate;
 import java.net.URI;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialEventDto;
@@ -33,6 +34,7 @@ import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 /**
  * A service handling publishing of events to an external message system.
  */
+@Slf4j
 @Service
 public class EventPublishingService {
 
@@ -64,6 +66,8 @@ public class EventPublishingService {
    * @param credentialMetadata The metadata of the credential that was revoked.
    */
   public void publishRevocationEvent(CredentialMetadata credentialMetadata) {
+    String credentialId = credentialMetadata.getCredentialId();
+    log.info("Publishing revocation event for credential {}", credentialId);
     CredentialEventDto credentialEvent = mapper.toCredentialEvent(credentialMetadata);
 
     SnsNotification<CredentialEventDto> message = SnsNotification.builder(credentialEvent)
@@ -71,5 +75,6 @@ public class EventPublishingService {
         .header(ROUTING_KEY, ROUTING_REVOCATION)
         .build();
     snsTemplate.sendNotification(topicArn.toString(), message);
+    log.info("Published revocation event for credential {} to topic {}", credentialId, topicArn);
   }
 }
