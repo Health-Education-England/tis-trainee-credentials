@@ -21,6 +21,7 @@
 
 package uk.nhs.hee.tis.trainee.credentials.dto;
 
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -28,8 +29,11 @@ import java.util.UUID;
  *
  * @param credentialId   The identifier of the credential.
  * @param credentialType The credential type's display name.
+ * @param issuedAt       When the credential was issued.
+ * @param revokedAt      When the credential was revoked.
  * @param traineeId      The trainee who the credential was issued to.
  */
-public record CredentialEventDto(UUID credentialId, String credentialType, String traineeId) {
+public record CredentialEventDto(UUID credentialId, String credentialType, Instant issuedAt,
+                                 Instant revokedAt, String traineeId) {
 
 }

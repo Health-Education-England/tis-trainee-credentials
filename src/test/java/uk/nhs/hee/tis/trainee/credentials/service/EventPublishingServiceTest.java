@@ -31,6 +31,8 @@ import static org.mockito.Mockito.verify;
 import io.awspring.cloud.sns.core.SnsNotification;
 import io.awspring.cloud.sns.core.SnsTemplate;
 import java.net.URI;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,6 +51,9 @@ class EventPublishingServiceTest {
   private static final UUID CREDENTIAL_ID = UUID.randomUUID();
   private static final String TRAINEE_ID = "traineeId";
   private static final String TIS_ID = "tisId";
+
+  private static final Instant ISSUED_AT = Instant.now();
+  private static final Instant REVOKED_AT = Instant.now().plus(Duration.ofHours(1));
 
   private EventPublishingService service;
   private SnsTemplate snsTemplate;
@@ -123,6 +128,8 @@ class EventPublishingServiceTest {
     metadata.setCredentialType(credentialType.getIssuanceScope());
     metadata.setTisId(TIS_ID);
     metadata.setTraineeId(TRAINEE_ID);
+    metadata.setIssuedAt(ISSUED_AT);
+    metadata.setRevokedAt(REVOKED_AT);
 
     service.publishRevocationEvent(metadata);
 
@@ -136,5 +143,7 @@ class EventPublishingServiceTest {
     assertThat("Unexpected credential type.", payload.credentialType(),
         is(credentialType.getDisplayName()));
     assertThat("Unexpected trainee id.", payload.traineeId(), is(TRAINEE_ID));
+    assertThat("Unexpected issued at.", payload.issuedAt(), is(ISSUED_AT));
+    assertThat("Unexpected revoked at.", payload.revokedAt(), is(REVOKED_AT));
   }
 }
