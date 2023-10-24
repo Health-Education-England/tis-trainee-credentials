@@ -19,31 +19,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.repository;
+package uk.nhs.hee.tis.trainee.credentials.dto;
 
-import java.util.List;
-import java.util.Optional;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.stereotype.Repository;
-import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
+import java.time.Instant;
 
 /**
- * A repository for credential metadata log records.
+ * A DTO representing a credential.
+ *
+ * @param credentialId   The unique identifier for the credential.
+ * @param tisId          The TIS ID.
+ * @param traineeId      The trainees ID.
+ * @param credentialType The credentialType.
+ * @param issuedAt       The time it was issued at.
+ * @param revokedAt      The time it was revoked at, null if still active.
  */
-@Repository
-public interface CredentialMetadataRepository extends MongoRepository<CredentialMetadata, String> {
+public record CredentialMetadataDto(String credentialId, String traineeId, String tisId,
+                                    String credentialType,
+                                    Instant issuedAt, Instant revokedAt) {
 
-  @Override
-  Optional<CredentialMetadata> findById(String id);
-
-  List<CredentialMetadata> findByCredentialTypeAndTisId(String credentialType, String tisId);
-
-  List<CredentialMetadata> findByCredentialTypeAndTraineeId(String credentialType,
-      String traineeId);
-
-  @Override
-  <T extends CredentialMetadata> T save(T entity);
-
-  @Override
-  void deleteById(String id);
 }
+

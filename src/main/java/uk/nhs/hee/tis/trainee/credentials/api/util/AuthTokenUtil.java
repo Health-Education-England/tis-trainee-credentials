@@ -19,31 +19,39 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.repository;
+package uk.nhs.hee.tis.trainee.credentials.api.util;
 
-import java.util.List;
-import java.util.Optional;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.stereotype.Repository;
-import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Map;
 
 /**
- * A repository for credential metadata log records.
+ * Utility for handling token.
  */
-@Repository
-public interface CredentialMetadataRepository extends MongoRepository<CredentialMetadata, String> {
+public class AuthTokenUtil {
 
-  @Override
-  Optional<CredentialMetadata> findById(String id);
+  private static final String TIS_ID_ATTRIBUTE = "custom:tisId";
 
-  List<CredentialMetadata> findByCredentialTypeAndTisId(String credentialType, String tisId);
+  private static final ObjectMapper mapper = new ObjectMapper();
 
-  List<CredentialMetadata> findByCredentialTypeAndTraineeId(String credentialType,
-      String traineeId);
+  private AuthTokenUtil() {
+  }
 
-  @Override
-  <T extends CredentialMetadata> T save(T entity);
+  /**
+   * Get the trainee's TIS ID from the provided token.
+   *
+   * @param token The token to use.
+   * @return The trainee's TIS ID.
+   * @throws IOException If the token's payload was not a Map.
+   */
+  public static String getTraineeTisId(String token) throws IOException {
+    String[] tokenSections = token.split("\\.");
+    byte[] payloadBytes = Base64.getUrlDecoder()
+        .decode(tokenSections[1].getBytes(StandardCharsets.UTF_8));
 
-  @Override
-  void deleteById(String id);
+    Map<?, ?> payload = mapper.readValue(payloadBytes, Map.class);
+    return (String) payload.get(TIS_ID_ATTRIBUTE);
+  }
 }

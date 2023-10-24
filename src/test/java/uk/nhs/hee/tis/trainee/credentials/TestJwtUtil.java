@@ -19,31 +19,40 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package uk.nhs.hee.tis.trainee.credentials.repository;
+package uk.nhs.hee.tis.trainee.credentials;
 
-import java.util.List;
-import java.util.Optional;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.stereotype.Repository;
-import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 /**
- * A repository for credential metadata log records.
+ * A utility for generating test JWT tokens.
  */
-@Repository
-public interface CredentialMetadataRepository extends MongoRepository<CredentialMetadata, String> {
+public class TestJwtUtil {
 
-  @Override
-  Optional<CredentialMetadata> findById(String id);
+  public static final String TIS_ID_ATTRIBUTE = "custom:tisId";
+  public static final String TOKEN_PREFIX = "aGVhZGVy.";
+  public static final String TOKEN_SUFFIX = ".c2lnbmF0dXJl";
 
-  List<CredentialMetadata> findByCredentialTypeAndTisId(String credentialType, String tisId);
+  /**
+   * Generate a token with the given payload.
+   *
+   * @param payload The payload to inject in to the token.
+   * @return The generated token.
+   */
+  public static String generateToken(String payload) {
+    String encodedPayload = Base64.getUrlEncoder()
+        .encodeToString(payload.getBytes(StandardCharsets.UTF_8));
+    return String.format("%s%s%s", TOKEN_PREFIX, encodedPayload, TOKEN_SUFFIX);
+  }
 
-  List<CredentialMetadata> findByCredentialTypeAndTraineeId(String credentialType,
-      String traineeId);
-
-  @Override
-  <T extends CredentialMetadata> T save(T entity);
-
-  @Override
-  void deleteById(String id);
+  /**
+   * Generate a token with the TIS ID attribute as the payload.
+   *
+   * @param traineeTisId The TIS ID to inject in to the payload.
+   * @return The generated token.
+   */
+  public static String generateTokenForTisId(String traineeTisId) {
+    String payload = String.format("{\"%s\":\"%s\"}", TIS_ID_ATTRIBUTE, traineeTisId);
+    return generateToken(payload);
+  }
 }
