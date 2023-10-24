@@ -62,7 +62,7 @@ public class CredentialMetadataService {
    * @param type      The type of credentials to retrieve.
    * @param traineeId The ID of the trainee for to retrieve metadata for.
    * @return A list of the latest credentials for the specified credential type and trainee. An
-   * empty list is returned if no matching credentials are found.
+   *     empty list is returned if no matching credentials are found.
    * @throws NoSuchElementException If no credential metadata with a valid 'issuedAt' timestamp is
    *                                found for any of the retrieved entries.
    */
