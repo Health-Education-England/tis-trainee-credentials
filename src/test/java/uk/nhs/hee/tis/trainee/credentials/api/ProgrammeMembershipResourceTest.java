@@ -50,8 +50,8 @@ import uk.nhs.hee.tis.trainee.credentials.service.CredentialMetadataService;
 
 @ContextConfiguration(classes = {CredentialMetadataMapperImpl.class})
 @ExtendWith(SpringExtension.class)
-@WebMvcTest(ProgrammeResource.class)
-class ProgrammeResourceTest {
+@WebMvcTest(ProgrammeMembershipResource.class)
+class ProgrammeMembershipResourceTest {
 
   private MockMvc mockMvc;
   @Autowired
@@ -78,9 +78,9 @@ class ProgrammeResourceTest {
    */
   @BeforeEach
   void setup() {
-    ProgrammeResource programmeResource = new ProgrammeResource(service,
-        new CredentialMetadataMapperImpl());
-    this.mockMvc = MockMvcBuilders.standaloneSetup(programmeResource)
+    ProgrammeMembershipResource programmeMembershipResource = new ProgrammeMembershipResource(
+        service, new CredentialMetadataMapperImpl());
+    this.mockMvc = MockMvcBuilders.standaloneSetup(programmeMembershipResource)
         .setMessageConverters(jacksonMessageConverter)
         .build();
 
@@ -108,7 +108,7 @@ class ProgrammeResourceTest {
     when(service.getLatestCredentialsForType(CredentialType.TRAINING_PROGRAMME, tisId))
         .thenReturn(List.of(cred1));
 
-    mockMvc.perform(get("/api/programme")
+    mockMvc.perform(get("/api/programme-membership")
             .header(HttpHeaders.AUTHORIZATION, token)
             .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
@@ -129,7 +129,7 @@ class ProgrammeResourceTest {
     when(service.getLatestCredentialsForType(CredentialType.TRAINING_PROGRAMME, tisId))
         .thenReturn(List.of(cred1, cred2));
 
-    mockMvc.perform(get("/api/programme")
+    mockMvc.perform(get("/api/programme-membership")
             .header(HttpHeaders.AUTHORIZATION, token)
             .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
@@ -152,7 +152,7 @@ class ProgrammeResourceTest {
   void getShouldReturnBadRequestWhenTokenNotMap() throws Exception {
     String token = TestJwtUtil.generateToken("[]");
 
-    this.mockMvc.perform(get("/api/programme")
+    this.mockMvc.perform(get("/api/programme-membership")
             .contentType(MediaType.APPLICATION_JSON)
             .header(HttpHeaders.AUTHORIZATION, token))
         .andExpect(status().isBadRequest());
