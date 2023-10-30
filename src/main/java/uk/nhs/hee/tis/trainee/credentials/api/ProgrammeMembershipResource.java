@@ -45,12 +45,12 @@ import uk.nhs.hee.tis.trainee.credentials.service.CredentialMetadataService;
 @RestController
 @RequestMapping("/api/programme-membership")
 @XRayEnabled
-public class ProgrammeResource {
+public class ProgrammeMembershipResource {
 
   private final CredentialMetadataService service;
   private final CredentialMetadataMapper mapper;
 
-  ProgrammeResource(CredentialMetadataService service, CredentialMetadataMapper mapper) {
+  ProgrammeMembershipResource(CredentialMetadataService service, CredentialMetadataMapper mapper) {
     this.service = service;
     this.mapper = mapper;
   }
