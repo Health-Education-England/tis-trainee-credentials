@@ -43,7 +43,7 @@ import uk.nhs.hee.tis.trainee.credentials.service.CredentialMetadataService;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/programme")
+@RequestMapping("/api/programme-membership")
 @XRayEnabled
 public class ProgrammeResource {
 
