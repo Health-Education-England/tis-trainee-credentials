@@ -78,7 +78,6 @@ class IssuanceServiceTest {
   private static final String TRAINEE_ID = "the-trainee-id";
   private static final String CREDENTIAL_ID = "123-456-789";
   private static final Instant ISSUED_AT = Instant.MIN.truncatedTo(ChronoUnit.SECONDS);
-  private static final Instant EXPIRES_AT = Instant.MAX.truncatedTo(ChronoUnit.SECONDS);
 
   private static final String SESSION_ID_FIELD = "origin_jti";
   private static final String SESSION_ID_VALUE = UUID.randomUUID().toString();
@@ -365,7 +364,6 @@ class IssuanceServiceTest {
     claimsIssued.put("nonce", nonce.toString());
     claimsIssued.put("SerialNumber", CREDENTIAL_ID);
     claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
-    claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
 
     when(gatewayService.getTokenClaims(eq(TOKEN_ENDPOINT), eq(REDIRECT_URI), eq(CODE_VALUE), any()))
         .thenReturn(claimsIssued);
@@ -386,7 +384,6 @@ class IssuanceServiceTest {
     assertThat("Unexpected trainee ID.", credentialMetadata.getTraineeId(), is(TRAINEE_ID));
 
     assertThat("Unexpected issued at.", credentialMetadata.getIssuedAt(), is(ISSUED_AT));
-    assertThat("Unexpected expires at.", credentialMetadata.getExpiresAt(), is(EXPIRES_AT));
     assertThat("Unexpected revoked at.", credentialMetadata.getRevokedAt(), nullValue());
   }
 
@@ -397,7 +394,6 @@ class IssuanceServiceTest {
     claimsIssued.put("nonce", nonce.toString());
     claimsIssued.put("SerialNumber", CREDENTIAL_ID);
     claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
-    claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
 
     when(gatewayService.getTokenClaims(eq(TOKEN_ENDPOINT), eq(REDIRECT_URI), eq(CODE_VALUE), any()))
         .thenReturn(claimsIssued);
@@ -417,7 +413,6 @@ class IssuanceServiceTest {
     claimsIssued.put("nonce", nonce.toString());
     claimsIssued.put("SerialNumber", CREDENTIAL_ID);
     claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
-    claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
 
     when(gatewayService.getTokenClaims(eq(TOKEN_ENDPOINT), eq(REDIRECT_URI), eq(CODE_VALUE), any()))
         .thenReturn(claimsIssued);
@@ -484,7 +479,6 @@ class IssuanceServiceTest {
     claimsIssued.put("nonce", UUID.randomUUID().toString());
     claimsIssued.put("SerialNumber", CREDENTIAL_ID);
     claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
-    claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
 
     when(gatewayService.getTokenClaims(any(), any(), any(), any())).thenReturn(claimsIssued);
     when(cachingDelegate.getCredentialData(any())).thenReturn(Optional.of(credentialData));
@@ -512,7 +506,6 @@ class IssuanceServiceTest {
     claimsIssued.put("nonce", UUID.randomUUID().toString());
     claimsIssued.put("SerialNumber", CREDENTIAL_ID);
     claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
-    claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
 
     when(gatewayService.getTokenClaims(any(), any(), any(), any())).thenReturn(claimsIssued);
     when(cachingDelegate.getCredentialData(any())).thenReturn(Optional.of(credentialData));
@@ -540,7 +533,6 @@ class IssuanceServiceTest {
     claimsIssued.put("nonce", UUID.randomUUID().toString());
     claimsIssued.put("SerialNumber", CREDENTIAL_ID);
     claimsIssued.put("iat", ISSUED_AT.getEpochSecond());
-    claimsIssued.put("exp", EXPIRES_AT.getEpochSecond());
 
     when(gatewayService.getTokenClaims(any(), any(), any(), any())).thenReturn(claimsIssued);
     when(cachingDelegate.getCredentialData(any())).thenReturn(Optional.of(credentialData));
