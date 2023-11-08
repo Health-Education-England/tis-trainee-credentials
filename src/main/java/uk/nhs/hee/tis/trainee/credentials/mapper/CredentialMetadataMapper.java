@@ -49,7 +49,7 @@ public interface CredentialMetadataMapper {
   @Mapping(target = "credentialType", source = "credentialData.scope")
   @Mapping(target = "tisId", source = "credentialData.tisId")
   @Mapping(target = "issuedAt", source = "responseDto.issuedAt")
-  @Mapping(target = "expiresAt", source = "responseDto.expiresAt")
+  @Mapping(target = "revokedAt", ignore = true)
   CredentialMetadata toCredentialMetadata(String traineeId, CredentialDto credentialData,
       IssueResponseDto responseDto);
 

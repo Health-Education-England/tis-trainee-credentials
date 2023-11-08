@@ -186,9 +186,8 @@ public class IssuanceService {
   private IssueResponseDto fromIssuedResponse(Claims claims, String traineeTisId) {
     String credentialId = claims.get("SerialNumber", String.class);
     Instant issuedAt = Instant.ofEpochSecond(claims.get("iat", Long.class));
-    Instant expiresAt = Instant.ofEpochSecond(claims.get("exp", Long.class));
 
-    return new IssueResponseDto(credentialId, traineeTisId, issuedAt, expiresAt);
+    return new IssueResponseDto(credentialId, traineeTisId, issuedAt);
   }
 
   /**

@@ -31,12 +31,10 @@ import java.time.Instant;
  * @param credentialId The ID of the credential.
  * @param traineeId    The user's TIS ID.
  * @param issuedAt     The date and time the credential was issued.
- * @param expiresAt    The date and time the credential expires.
  */
 public record IssueResponseDto(
     @NotEmpty String credentialId,
     @NotEmpty String traineeId,
-    @NotEmpty Instant issuedAt,
-    @NotEmpty Instant expiresAt) implements Serializable {
+    @NotEmpty Instant issuedAt) implements Serializable {
 
 }

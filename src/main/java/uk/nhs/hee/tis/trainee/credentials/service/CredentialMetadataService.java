@@ -27,7 +27,6 @@ import com.amazonaws.xray.spring.aop.XRayEnabled;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
@@ -81,6 +80,6 @@ public class CredentialMetadataService {
             .max(Comparator.comparing(CredentialMetadata::getIssuedAt))
             .orElseThrow(
                 () -> new NoSuchElementException("credentials getIssuedAt value not present")))
-        .collect(Collectors.toList());
+        .toList();
   }
 }
