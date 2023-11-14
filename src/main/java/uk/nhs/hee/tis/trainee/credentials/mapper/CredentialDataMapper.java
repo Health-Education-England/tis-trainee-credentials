@@ -37,8 +37,8 @@ import uk.nhs.hee.tis.trainee.credentials.dto.ProgrammeMembershipDataDto;
 public interface CredentialDataMapper {
 
   String METADATA_ORIGIN_VALUE = "NHS England";
-  String METADATA_ASSURANCE_POLICY_VALUE = "GPG45";
-  String METADATA_ASSURANCE_OUTCOME_VALUE = "High";
+  String METADATA_ASSURANCE_POLICY_VALUE = "Postgraduate doctor trainee programme assessment";
+  String METADATA_ASSURANCE_OUTCOME_VALUE = "Postgraduate doctor trainee programme registration";
   String METADATA_PROVIDER_VALUE = "NHS England";
   String METADATA_VERIFIER_VALUE = "Origin";
   String METADATA_VERIFICATION_METHOD_VALUE = "Record Verification";
