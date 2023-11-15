@@ -71,8 +71,8 @@ class JwtServiceTest {
   private static final String PLACEMENT_SITE = "placement site";
 
   private static final String METADATA_ORIGIN_VALUE = "NHS England";
-  private static final String METADATA_ASSURANCE_POLICY_VALUE = "GPG45";
-  private static final String METADATA_ASSURANCE_OUTCOME_VALUE = "High";
+  private static final String METADATA_ASSURANCE_POLICY_VALUE = "Postgraduate doctor trainee programme assessment";
+  private static final String METADATA_ASSURANCE_OUTCOME_VALUE = "Postgraduate doctor trainee programme registration";
   private static final String METADATA_PROVIDER_VALUE = "NHS England";
   private static final String METADATA_VERIFIER_VALUE = "Origin";
   private static final String METADATA_VERIFICATION_METHOD_VALUE = "Record Verification";
