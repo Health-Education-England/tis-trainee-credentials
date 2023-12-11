@@ -67,8 +67,11 @@ class VerifyResourceTest {
   private static final String CODE_VALUE = "not-a-real-code";
   private static final String SCOPE_PARAM = "scope";
   private static final String SCOPE_VALUE = "openid Identity";
-  private static final String STATE_PARARM = "state";
+  private static final String STATE_PARAM = "state";
   private static final String STATE_VALUE = UUID.randomUUID().toString();
+
+  private static final String ERROR_CODE = "error_code";
+  private static final String ERROR_DESCRIPTION = "error%020description";
 
   private static final String UNSIGNED_IDENTITY_DATA = """
       {
@@ -260,7 +263,7 @@ class VerifyResourceTest {
     mockMvc.perform(
             get(("/api/verify/callback"))
                 .queryParam(CODE_PARAM, CODE_VALUE)
-                .queryParam(STATE_PARARM, state))
+                .queryParam(STATE_PARAM, state))
         .andExpect(status().isBadRequest())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.state").value(is("must be a valid UUID")));
@@ -269,15 +272,33 @@ class VerifyResourceTest {
   }
 
   @Test
-  void shouldRedirectWhenVerificationCompleted() throws Exception {
-    when(service.completeCredentialVerification(CODE_VALUE, STATE_VALUE)).thenReturn(
+  void shouldRedirectWhenVerificationCompletedWithError() throws Exception {
+    when(service.completeCredentialVerification(CODE_VALUE, STATE_VALUE, ERROR_CODE,
+        ERROR_DESCRIPTION)).thenReturn(
         URI.create("test-redirect"));
 
     mockMvc.perform(
             get(("/api/verify/callback"))
                 .queryParam(CODE_PARAM, CODE_VALUE)
                 .queryParam(SCOPE_PARAM, SCOPE_VALUE)
-                .queryParam(STATE_PARARM, STATE_VALUE))
+                .queryParam(STATE_PARAM, STATE_VALUE)
+                .queryParam("error", ERROR_CODE)
+                .queryParam("error_description", ERROR_DESCRIPTION))
+        .andExpect(status().isFound())
+        .andExpect(header().string(HttpHeaders.LOCATION, "test-redirect"))
+        .andExpect(jsonPath("$").doesNotExist());
+  }
+
+  @Test
+  void shouldRedirectWhenVerificationCompletedWithoutError() throws Exception {
+    when(service.completeCredentialVerification(CODE_VALUE, STATE_VALUE, null, null)).thenReturn(
+        URI.create("test-redirect"));
+
+    mockMvc.perform(
+            get(("/api/verify/callback"))
+                .queryParam(CODE_PARAM, CODE_VALUE)
+                .queryParam(SCOPE_PARAM, SCOPE_VALUE)
+                .queryParam(STATE_PARAM, STATE_VALUE))
         .andExpect(status().isFound())
         .andExpect(header().string(HttpHeaders.LOCATION, "test-redirect"))
         .andExpect(jsonPath("$").doesNotExist());
