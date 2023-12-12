@@ -69,7 +69,7 @@ public class VerifyResource {
 
   @GetMapping("/callback")
   ResponseEntity<String> handleVerification(
-      @RequestParam String code,
+      @RequestParam(required = false) String code,
       @UUID @RequestParam String state,
       @RequestParam(required = false) String error,
       @RequestParam(required = false, value = "error_description") String errorDescription) {
