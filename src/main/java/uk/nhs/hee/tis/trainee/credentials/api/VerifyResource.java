@@ -68,10 +68,13 @@ public class VerifyResource {
   }
 
   @GetMapping("/callback")
-  ResponseEntity<String> handleVerification(@RequestParam String code,
-      @UUID @RequestParam String state) {
+  ResponseEntity<String> handleVerification(
+      @RequestParam String code,
+      @UUID @RequestParam String state,
+      @RequestParam(required = false) String error,
+      @RequestParam(required = false, value = "error_description") String errorDescription) {
     log.info("Received callback for credential verification.");
-    URI uri = service.completeCredentialVerification(code, state);
+    URI uri = service.completeCredentialVerification(code, state, error, errorDescription);
 
     log.info("Credential verification completed.");
     return ResponseEntity.status(HttpStatus.FOUND).location(uri).build();

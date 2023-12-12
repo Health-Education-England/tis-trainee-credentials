@@ -253,13 +253,29 @@ class VerificationServiceTest {
     UUID state = UUID.randomUUID();
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.empty());
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString());
+    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
+        null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
     Map<String, String> queryParams = splitQueryParams(uri);
     String reason = queryParams.get(QUERY_PARAM_REASON);
     assertThat("Unexpected invalid reason.", reason, is("no_code_verifier"));
+  }
+
+  @Test
+  void shouldReturnInvalidCredentialWhenCallbackIncludesError() {
+    UUID state = UUID.randomUUID();
+    when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.empty());
+
+    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(),
+        "error_code", "Error description");
+
+    assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
+
+    Map<String, String> queryParams = splitQueryParams(uri);
+    String reason = queryParams.get(QUERY_PARAM_REASON);
+    assertThat("Unexpected invalid reason.", reason, is("Error description"));
   }
 
   @Test
@@ -273,7 +289,8 @@ class VerificationServiceTest {
     setDefaultClaimsMocks(new DefaultClaims(), nonce, codeVerifier);
     when(gatewayService.getTokenScope(any())).thenReturn("invalid-scope");
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString());
+    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
+        null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -293,7 +310,8 @@ class VerificationServiceTest {
     setDefaultClaimsMocks(claims, nonce, codeVerifier);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.empty());
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString());
+    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
+        null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -323,7 +341,8 @@ class VerificationServiceTest {
         IDENTITY_DOB);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString());
+    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
+        null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -353,7 +372,8 @@ class VerificationServiceTest {
         IDENTITY_DOB);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString());
+    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
+        null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -383,7 +403,8 @@ class VerificationServiceTest {
         IDENTITY_DOB);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString());
+    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
+        null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -412,7 +433,8 @@ class VerificationServiceTest {
         IDENTITY_DOB);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString());
+    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
+        null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -441,7 +463,8 @@ class VerificationServiceTest {
         IDENTITY_DOB);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString());
+    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
+        null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -477,7 +500,8 @@ class VerificationServiceTest {
         IDENTITY_DOB);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString());
+    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
+        null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/credential-verified"));
   }
@@ -504,7 +528,7 @@ class VerificationServiceTest {
         IDENTITY_DOB);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
 
-    verificationService.completeCredentialVerification(CODE, state.toString());
+    verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
 
     verify(cachingDelegate).cacheVerifiedIdentityIdentifier("session123", identityId);
   }
@@ -515,7 +539,8 @@ class VerificationServiceTest {
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.empty());
     when(cachingDelegate.getClientState(state)).thenReturn(Optional.of("client-state"));
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString());
+    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
+        null);
 
     Map<String, String> queryParams = splitQueryParams(uri);
     String clientState = queryParams.get(QUERY_PARAM_STATE);
@@ -528,7 +553,8 @@ class VerificationServiceTest {
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.empty());
     when(cachingDelegate.getClientState(state)).thenReturn(Optional.empty());
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString());
+    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
+        null);
 
     Map<String, String> queryParams = splitQueryParams(uri);
     assertThat("Unexpected client state presence.", queryParams.keySet(),

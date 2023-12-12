@@ -23,6 +23,7 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 
 import com.amazonaws.xray.spring.aop.XRayEnabled;
 import io.jsonwebtoken.Claims;
+import jakarta.annotation.Nullable;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.security.SecureRandom;
@@ -34,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.VerificationProperties;
@@ -58,6 +58,12 @@ public class VerificationService {
   private static final String CLAIM_BIRTH_DATE = "Identity.ID-BirthDate";
   private static final String CLAIM_TOKEN_IDENTIFIER = "origin_jti";
   private static final String CLAIM_UNIQUE_IDENTIFIER = "Identity.UniqueIdentifier";
+
+  private static final String CODE_CHALLENGE = "code_challenge";
+  private static final String CODE_CHALLENGE_METHOD = "code_challenge_method";
+  private static final String PARAM_REASON = "reason";
+  private static final String PARAM_SCOPE = "scope";
+  private static final String PARAM_STATE = "state";
 
   private final GatewayService gatewayService;
   private final JwtService jwtService;
@@ -112,10 +118,10 @@ public class VerificationService {
     // Build and return the URI at which the user can provide an identity credential.
     return UriComponentsBuilder.fromUriString(properties.authorizeEndpoint())
         .queryParam(CLAIM_NONCE, nonce)
-        .queryParam("state", internalState)
-        .queryParam("code_challenge_method", "S256")
-        .queryParam("code_challenge", codeChallenge)
-        .queryParam("scope", "openid+Identity")
+        .queryParam(PARAM_STATE, internalState)
+        .queryParam(CODE_CHALLENGE_METHOD, "S256")
+        .queryParam(CODE_CHALLENGE, codeChallenge)
+        .queryParam(PARAM_SCOPE, "openid+Identity")
         .build()
         .toUri();
   }
@@ -146,11 +152,40 @@ public class VerificationService {
   /**
    * Complete the credential verification process.
    *
+   * @param code             The code provided by the credential gateway.
+   * @param state            The state set in the initial gateway request.
+   * @param error            The error code from the verification callback.
+   * @param errorDescription The error description from the verification callback.
+   * @return The built redirect URI for completed verification.
+   */
+  public URI completeCredentialVerification(String code, String state, @Nullable String error,
+      @Nullable String errorDescription) {
+    // If successfully verified then continue, else return callback error.
+    if (error == null) {
+      return completeCredentialVerification(code, state);
+    }
+
+    log.info("Credential was not verified.");
+
+    // Build and return the redirect_uri
+    UUID stateUuid = UUID.fromString(state);
+    Optional<String> clientState = cachingDelegate.getClientState(stateUuid);
+
+    return UriComponentsBuilder.fromUriString("/invalid-credential")
+        .queryParamIfPresent(PARAM_STATE, clientState)
+        .queryParamIfPresent(PARAM_REASON, Optional.ofNullable(errorDescription))
+        .build()
+        .toUri();
+  }
+
+  /**
+   * Complete the credential verification process.
+   *
    * @param code  The code provided by the credential gateway.
    * @param state The state set in the initial gateway request.
    * @return The built redirect URI for completed verification.
    */
-  public URI completeCredentialVerification(String code, String state) {
+  private URI completeCredentialVerification(String code, String state) {
     UUID stateUuid = UUID.fromString(state);
     Optional<String> codeVerifier = cachingDelegate.getCodeVerifier(stateUuid);
     String failureCode;
@@ -182,11 +217,11 @@ public class VerificationService {
       uriBuilder = UriComponentsBuilder.fromUriString("/credential-verified");
     } else {
       uriBuilder = UriComponentsBuilder.fromUriString("/invalid-credential")
-          .queryParam("reason", failureCode);
+          .queryParam(PARAM_REASON, failureCode);
     }
 
     Optional<String> clientState = cachingDelegate.getClientState(stateUuid);
-    uriBuilder.queryParamIfPresent("state", clientState);
+    uriBuilder.queryParamIfPresent(PARAM_STATE, clientState);
     return uriBuilder.build().toUri();
   }
 
