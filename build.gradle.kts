@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "uk.nhs.tis.trainee"
-version = "0.23.1"
+version = "0.23.2"
 
 configurations {
   compileOnly {
@@ -24,8 +24,8 @@ repositories {
 
 dependencyManagement {
   imports {
-    mavenBom("org.springframework.cloud:spring-cloud-dependencies:2022.0.4")
-    mavenBom("io.awspring.cloud:spring-cloud-aws-dependencies:3.0.3")
+    mavenBom("org.springframework.cloud:spring-cloud-dependencies:2023.0.0")
+    mavenBom("io.awspring.cloud:spring-cloud-aws-dependencies:3.1.0")
   }
 }
 
@@ -49,7 +49,7 @@ dependencies {
   testAnnotationProcessor("org.mapstruct:mapstruct-processor:${mapstructVersion}")
 
   // Sentry reporting
-  val sentryVersion = "6.34.0"
+  val sentryVersion = "7.1.0"
   implementation("io.sentry:sentry-spring-boot-starter:$sentryVersion")
   implementation("io.sentry:sentry-logback:$sentryVersion")
 
@@ -68,7 +68,7 @@ dependencies {
   runtimeOnly("io.jsonwebtoken:jjwt-jackson:$jjwtVersion")
 
   testImplementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
-  testImplementation("com.playtika.testcontainers:embedded-redis:3.0.6")
+  testImplementation("com.playtika.testcontainers:embedded-redis:3.1.1")
   testImplementation("org.testcontainers:junit-jupiter:1.19.3")
 }
 
