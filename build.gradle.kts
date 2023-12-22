@@ -72,15 +72,15 @@ dependencies {
   testImplementation("org.testcontainers:junit-jupiter:1.19.3")
 }
 
-checkstyle {
-  config = resources.text.fromArchiveEntry(configurations.checkstyle.get().first(), "google_checks.xml")
-}
-
 java {
   toolchain {
     languageVersion.set(JavaLanguageVersion.of(17))
     vendor.set(JvmVendorSpec.ADOPTIUM)
   }
+}
+
+checkstyle {
+  config = resources.text.fromArchiveEntry(configurations.checkstyle.get().first(), "google_checks.xml")
 }
 
 sonarqube {
