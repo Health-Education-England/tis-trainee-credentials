@@ -62,7 +62,7 @@ dependencies {
 
   implementation("commons-codec:commons-codec:1.16.0")
 
-  val jjwtVersion = "0.11.5"
+  val jjwtVersion = "0.12.4"
   implementation("io.jsonwebtoken:jjwt-api:$jjwtVersion")
   implementation("io.jsonwebtoken:jjwt-impl:$jjwtVersion")
   runtimeOnly("io.jsonwebtoken:jjwt-jackson:$jjwtVersion")
