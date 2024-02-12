@@ -60,7 +60,7 @@ dependencies {
   //AWS X-ray
   implementation("com.amazonaws:aws-xray-recorder-sdk-spring:2.15.0")
 
-  implementation("commons-codec:commons-codec:1.16.0")
+  implementation("commons-codec:commons-codec:1.16.1")
 
   val jjwtVersion = "0.11.5"
   implementation("io.jsonwebtoken:jjwt-api:$jjwtVersion")
