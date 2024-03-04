@@ -58,7 +58,7 @@ dependencies {
   implementation("io.awspring.cloud:spring-cloud-aws-starter-sqs")
 
   //AWS X-ray
-  implementation("com.amazonaws:aws-xray-recorder-sdk-spring:2.15.0")
+  implementation("com.amazonaws:aws-xray-recorder-sdk-spring:2.15.1")
 
   implementation("commons-codec:commons-codec:1.16.1")
 
