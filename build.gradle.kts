@@ -69,7 +69,7 @@ dependencies {
 
   testImplementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
   testImplementation("com.playtika.testcontainers:embedded-redis:3.1.5")
-  testImplementation("org.testcontainers:junit-jupiter:1.19.7")
+  testImplementation("org.testcontainers:junit-jupiter:1.19.8")
 }
 
 java {
