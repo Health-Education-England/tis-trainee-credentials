@@ -24,24 +24,31 @@ package uk.nhs.hee.tis.trainee.credentials.event;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.dto.DeleteEventDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.RecordDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.UpdateEventDto;
 import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
+import uk.nhs.hee.tis.trainee.credentials.utill.Md5Hash;
 
 class PlacementEventListenerTest {
 
   private static final String TIS_ID = UUID.randomUUID().toString();
 
   private PlacementEventListener listener;
+  private Md5Hash hash;
   private RevocationService service;
 
   @BeforeEach
   void setUp() {
     service = mock(RevocationService.class);
+    hash = mock(Md5Hash.class);
     listener = new PlacementEventListener(service);
   }
 
@@ -51,15 +58,41 @@ class PlacementEventListenerTest {
 
     listener.deletePlacement(dto);
 
-    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT);
+    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT, null);
   }
 
   @Test
   void shouldUpdatePlacement() {
-    UpdateEventDto dto = new UpdateEventDto(TIS_ID, null);
+    Map<String, String> data = new HashMap<>();
+    // Use the correct keys expected by the updateProgrammeMembership method
+    data.put("specialty", "placementSpeciality");
+    data.put("grade", "placementGrade");
+    data.put("nationalPostNumber", "placementNatPostNum");
+    data.put("employingBody", "placementEmployingBody");
+    data.put("site", "placementSite");
+    data.put("startDate", LocalDate.of(2023, 1, 1).toString());
+    data.put("endDate", LocalDate.of(2024, 1, 1).toString());
+
+    RecordDto recordDto = new RecordDto();
+    recordDto.setData(data);
+
+    UpdateEventDto dto = new UpdateEventDto(TIS_ID, recordDto);
+
+    RecordDto recrd = dto.recrd();
+    String placementSpeciality = recrd.getData().get("specialty");
+    String placementGrade = recrd.getData().get("grade");
+    String placementNatPostNum = recrd.getData().get("nationalPostNumber");
+    String placementEmployingBody = recrd.getData().get("employingBody");
+    String placementSite = recrd.getData().get("site");
+    String startDate = String.valueOf(
+        LocalDate.parse(recrd.getData().get("startDate")));
+    String endDate = String.valueOf(LocalDate.parse(recrd.getData().get("endDate")));
+
+    String placementMd5Hash = hash.createMd5Hash(placementSpeciality + placementGrade
+        + placementNatPostNum + placementEmployingBody + placementSite + startDate + endDate);
 
     listener.updatePlacement(dto);
 
-    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT);
+    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PLACEMENT, placementMd5Hash);
   }
 }
