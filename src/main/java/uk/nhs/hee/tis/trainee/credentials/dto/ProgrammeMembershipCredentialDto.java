@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright 2023 Crown Copyright (Health Education England)
+ * Copyright 2024 Crown Copyright (Health Education England)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
  * associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -100,5 +101,10 @@ public record ProgrammeMembershipCredentialDto(
   @Override
   public UUID getUniqueIdentifier() {
     return uniqueIdentifier;
+  }
+
+  @JsonIgnore
+  public int calculateProgrammeHashCode() {
+    return Objects.hash(programmeName, startDate, endDate);
   }
 }

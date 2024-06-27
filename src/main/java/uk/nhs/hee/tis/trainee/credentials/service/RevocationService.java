@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright 2023 Crown Copyright (Health Education England)
+ * Copyright 2024 Crown Copyright (Health Education England)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
  * associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -22,11 +22,15 @@
 package uk.nhs.hee.tis.trainee.credentials.service;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
+import uk.nhs.hee.tis.trainee.credentials.dto.RecordDto;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
 import uk.nhs.hee.tis.trainee.credentials.model.ModificationMetadata;
 import uk.nhs.hee.tis.trainee.credentials.model.ModificationMetadata.ModificationMetadataId;
@@ -75,7 +79,7 @@ public class RevocationService {
    * @param tisId          The TIS ID of the modified object.
    * @param credentialType The credential type of the modified object.
    */
-  public void revoke(String tisId, CredentialType credentialType) {
+  public void revoke(String tisId, CredentialType credentialType, Integer credentialHashCode) {
     // Update the modified timestamp.
     Instant timestamp = Instant.now();
     var modificationMetadata = new ModificationMetadata(tisId, credentialType, timestamp);
@@ -89,23 +93,32 @@ public class RevocationService {
     List<CredentialMetadata> validCredentialsMetadata = credentialsMetadata.stream()
         .filter(meta -> meta.getRevokedAt() == null)
         .toList();
+      List<Integer> originalCredentialHashCodes = credentialsMetadata.stream()
+          .filter(meta -> meta.getRevokedAt() == null)
+          .map(CredentialMetadata::getCredentialHashCode)
+          .collect(Collectors.toList());
 
-    if (!validCredentialsMetadata.isEmpty()) {
-      log.info("{} Issued credential(s) of type {} found for TIS ID {}, revoking.",
-          validCredentialsMetadata.size(), credentialType, tisId);
-      validCredentialsMetadata.forEach(metadata -> {
-        gatewayService.revokeCredential(credentialType.getTemplateName(),
-            metadata.getCredentialId());
-
-        metadata.setRevokedAt(Instant.now());
-        credentialMetadataRepository.save(metadata);
-        eventPublishingService.publishRevocationEvent(metadata);
-        log.info("Credential {} for TIS ID {} has been revoked.", credentialType, tisId);
-      });
-
-    } else {
-      log.info("No {} credential issued for TIS ID {}, skipped revocation.", credentialType, tisId);
-    }
+      if(credentialHashCode != null && originalCredentialHashCodes.contains(credentialHashCode))
+      {
+        log.info("Credential {} for TIS ID {} has no changes to wallet data, skipped revocation.",
+                  credentialType, tisId);
+      } else {
+        if (!validCredentialsMetadata.isEmpty()) {
+          log.info("{} Issued credential(s) of type {} found for TIS ID {}, revoking.",
+              validCredentialsMetadata.size(), credentialType, tisId);
+          validCredentialsMetadata.forEach(metadata -> {
+            gatewayService.revokeCredential(credentialType.getTemplateName(),
+                metadata.getCredentialId());
+            metadata.setRevokedAt(Instant.now());
+            credentialMetadataRepository.save(metadata);
+            eventPublishingService.publishRevocationEvent(metadata);
+            log.info("Credential {} for TIS ID {} has been revoked.", credentialType, tisId);
+          });
+        } else {
+          log.info("No {} credential issued for TIS ID {}, skipped revocation.",
+                  credentialType, tisId);
+        }
+      }
   }
 
   /**

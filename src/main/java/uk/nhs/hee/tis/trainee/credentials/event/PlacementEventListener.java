@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright 2023 Crown Copyright (Health Education England)
+ * Copyright 2024 Crown Copyright (Health Education England)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
  * associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -22,10 +22,13 @@
 package uk.nhs.hee.tis.trainee.credentials.event;
 
 import io.awspring.cloud.sqs.annotation.SqsListener;
+import java.time.LocalDate;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.dto.DeleteEventDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.RecordDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.UpdateEventDto;
 import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
 
@@ -50,7 +53,7 @@ public class PlacementEventListener {
   @SqsListener("${application.aws.sqs.delete-placement}")
   void deletePlacement(DeleteEventDto deletedPlacement) {
     log.info("Received delete event for placement {}.", deletedPlacement);
-    revocationService.revoke(deletedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT);
+    revocationService.revoke(deletedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT, null);
   }
 
   /**
@@ -61,7 +64,21 @@ public class PlacementEventListener {
   @SqsListener("${application.aws.sqs.update-placement}")
   void updatePlacement(UpdateEventDto updatedPlacement) {
     log.info("Received update event for placement {}.", updatedPlacement);
-    // For now, we simply revoke regardless of which fields have updated (pending TIS21-4152)
-    revocationService.revoke(updatedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT);
+
+    RecordDto recrd = updatedPlacement.recrd();
+    String specialty = recrd.getData().get("TPL-Specialty");
+    String grade = recrd.getData().get("TPL-Grade");
+    String nationalPostNumber = recrd.getData().get("TPL-PlacementNPN");
+    String employingBody = recrd.getData().get("TPL-EmployingBodyOfPost");
+    String site = recrd.getData().get("TPL-Site");
+    String startDate = String.valueOf(
+        LocalDate.parse(recrd.getData().get("TPL-PlacementStartDate")));
+    String endDate = String.valueOf(LocalDate.parse(recrd.getData().get("TPL-PlacementEndDate")));
+
+    int updatedPlacementHash = Objects.hash(specialty, grade, nationalPostNumber, employingBody,
+                                            site, startDate, endDate);
+
+    revocationService.revoke(updatedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT,
+                              updatedPlacementHash);
   }
 }
