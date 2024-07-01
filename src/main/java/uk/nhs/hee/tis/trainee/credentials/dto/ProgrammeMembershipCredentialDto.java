@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -100,5 +101,15 @@ public record ProgrammeMembershipCredentialDto(
   @Override
   public UUID getUniqueIdentifier() {
     return uniqueIdentifier;
+  }
+
+  @JsonIgnore
+  public int calculateProgrammeHashCode() {
+
+    int result = 0;
+    result = result + (programmeName.hashCode());
+    result = result + (startDate.hashCode());
+    result = result + (endDate.hashCode());
+    return result;
   }
 }

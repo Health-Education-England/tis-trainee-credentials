@@ -101,7 +101,7 @@ class RevocationServiceTest {
         credentialMetadataRepository.findByCredentialTypeAndTisId(credentialType.getIssuanceScope(),
             TIS_ID)).thenReturn(Collections.emptyList());
 
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, null);
 
     verifyNoInteractions(gatewayService);
   }
@@ -118,7 +118,7 @@ class RevocationServiceTest {
         credentialMetadataRepository.findByCredentialTypeAndTisId(credentialType.getIssuanceScope(),
             TIS_ID)).thenReturn(List.of(credentialMetadata));
 
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, null);
 
     verifyNoInteractions(gatewayService);
   }
@@ -137,7 +137,7 @@ class RevocationServiceTest {
     doThrow(ResponseStatusException.class).when(gatewayService)
         .revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
 
-    assertThrows(ResponseStatusException.class, () -> service.revoke(TIS_ID, credentialType));
+    assertThrows(ResponseStatusException.class, () -> service.revoke(TIS_ID, credentialType, null));
 
     verify(credentialMetadataRepository).findByCredentialTypeAndTisId(scope, TIS_ID);
     verifyNoMoreInteractions(credentialMetadataRepository);
@@ -155,7 +155,7 @@ class RevocationServiceTest {
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
         List.of(credentialMetadata));
 
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, null);
 
     verify(gatewayService).revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
 
@@ -183,7 +183,7 @@ class RevocationServiceTest {
     doThrow(ResponseStatusException.class).when(gatewayService)
         .revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
 
-    assertThrows(ResponseStatusException.class, () -> service.revoke(TIS_ID, credentialType));
+    assertThrows(ResponseStatusException.class, () -> service.revoke(TIS_ID, credentialType, null));
 
     verify(credentialMetadataRepository).findByCredentialTypeAndTisId(scope, TIS_ID);
     verifyNoMoreInteractions(eventPublishingService);
@@ -201,7 +201,7 @@ class RevocationServiceTest {
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
         List.of(credentialMetadata));
 
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, null);
 
     verify(gatewayService).revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
 
@@ -233,11 +233,11 @@ class RevocationServiceTest {
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
         List.of(credentialMetadata, credentialMetadata2));
 
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, null);
 
     ArgumentCaptor<CredentialMetadata> metadataCaptor = ArgumentCaptor.forClass(
         CredentialMetadata.class);
-    verify(eventPublishingService, times(2)).publishRevocationEvent(metadataCaptor.capture());
+    verify(eventPublishingService, times(4)).publishRevocationEvent(metadataCaptor.capture());
 
     List<CredentialMetadata> revokedMetadata = metadataCaptor.getAllValues();
     CredentialMetadata revokedMetadata1 = revokedMetadata.get(0);
@@ -269,11 +269,11 @@ class RevocationServiceTest {
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
         List.of(credentialMetadata, credentialMetadata2));
 
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, null);
 
     ArgumentCaptor<CredentialMetadata> metadataCaptor = ArgumentCaptor.forClass(
         CredentialMetadata.class);
-    verify(credentialMetadataRepository, times(2)).save(metadataCaptor.capture());
+    verify(credentialMetadataRepository, times(4)).save(metadataCaptor.capture());
 
     List<CredentialMetadata> revokedMetadata = metadataCaptor.getAllValues();
     CredentialMetadata revokedMetadata1 = revokedMetadata.get(0);
@@ -353,7 +353,7 @@ class RevocationServiceTest {
   @ParameterizedTest
   @EnumSource(CredentialType.class)
   void shouldStoreLastModifiedDateWhenRevoking(CredentialType credentialType) {
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, null);
 
     ArgumentCaptor<ModificationMetadata> metadataCaptor = ArgumentCaptor.forClass(
         ModificationMetadata.class);

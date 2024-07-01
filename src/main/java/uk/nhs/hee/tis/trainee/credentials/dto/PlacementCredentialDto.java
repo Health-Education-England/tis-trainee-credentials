@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -116,5 +117,18 @@ public record PlacementCredentialDto(
   @Override
   public UUID getUniqueIdentifier() {
     return uniqueIdentifier;
+  }
+
+  @JsonIgnore
+  public int calculatePlacementHashCode() {
+    int result = 0;
+    result = result + (specialty.hashCode());
+    result = result + (grade.hashCode());
+    result = result + (nationalPostNumber.hashCode());
+    result = result + (employingBody.hashCode());
+    result = result + (site.hashCode());
+    result = result + (startDate.hashCode());
+    result = result + (endDate.hashCode());
+    return result;
   }
 }

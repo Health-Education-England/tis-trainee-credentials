@@ -24,11 +24,16 @@ package uk.nhs.hee.tis.trainee.credentials.event;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.dto.DeleteEventDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.RecordDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.UpdateEventDto;
 import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
 
@@ -51,15 +56,34 @@ class ProgrammeMembershipEventListenerTest {
 
     listener.deleteProgrammeMembership(dto);
 
-    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PROGRAMME);
+    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PROGRAMME, null);
   }
 
   @Test
   void shouldUpdateProgrammeMembership() {
-    UpdateEventDto dto = new UpdateEventDto(TIS_ID, null);
+    RecordDto recordDto = new RecordDto();
+    Map<String, String> data = new HashMap<>();
+    // Use the correct keys expected by the updateProgrammeMembership method
+    data.put("programmeName", "programmeNameValue");
+    data.put("startDate", LocalDate.of(2023, 1, 1).toString());
+    data.put("endDate", LocalDate.of(2024, 1, 1).toString());
+    recordDto.setData(data);
+
+    UpdateEventDto dto = new UpdateEventDto(TIS_ID, recordDto);
+
+    RecordDto recrd = dto.recrd();
+    String programmeName = recrd.getData().get("programmeName");
+    String startDate = String.valueOf(
+        LocalDate.parse(recrd.getData().get("startDate")));
+    String endDate = String.valueOf(LocalDate.parse(recrd.getData().get("endDate")));
+
+    int updatedProgrammeHash = 0;
+    updatedProgrammeHash += programmeName.hashCode();
+    updatedProgrammeHash += startDate.hashCode();
+    updatedProgrammeHash += endDate.hashCode();
 
     listener.updateProgrammeMembership(dto);
 
-    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PROGRAMME);
+    verify(service).revoke(TIS_ID, CredentialType.TRAINING_PROGRAMME, updatedProgrammeHash);
   }
 }
