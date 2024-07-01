@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright 2024 Crown Copyright (Health Education England)
+ * Copyright 2023 Crown Copyright (Health Education England)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
  * associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -92,16 +92,13 @@ public class RevocationService {
             credentialType.getIssuanceScope(), tisId);
     List<CredentialMetadata> validCredentialsMetadata = credentialsMetadata.stream()
         .filter(meta -> meta.getRevokedAt() == null)
+        .filter(meta -> !Objects.equals(meta.getCredentialHashCode(), credentialHashCode))
         .toList();
-      List<Integer> originalCredentialHashCodes = credentialsMetadata.stream()
-          .filter(meta -> meta.getRevokedAt() == null)
-          .map(CredentialMetadata::getCredentialHashCode)
-          .collect(Collectors.toList());
 
-      if(credentialHashCode != null && originalCredentialHashCodes.contains(credentialHashCode))
-      {
+    for (CredentialMetadata validCredMetadata : validCredentialsMetadata) {
+      if (credentialHashCode != null && validCredentialsMetadata.equals(credentialHashCode)) {
         log.info("Credential {} for TIS ID {} has no changes to wallet data, skipped revocation.",
-                  credentialType, tisId);
+            credentialType, tisId);
       } else {
         if (!validCredentialsMetadata.isEmpty()) {
           log.info("{} Issued credential(s) of type {} found for TIS ID {}, revoking.",
@@ -116,9 +113,10 @@ public class RevocationService {
           });
         } else {
           log.info("No {} credential issued for TIS ID {}, skipped revocation.",
-                  credentialType, tisId);
+              credentialType, tisId);
         }
       }
+    }
   }
 
   /**

@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright 2024 Crown Copyright (Health Education England)
+ * Copyright 2023 Crown Copyright (Health Education England)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
  * associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -67,14 +67,17 @@ public class ProgrammeMembershipEventListener {
     log.info("Received update event for programme membership {}.", updatedProgrammeMembership);
 
     RecordDto recrd = updatedProgrammeMembership.recrd();
-    String programmeName = recrd.getData().get("TPR-programmeName");
+    String programmeName = recrd.getData().get("programmeName");
     String startDate = String.valueOf(
-        LocalDate.parse(recrd.getData().get("TPR-PlacementStartDate")));
-    String endDate = String.valueOf(LocalDate.parse(recrd.getData().get("TPR-PlacementEndDate")));
+        LocalDate.parse(recrd.getData().get("startDate")));
+    String endDate = String.valueOf(LocalDate.parse(recrd.getData().get("endDate")));
 
-    int updatedPlacementHash = Objects.hash(programmeName, startDate, endDate);
+    int updatedProgrammeHash = 0;
+    updatedProgrammeHash = updatedProgrammeHash + (programmeName.hashCode());
+    updatedProgrammeHash = updatedProgrammeHash + (startDate.hashCode());
+    updatedProgrammeHash = updatedProgrammeHash + (endDate.hashCode());
 
     revocationService.revoke(updatedProgrammeMembership.tisId(), CredentialType.TRAINING_PROGRAMME,
-                              updatedPlacementHash);
+                              updatedProgrammeHash);
   }
 }

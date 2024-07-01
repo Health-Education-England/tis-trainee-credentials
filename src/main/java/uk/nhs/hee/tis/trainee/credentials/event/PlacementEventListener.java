@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright 2024 Crown Copyright (Health Education England)
+ * Copyright 2023 Crown Copyright (Health Education England)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
  * associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -66,17 +66,23 @@ public class PlacementEventListener {
     log.info("Received update event for placement {}.", updatedPlacement);
 
     RecordDto recrd = updatedPlacement.recrd();
-    String specialty = recrd.getData().get("TPL-Specialty");
-    String grade = recrd.getData().get("TPL-Grade");
-    String nationalPostNumber = recrd.getData().get("TPL-PlacementNPN");
-    String employingBody = recrd.getData().get("TPL-EmployingBodyOfPost");
-    String site = recrd.getData().get("TPL-Site");
+    String specialty = recrd.getData().get("specialty");
+    String grade = recrd.getData().get("grade");
+    String nationalPostNumber = recrd.getData().get("nationalPostNumber");
+    String employingBody = recrd.getData().get("employingBody");
+    String site = recrd.getData().get("site");
     String startDate = String.valueOf(
-        LocalDate.parse(recrd.getData().get("TPL-PlacementStartDate")));
-    String endDate = String.valueOf(LocalDate.parse(recrd.getData().get("TPL-PlacementEndDate")));
+        LocalDate.parse(recrd.getData().get("startDate")));
+    String endDate = String.valueOf(LocalDate.parse(recrd.getData().get("endDate")));
 
-    int updatedPlacementHash = Objects.hash(specialty, grade, nationalPostNumber, employingBody,
-                                            site, startDate, endDate);
+    int updatedPlacementHash = 0;
+    updatedPlacementHash = updatedPlacementHash + (specialty.hashCode());
+    updatedPlacementHash = updatedPlacementHash + (grade.hashCode());
+    updatedPlacementHash = updatedPlacementHash + (nationalPostNumber.hashCode());
+    updatedPlacementHash = updatedPlacementHash + (employingBody.hashCode());
+    updatedPlacementHash = updatedPlacementHash + (site.hashCode());
+    updatedPlacementHash = updatedPlacementHash + (startDate.hashCode());
+    updatedPlacementHash = updatedPlacementHash + (endDate.hashCode());
 
     revocationService.revoke(updatedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT,
                               updatedPlacementHash);

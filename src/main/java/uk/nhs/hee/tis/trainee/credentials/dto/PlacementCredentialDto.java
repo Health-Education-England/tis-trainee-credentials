@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright 2024 Crown Copyright (Health Education England)
+ * Copyright 2023 Crown Copyright (Health Education England)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
  * associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -121,6 +121,14 @@ public record PlacementCredentialDto(
 
   @JsonIgnore
   public int calculatePlacementHashCode() {
-    return Objects.hash(specialty, grade, nationalPostNumber, employingBody, site, startDate, endDate);
+    int result = 0;
+    result = result + (specialty.hashCode());
+    result = result + (grade.hashCode());
+    result = result + (nationalPostNumber.hashCode());
+    result = result + (employingBody.hashCode());
+    result = result + (site.hashCode());
+    result = result + (startDate.hashCode());
+    result = result + (endDate.hashCode());
+    return result;
   }
 }
