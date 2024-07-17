@@ -42,8 +42,8 @@ public class CredentialMetadata implements Serializable {
 
   @Id
   private String credentialId;
-
   private String traineeId;
+  private String credentialHashCode;
   private String credentialType;
   private String tisId;
   private Instant issuedAt;

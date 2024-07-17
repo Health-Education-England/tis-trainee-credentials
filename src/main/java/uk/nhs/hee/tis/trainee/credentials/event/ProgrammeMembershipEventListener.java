@@ -22,12 +22,15 @@
 package uk.nhs.hee.tis.trainee.credentials.event;
 
 import io.awspring.cloud.sqs.annotation.SqsListener;
+import java.time.LocalDate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.dto.DeleteEventDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.RecordDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.UpdateEventDto;
 import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
+import uk.nhs.hee.tis.trainee.credentials.utill.Md5Hash;
 
 /**
  * An event listener for programme membership deletes / updates.
@@ -50,7 +53,8 @@ public class ProgrammeMembershipEventListener {
   @SqsListener("${application.aws.sqs.delete-programme-membership}")
   void deleteProgrammeMembership(DeleteEventDto deletedProgrammeMembership) {
     log.info("Received delete event for programme membership {}.", deletedProgrammeMembership);
-    revocationService.revoke(deletedProgrammeMembership.tisId(), CredentialType.TRAINING_PROGRAMME);
+    revocationService.revoke(deletedProgrammeMembership.tisId(), CredentialType.TRAINING_PROGRAMME,
+              null);
   }
 
   /**
@@ -61,7 +65,17 @@ public class ProgrammeMembershipEventListener {
   @SqsListener("${application.aws.sqs.update-programme-membership}")
   void updateProgrammeMembership(UpdateEventDto updatedProgrammeMembership) {
     log.info("Received update event for programme membership {}.", updatedProgrammeMembership);
-    // For now, we simply revoke regardless of which fields have updated (pending TIS21-4152)
-    revocationService.revoke(updatedProgrammeMembership.tisId(), CredentialType.TRAINING_PROGRAMME);
+
+    RecordDto recrd = updatedProgrammeMembership.recrd();
+    String programmeName = recrd.getData().get("programmeName");
+    String startDate = String.valueOf(
+        LocalDate.parse(recrd.getData().get("startDate")));
+    String endDate = String.valueOf(LocalDate.parse(recrd.getData().get("endDate")));
+
+    String programmeMd5Hash = Md5Hash.createMd5Hash(programmeName + startDate + endDate);
+
+    revocationService.revoke(updatedProgrammeMembership.tisId(), CredentialType.TRAINING_PROGRAMME,
+        programmeMd5Hash);
   }
+
 }

@@ -117,4 +117,5 @@ public record PlacementCredentialDto(
   public UUID getUniqueIdentifier() {
     return uniqueIdentifier;
   }
+
 }

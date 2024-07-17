@@ -22,12 +22,15 @@
 package uk.nhs.hee.tis.trainee.credentials.event;
 
 import io.awspring.cloud.sqs.annotation.SqsListener;
+import java.time.LocalDate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.dto.DeleteEventDto;
+import uk.nhs.hee.tis.trainee.credentials.dto.RecordDto;
 import uk.nhs.hee.tis.trainee.credentials.dto.UpdateEventDto;
 import uk.nhs.hee.tis.trainee.credentials.service.RevocationService;
+import uk.nhs.hee.tis.trainee.credentials.utill.Md5Hash;
 
 /**
  * An event listener for placement deletes / updates.
@@ -50,7 +53,7 @@ public class PlacementEventListener {
   @SqsListener("${application.aws.sqs.delete-placement}")
   void deletePlacement(DeleteEventDto deletedPlacement) {
     log.info("Received delete event for placement {}.", deletedPlacement);
-    revocationService.revoke(deletedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT);
+    revocationService.revoke(deletedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT, null);
   }
 
   /**
@@ -61,7 +64,24 @@ public class PlacementEventListener {
   @SqsListener("${application.aws.sqs.update-placement}")
   void updatePlacement(UpdateEventDto updatedPlacement) {
     log.info("Received update event for placement {}.", updatedPlacement);
-    // For now, we simply revoke regardless of which fields have updated (pending TIS21-4152)
-    revocationService.revoke(updatedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT);
+
+    RecordDto recrd = updatedPlacement.recrd();
+    String specialty = recrd.getData().get("specialty");
+    String grade = recrd.getData().get("grade");
+    String nationalPostNumber = recrd.getData().get("nationalPostNumber");
+    String employingBody = recrd.getData().get("employingBody");
+    String site = recrd.getData().get("site");
+    String startDate = String.valueOf(
+        LocalDate.parse(recrd.getData().get("startDate")));
+    String endDate = String.valueOf(LocalDate.parse(recrd.getData().get("endDate")));
+
+
+    String placementMd5Hash = Md5Hash.createMd5Hash(specialty + grade + nationalPostNumber
+                                                      + employingBody + site + startDate + endDate);
+
+    revocationService.revoke(updatedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT,
+        placementMd5Hash);
   }
+
+
 }

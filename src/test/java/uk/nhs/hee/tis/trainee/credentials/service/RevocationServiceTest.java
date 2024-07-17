@@ -24,6 +24,7 @@ package uk.nhs.hee.tis.trainee.credentials.service;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hibernate.validator.internal.util.Contracts.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -34,17 +35,22 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.server.ResponseStatusException;
 import uk.nhs.hee.tis.trainee.credentials.dto.CredentialType;
 import uk.nhs.hee.tis.trainee.credentials.model.CredentialMetadata;
@@ -56,7 +62,9 @@ class RevocationServiceTest {
 
   private static final String TIS_ID = UUID.randomUUID().toString();
   private static final String CREDENTIAL_ID = UUID.randomUUID().toString();
-
+  private static final String CREDENTIAL_HASH_CODE_1 = "12345";
+  private static final String CREDENTIAL_HASH_CODE_2 = "23456";
+  private static final Logger log = LoggerFactory.getLogger(RevocationService.class);
   private RevocationService service;
   private CredentialMetadataRepository credentialMetadataRepository;
   private ModificationMetadataRepository repository;
@@ -81,7 +89,8 @@ class RevocationServiceTest {
 
     Optional<Instant> lastModifiedDate = service.getLastModifiedDate("", null);
 
-    assertThat("Unexpected last modified date presence", lastModifiedDate.isPresent(), is(true));
+    assertThat("Unexpected last modified date presence", lastModifiedDate.isPresent(),
+        is(true));
     assertThat("Unexpected last modified date", lastModifiedDate.get(), is(now));
   }
 
@@ -91,7 +100,8 @@ class RevocationServiceTest {
 
     Optional<Instant> lastModifiedDate = service.getLastModifiedDate("", null);
 
-    assertThat("Unexpected last modified date presence", lastModifiedDate.isEmpty(), is(true));
+    assertThat("Unexpected last modified date presence", lastModifiedDate.isEmpty(),
+        is(true));
   }
 
   @ParameterizedTest
@@ -101,7 +111,7 @@ class RevocationServiceTest {
         credentialMetadataRepository.findByCredentialTypeAndTisId(credentialType.getIssuanceScope(),
             TIS_ID)).thenReturn(Collections.emptyList());
 
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, null);
 
     verifyNoInteractions(gatewayService);
   }
@@ -118,7 +128,7 @@ class RevocationServiceTest {
         credentialMetadataRepository.findByCredentialTypeAndTisId(credentialType.getIssuanceScope(),
             TIS_ID)).thenReturn(List.of(credentialMetadata));
 
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, null);
 
     verifyNoInteractions(gatewayService);
   }
@@ -129,6 +139,7 @@ class RevocationServiceTest {
     CredentialMetadata credentialMetadata = new CredentialMetadata();
     credentialMetadata.setTisId(TIS_ID);
     credentialMetadata.setCredentialId(CREDENTIAL_ID);
+    credentialMetadata.setCredentialHashCode(CREDENTIAL_HASH_CODE_1);
 
     String scope = credentialType.getIssuanceScope();
 
@@ -137,7 +148,8 @@ class RevocationServiceTest {
     doThrow(ResponseStatusException.class).when(gatewayService)
         .revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
 
-    assertThrows(ResponseStatusException.class, () -> service.revoke(TIS_ID, credentialType));
+    assertThrows(ResponseStatusException.class, () -> service.revoke(TIS_ID, credentialType,
+        CREDENTIAL_HASH_CODE_2));
 
     verify(credentialMetadataRepository).findByCredentialTypeAndTisId(scope, TIS_ID);
     verifyNoMoreInteractions(credentialMetadataRepository);
@@ -149,13 +161,14 @@ class RevocationServiceTest {
     CredentialMetadata credentialMetadata = new CredentialMetadata();
     credentialMetadata.setTisId(TIS_ID);
     credentialMetadata.setCredentialId(CREDENTIAL_ID);
+    credentialMetadata.setCredentialHashCode(CREDENTIAL_HASH_CODE_1);
 
     String scope = credentialType.getIssuanceScope();
 
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
         List.of(credentialMetadata));
 
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, CREDENTIAL_HASH_CODE_2);
 
     verify(gatewayService).revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
 
@@ -164,7 +177,8 @@ class RevocationServiceTest {
     verify(credentialMetadataRepository).save(metadataCaptor.capture());
 
     CredentialMetadata revokedMetadata = metadataCaptor.getValue();
-    assertThat("Unexpected credential ID.", revokedMetadata.getCredentialId(), is(CREDENTIAL_ID));
+    assertThat("Unexpected credential ID.", revokedMetadata.getCredentialId(),
+        is(CREDENTIAL_ID));
     assertThat("Unexpected TIS ID.", revokedMetadata.getTisId(), is(TIS_ID));
     assertThat("Unexpected revoked at.", revokedMetadata.getRevokedAt(), notNullValue());
   }
@@ -175,6 +189,7 @@ class RevocationServiceTest {
     CredentialMetadata credentialMetadata = new CredentialMetadata();
     credentialMetadata.setTisId(TIS_ID);
     credentialMetadata.setCredentialId(CREDENTIAL_ID);
+    credentialMetadata.setCredentialHashCode(CREDENTIAL_HASH_CODE_1);
 
     String scope = credentialType.getIssuanceScope();
 
@@ -183,7 +198,8 @@ class RevocationServiceTest {
     doThrow(ResponseStatusException.class).when(gatewayService)
         .revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
 
-    assertThrows(ResponseStatusException.class, () -> service.revoke(TIS_ID, credentialType));
+    assertThrows(ResponseStatusException.class, () -> service.revoke(TIS_ID, credentialType,
+        CREDENTIAL_HASH_CODE_2));
 
     verify(credentialMetadataRepository).findByCredentialTypeAndTisId(scope, TIS_ID);
     verifyNoMoreInteractions(eventPublishingService);
@@ -195,13 +211,14 @@ class RevocationServiceTest {
     CredentialMetadata credentialMetadata = new CredentialMetadata();
     credentialMetadata.setTisId(TIS_ID);
     credentialMetadata.setCredentialId(CREDENTIAL_ID);
+    credentialMetadata.setCredentialHashCode(CREDENTIAL_HASH_CODE_1);
 
     String scope = credentialType.getIssuanceScope();
 
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
         List.of(credentialMetadata));
 
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, CREDENTIAL_HASH_CODE_2);
 
     verify(gatewayService).revokeCredential(credentialType.getTemplateName(), CREDENTIAL_ID);
 
@@ -210,7 +227,8 @@ class RevocationServiceTest {
     verify(eventPublishingService).publishRevocationEvent(metadataCaptor.capture());
 
     CredentialMetadata revokedMetadata = metadataCaptor.getValue();
-    assertThat("Unexpected credential ID.", revokedMetadata.getCredentialId(), is(CREDENTIAL_ID));
+    assertThat("Unexpected credential ID.", revokedMetadata.getCredentialId(),
+        is(CREDENTIAL_ID));
     assertThat("Unexpected TIS ID.", revokedMetadata.getTisId(), is(TIS_ID));
     assertThat("Unexpected revoked at.", revokedMetadata.getRevokedAt(), notNullValue());
   }
@@ -222,6 +240,7 @@ class RevocationServiceTest {
     CredentialMetadata credentialMetadata = new CredentialMetadata();
     credentialMetadata.setTisId(TIS_ID);
     credentialMetadata.setCredentialId(CREDENTIAL_ID);
+    credentialMetadata.setCredentialHashCode(CREDENTIAL_HASH_CODE_1);
 
     String credentialId2 = UUID.randomUUID().toString();
     CredentialMetadata credentialMetadata2 = new CredentialMetadata();
@@ -233,20 +252,23 @@ class RevocationServiceTest {
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
         List.of(credentialMetadata, credentialMetadata2));
 
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, CREDENTIAL_HASH_CODE_2);
 
     ArgumentCaptor<CredentialMetadata> metadataCaptor = ArgumentCaptor.forClass(
         CredentialMetadata.class);
-    verify(eventPublishingService, times(2)).publishRevocationEvent(metadataCaptor.capture());
+    verify(eventPublishingService, times(4))
+        .publishRevocationEvent(metadataCaptor.capture());
 
     List<CredentialMetadata> revokedMetadata = metadataCaptor.getAllValues();
     CredentialMetadata revokedMetadata1 = revokedMetadata.get(0);
-    assertThat("Unexpected credential ID.", revokedMetadata1.getCredentialId(), is(CREDENTIAL_ID));
+    assertThat("Unexpected credential ID.", revokedMetadata1.getCredentialId(),
+        is(CREDENTIAL_ID));
     assertThat("Unexpected TIS ID.", revokedMetadata1.getTisId(), is(TIS_ID));
     assertThat("Unexpected revoked at.", revokedMetadata1.getRevokedAt(), notNullValue());
 
     CredentialMetadata revokedMetadata2 = revokedMetadata.get(1);
-    assertThat("Unexpected credential ID.", revokedMetadata2.getCredentialId(), is(credentialId2));
+    assertThat("Unexpected credential ID.", revokedMetadata2.getCredentialId(),
+        is(credentialId2));
     assertThat("Unexpected TIS ID.", revokedMetadata2.getTisId(), is(TIS_ID));
     assertThat("Unexpected revoked at.", revokedMetadata2.getRevokedAt(), notNullValue());
   }
@@ -258,6 +280,7 @@ class RevocationServiceTest {
     CredentialMetadata credentialMetadata = new CredentialMetadata();
     credentialMetadata.setTisId(TIS_ID);
     credentialMetadata.setCredentialId(CREDENTIAL_ID);
+    credentialMetadata.setCredentialHashCode(CREDENTIAL_HASH_CODE_1);
 
     String credentialId2 = UUID.randomUUID().toString();
     CredentialMetadata credentialMetadata2 = new CredentialMetadata();
@@ -269,20 +292,23 @@ class RevocationServiceTest {
     when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
         List.of(credentialMetadata, credentialMetadata2));
 
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, CREDENTIAL_HASH_CODE_2);
 
     ArgumentCaptor<CredentialMetadata> metadataCaptor = ArgumentCaptor.forClass(
         CredentialMetadata.class);
-    verify(credentialMetadataRepository, times(2)).save(metadataCaptor.capture());
+    verify(credentialMetadataRepository, times(4)).save(metadataCaptor
+        .capture());
 
     List<CredentialMetadata> revokedMetadata = metadataCaptor.getAllValues();
     CredentialMetadata revokedMetadata1 = revokedMetadata.get(0);
-    assertThat("Unexpected credential ID.", revokedMetadata1.getCredentialId(), is(CREDENTIAL_ID));
+    assertThat("Unexpected credential ID.", revokedMetadata1.getCredentialId(),
+        is(CREDENTIAL_ID));
     assertThat("Unexpected TIS ID.", revokedMetadata1.getTisId(), is(TIS_ID));
     assertThat("Unexpected revoked at.", revokedMetadata1.getRevokedAt(), notNullValue());
 
     CredentialMetadata revokedMetadata2 = revokedMetadata.get(1);
-    assertThat("Unexpected credential ID.", revokedMetadata2.getCredentialId(), is(credentialId2));
+    assertThat("Unexpected credential ID.", revokedMetadata2.getCredentialId(),
+        is(credentialId2));
     assertThat("Unexpected TIS ID.", revokedMetadata2.getTisId(), is(TIS_ID));
     assertThat("Unexpected revoked at.", revokedMetadata2.getRevokedAt(), notNullValue());
   }
@@ -352,8 +378,64 @@ class RevocationServiceTest {
 
   @ParameterizedTest
   @EnumSource(CredentialType.class)
+  void shouldNotRevokeCredentialWhenMd5HashMatches(@NotNull CredentialType credentialType) {
+    CredentialMetadata credentialMetadata = new CredentialMetadata();
+    credentialMetadata.setTisId(TIS_ID);
+    credentialMetadata.setCredentialId(CREDENTIAL_ID);
+    credentialMetadata.setCredentialHashCode(CREDENTIAL_HASH_CODE_1);
+
+    ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) log;
+    ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+    listAppender.start();
+    logger.addAppender(listAppender);
+
+    String scope = credentialType.getIssuanceScope();
+
+    when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
+        List.of(credentialMetadata));
+    List<ILoggingEvent> logsList = listAppender.list;
+    service.revoke(TIS_ID, credentialType, CREDENTIAL_HASH_CODE_1);
+
+    //verify log is called
+    // Assert that the log message is present
+    boolean logFound = logsList.stream()
+        .anyMatch(event -> event.getFormattedMessage()
+            .contains("has no changes to wallet data, skipped revocation."));
+    assertTrue(logFound, "Log message not found!");
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
+  void shouldRevokeCredentialWhenMd5HashDoesNotMatch(@NotNull CredentialType credentialType) {
+    CredentialMetadata credentialMetadata = new CredentialMetadata();
+    credentialMetadata.setTisId(TIS_ID);
+    credentialMetadata.setCredentialId(CREDENTIAL_ID);
+    credentialMetadata.setCredentialHashCode(CREDENTIAL_HASH_CODE_1);
+
+    ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) log;
+    ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+    listAppender.start();
+    logger.addAppender(listAppender);
+
+    String scope = credentialType.getIssuanceScope();
+
+    when(credentialMetadataRepository.findByCredentialTypeAndTisId(scope, TIS_ID)).thenReturn(
+        List.of(credentialMetadata));
+
+    List<ILoggingEvent> logsList = listAppender.list;
+    service.revoke(TIS_ID, credentialType, CREDENTIAL_HASH_CODE_2);
+
+    //verify log is called
+    // Assert that the log message is present
+    boolean logFound = logsList.stream()
+        .anyMatch(event -> event.getFormattedMessage().contains("has been revoked."));
+    assertTrue(logFound, "Log message not found!");
+  }
+
+  @ParameterizedTest
+  @EnumSource(CredentialType.class)
   void shouldStoreLastModifiedDateWhenRevoking(CredentialType credentialType) {
-    service.revoke(TIS_ID, credentialType);
+    service.revoke(TIS_ID, credentialType, null);
 
     ArgumentCaptor<ModificationMetadata> metadataCaptor = ArgumentCaptor.forClass(
         ModificationMetadata.class);
@@ -361,7 +443,8 @@ class RevocationServiceTest {
 
     ModificationMetadata metadata = metadataCaptor.getValue();
     assertThat("Unexpected TIS ID.", metadata.id().tisId(), is(TIS_ID));
-    assertThat("Unexpected credential type.", metadata.id().credentialType(), is(credentialType));
+    assertThat("Unexpected credential type.", metadata.id().credentialType(),
+        is(credentialType));
 
     Instant timestamp = metadata.lastModifiedDate();
     Instant now = Instant.now();

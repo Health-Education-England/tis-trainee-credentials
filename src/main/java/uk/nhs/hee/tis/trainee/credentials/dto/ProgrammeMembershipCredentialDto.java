@@ -101,4 +101,5 @@ public record ProgrammeMembershipCredentialDto(
   public UUID getUniqueIdentifier() {
     return uniqueIdentifier;
   }
+
 }
