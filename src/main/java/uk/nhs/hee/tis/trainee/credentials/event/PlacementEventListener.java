@@ -71,13 +71,13 @@ public class PlacementEventListener {
     String nationalPostNumber = recrd.getData().get("nationalPostNumber");
     String employingBody = recrd.getData().get("employingBody");
     String site = recrd.getData().get("site");
-    String startDate = String.valueOf(
-        LocalDate.parse(recrd.getData().get("startDate")));
-    String endDate = String.valueOf(LocalDate.parse(recrd.getData().get("endDate")));
+    String dateFrom = String.valueOf(
+        LocalDate.parse(recrd.getData().get("dateFrom")));
+    String dateTo = String.valueOf(LocalDate.parse(recrd.getData().get("dateTo")));
 
 
     String placementMd5Hash = Md5Hash.createMd5Hash(specialty + grade + nationalPostNumber
-                                                      + employingBody + site + startDate + endDate);
+                                                      + employingBody + site + dateFrom + dateTo);
 
     revocationService.revoke(updatedPlacement.tisId(), CredentialType.TRAINING_PLACEMENT,
         placementMd5Hash);
