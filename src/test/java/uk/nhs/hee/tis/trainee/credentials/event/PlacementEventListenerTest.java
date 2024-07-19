@@ -70,8 +70,8 @@ class PlacementEventListenerTest {
     data.put("nationalPostNumber", "placementNatPostNum");
     data.put("employingBody", "placementEmployingBody");
     data.put("site", "placementSite");
-    data.put("startDate", LocalDate.of(2023, 1, 1).toString());
-    data.put("endDate", LocalDate.of(2024, 1, 1).toString());
+    data.put("dateFrom", LocalDate.of(2023, 1, 1).toString());
+    data.put("dateTo", LocalDate.of(2024, 1, 1).toString());
 
     RecordDto recordDto = new RecordDto();
     recordDto.setData(data);
