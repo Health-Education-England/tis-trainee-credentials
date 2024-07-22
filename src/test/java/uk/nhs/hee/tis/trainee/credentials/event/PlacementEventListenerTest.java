@@ -70,8 +70,8 @@ class PlacementEventListenerTest {
     data.put("nationalPostNumber", "placementNatPostNum");
     data.put("employingBody", "placementEmployingBody");
     data.put("site", "placementSite");
-    data.put("startDate", LocalDate.of(2023, 1, 1).toString());
-    data.put("endDate", LocalDate.of(2024, 1, 1).toString());
+    data.put("dateFrom", LocalDate.of(2023, 1, 1).toString());
+    data.put("dateTo", LocalDate.of(2024, 1, 1).toString());
 
     RecordDto recordDto = new RecordDto();
     recordDto.setData(data);
@@ -84,12 +84,12 @@ class PlacementEventListenerTest {
     String placementNatPostNum = recrd.getData().get("nationalPostNumber");
     String placementEmployingBody = recrd.getData().get("employingBody");
     String placementSite = recrd.getData().get("site");
-    String startDate = String.valueOf(
-        LocalDate.parse(recrd.getData().get("startDate")));
-    String endDate = String.valueOf(LocalDate.parse(recrd.getData().get("endDate")));
+    String dateFrom = String.valueOf(
+        LocalDate.parse(recrd.getData().get("dateFrom")));
+    String dateTo = String.valueOf(LocalDate.parse(recrd.getData().get("dateTo")));
 
     String placementMd5Hash = hash.createMd5Hash(placementSpeciality + placementGrade
-        + placementNatPostNum + placementEmployingBody + placementSite + startDate + endDate);
+        + placementNatPostNum + placementEmployingBody + placementSite + dateFrom + dateTo);
 
     listener.updatePlacement(dto);
 
