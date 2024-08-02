@@ -38,9 +38,11 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.impl.DefaultClaims;
 import java.net.URI;
+import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -51,6 +53,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -61,10 +65,9 @@ import uk.nhs.hee.tis.trainee.credentials.service.GatewayService.TokenResponse;
 
 class VerificationServiceTest {
 
-  private static final URI ISSUING_ENDPOINT = URI.create(
-      "https://credential.gateway/oidc");
-  private static final URI AUTHORIZE_ENDPOINT = URI.create(
-      "https://credential.gateway/authorize/endpoint");
+  private static final URI ISSUING_ENDPOINT = URI.create("https://credential.gateway/oidc");
+  private static final URI AUTHORIZE_ENDPOINT =
+      URI.create("https://credential.gateway/authorize/endpoint");
   private static final URI TOKEN_ENDPOINT = URI.create("https://credential.gateway/token/endpoint");
   private static final URI REDIRECT_URI = URI.create("https://credential.service/redirect-uri");
 
@@ -90,16 +93,23 @@ class VerificationServiceTest {
   private GatewayService gatewayService;
   private JwtService jwtService;
   private CachingDelegate cachingDelegate;
+  private MetricsService metricsService;
 
   @BeforeEach
   void setUp() {
     gatewayService = mock(GatewayService.class);
     jwtService = mock(JwtService.class);
     cachingDelegate = spy(CachingDelegate.class);
-    var properties = new VerificationProperties(ISSUING_ENDPOINT.toString(),
-        AUTHORIZE_ENDPOINT.toString(), TOKEN_ENDPOINT.toString(), REDIRECT_URI.toString());
-    verificationService = new VerificationService(gatewayService, jwtService, cachingDelegate,
-        properties);
+    var properties =
+        new VerificationProperties(
+            ISSUING_ENDPOINT.toString(),
+            AUTHORIZE_ENDPOINT.toString(),
+            TOKEN_ENDPOINT.toString(),
+            REDIRECT_URI.toString());
+    metricsService = mock(MetricsService.class);
+    verificationService =
+        new VerificationService(
+            gatewayService, jwtService, cachingDelegate, properties, metricsService);
     when(gatewayService.getTokenScope(any())).thenReturn(IDENTITY_SCOPE);
   }
 
@@ -149,16 +159,14 @@ class VerificationServiceTest {
 
   @Test
   void shouldCacheUnverifiedSessionIdWhenStartingVerification() {
-    DefaultClaims claims = new DefaultClaims(Map.of(
-        CLAIM_TOKEN_IDENTIFIER, "session-id-1"
-    ));
+    DefaultClaims claims = new DefaultClaims(Map.of(CLAIM_TOKEN_IDENTIFIER, "session-id-1"));
     when(jwtService.getClaims(AUTH_TOKEN)).thenReturn(claims);
 
     URI uri = verificationService.startIdentityVerification(AUTH_TOKEN, null, "some-client-state");
 
     ArgumentCaptor<UUID> uuidCaptor = ArgumentCaptor.forClass(UUID.class);
-    verify(cachingDelegate).cacheUnverifiedSessionIdentifier(uuidCaptor.capture(),
-        eq("session-id-1"));
+    verify(cachingDelegate)
+        .cacheUnverifiedSessionIdentifier(uuidCaptor.capture(), eq("session-id-1"));
 
     String uuid = uuidCaptor.getValue().toString();
     Map<String, String> queryParams = splitQueryParams(uri);
@@ -243,8 +251,8 @@ class VerificationServiceTest {
 
     String codeVerifier = codeVerifierCaptor.getValue();
     byte[] codeChallengeBytes = DigestUtils.sha256(codeVerifier);
-    String codeChallenge = Base64.getUrlEncoder().withoutPadding()
-        .encodeToString(codeChallengeBytes);
+    String codeChallenge =
+        Base64.getUrlEncoder().withoutPadding().encodeToString(codeChallengeBytes);
     assertThat("Unexpected query parameter value.", codeChallengeParam, is(codeChallenge));
   }
 
@@ -253,8 +261,8 @@ class VerificationServiceTest {
     UUID state = UUID.randomUUID();
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.empty());
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
-        null);
+    URI uri =
+        verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -268,8 +276,9 @@ class VerificationServiceTest {
     UUID state = UUID.randomUUID();
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.empty());
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(),
-        "error_code", "Error description");
+    URI uri =
+        verificationService.completeCredentialVerification(
+            CODE, state.toString(), "error_code", "Error description");
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -285,12 +294,11 @@ class VerificationServiceTest {
 
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.of(codeVerifier));
 
-    UUID nonce = UUID.randomUUID();
-    setDefaultClaimsMocks(new DefaultClaims(), nonce, codeVerifier);
+    setDefaultClaimsMocks(new DefaultClaims(), codeVerifier);
     when(gatewayService.getTokenScope(any())).thenReturn("invalid-scope");
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
-        null);
+    URI uri =
+        verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -307,11 +315,11 @@ class VerificationServiceTest {
 
     UUID nonce = UUID.randomUUID();
     DefaultClaims claims = new DefaultClaims(Map.of(CLAIM_NONCE, nonce.toString()));
-    setDefaultClaimsMocks(claims, nonce, codeVerifier);
+    setDefaultClaimsMocks(claims, codeVerifier);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.empty());
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
-        null);
+    URI uri =
+        verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -320,29 +328,41 @@ class VerificationServiceTest {
     assertThat("Unexpected invalid reason.", reason, is("identity_verification_failed"));
   }
 
-  @Test
-  void shouldReturnInvalidCredentialWhenIdentityVerificationFailsOnForenames() {
+  @ParameterizedTest
+  @CsvSource(
+      delimiter = '|',
+      textBlock =
+          """
+      Anthony | mismatch
+      Anthony | Tony
+      Holly   | Kelly
+      Holly   | Holieee
+      """)
+  void shouldReturnInvalidCredentialWhenIdentityVerificationFailsOnForenames(
+      String identityName, String claimName) {
     UUID state = UUID.randomUUID();
     String codeVerifier = "code-verifier";
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.of(codeVerifier));
 
     UUID nonce = UUID.randomUUID();
-    DefaultClaims claims = new DefaultClaims(Map.of(
-        CLAIM_NONCE, nonce.toString(),
-        CLAIM_FIRST_NAME, "mismatch",
-        CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
-        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
-        CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
-    setDefaultClaimsMocks(claims, nonce, codeVerifier);
-    when(cachingDelegate.getUnverifiedSessionIdentifier(nonce)).thenReturn(
-        Optional.of("session123"));
+    DefaultClaims claims =
+        new DefaultClaims(
+            Map.of(
+                CLAIM_NONCE, nonce.toString(),
+                CLAIM_FIRST_NAME, claimName,
+                CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
+                CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
+                CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
+    setDefaultClaimsMocks(claims, codeVerifier);
+    when(cachingDelegate.getUnverifiedSessionIdentifier(nonce))
+        .thenReturn(Optional.of("session123"));
 
-    IdentityDataDto identityData = new IdentityDataDto(IDENTITY_FORENAMES, IDENTITY_SURNAME,
-        IDENTITY_DOB);
+    IdentityDataDto identityData =
+        new IdentityDataDto(identityName, IDENTITY_SURNAME, IDENTITY_DOB);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
-        null);
+    URI uri =
+        verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -351,29 +371,39 @@ class VerificationServiceTest {
     assertThat("Unexpected invalid reason.", reason, is("identity_verification_failed"));
   }
 
-  @Test
-  void shouldReturnInvalidCredentialWhenIdentityVerificationFailsOnSurname() {
+  @ParameterizedTest
+  @CsvSource(
+      delimiter = '|',
+      textBlock =
+          """
+      Gilliam | mismatch
+      Gilliam | Gill
+      """)
+  void shouldReturnInvalidCredentialWhenIdentityVerificationFailsOnSurname(
+      String identityName, String claimName) {
     UUID state = UUID.randomUUID();
     String codeVerifier = "code-verifier";
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.of(codeVerifier));
 
     UUID nonce = UUID.randomUUID();
-    DefaultClaims claims = new DefaultClaims(Map.of(
-        CLAIM_NONCE, nonce.toString(),
-        CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
-        CLAIM_FAMILY_NAME, "mismatch",
-        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
-        CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
-    setDefaultClaimsMocks(claims, nonce, codeVerifier);
-    when(cachingDelegate.getUnverifiedSessionIdentifier(nonce)).thenReturn(
-        Optional.of("session123"));
+    DefaultClaims claims =
+        new DefaultClaims(
+            Map.of(
+                CLAIM_NONCE, nonce.toString(),
+                CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
+                CLAIM_FAMILY_NAME, claimName,
+                CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
+                CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
+    setDefaultClaimsMocks(claims, codeVerifier);
+    when(cachingDelegate.getUnverifiedSessionIdentifier(nonce))
+        .thenReturn(Optional.of("session123"));
 
-    IdentityDataDto identityData = new IdentityDataDto(IDENTITY_FORENAMES, IDENTITY_SURNAME,
-        IDENTITY_DOB);
+    IdentityDataDto identityData =
+        new IdentityDataDto(IDENTITY_FORENAMES, identityName, IDENTITY_DOB);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
-        null);
+    URI uri =
+        verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -389,22 +419,24 @@ class VerificationServiceTest {
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.of(codeVerifier));
 
     UUID nonce = UUID.randomUUID();
-    DefaultClaims claims = new DefaultClaims(Map.of(
-        CLAIM_NONCE, nonce.toString(),
-        CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
-        CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
-        CLAIM_BIRTH_DATE, LocalDate.now().toString(),
-        CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
-    setDefaultClaimsMocks(claims, nonce, codeVerifier);
-    when(cachingDelegate.getUnverifiedSessionIdentifier(nonce)).thenReturn(
-        Optional.of("session123"));
+    DefaultClaims claims =
+        new DefaultClaims(
+            Map.of(
+                CLAIM_NONCE, nonce.toString(),
+                CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
+                CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
+                CLAIM_BIRTH_DATE, LocalDate.now().toString(),
+                CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
+    setDefaultClaimsMocks(claims, codeVerifier);
+    when(cachingDelegate.getUnverifiedSessionIdentifier(nonce))
+        .thenReturn(Optional.of("session123"));
 
-    IdentityDataDto identityData = new IdentityDataDto(IDENTITY_FORENAMES, IDENTITY_SURNAME,
-        IDENTITY_DOB);
+    IdentityDataDto identityData =
+        new IdentityDataDto(IDENTITY_FORENAMES, IDENTITY_SURNAME, IDENTITY_DOB);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
-        null);
+    URI uri =
+        verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -420,21 +452,23 @@ class VerificationServiceTest {
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.of(codeVerifier));
 
     UUID nonce = UUID.randomUUID();
-    DefaultClaims claims = new DefaultClaims(Map.of(
-        CLAIM_NONCE, nonce.toString(),
-        CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
-        CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
-        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
-        CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
-    setDefaultClaimsMocks(claims, nonce, codeVerifier);
+    DefaultClaims claims =
+        new DefaultClaims(
+            Map.of(
+                CLAIM_NONCE, nonce.toString(),
+                CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
+                CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
+                CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
+                CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
+    setDefaultClaimsMocks(claims, codeVerifier);
     when(cachingDelegate.getUnverifiedSessionIdentifier(nonce)).thenReturn(Optional.empty());
 
-    IdentityDataDto identityData = new IdentityDataDto(IDENTITY_FORENAMES, IDENTITY_SURNAME,
-        IDENTITY_DOB);
+    IdentityDataDto identityData =
+        new IdentityDataDto(IDENTITY_FORENAMES, IDENTITY_SURNAME, IDENTITY_DOB);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
-        null);
+    URI uri =
+        verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -450,21 +484,27 @@ class VerificationServiceTest {
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.of(codeVerifier));
 
     UUID nonce = UUID.randomUUID();
-    DefaultClaims claims = new DefaultClaims(Map.of(
-        CLAIM_NONCE, nonce.toString(),
-        CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
-        CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
-        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString()));
-    setDefaultClaimsMocks(claims, nonce, codeVerifier);
-    when(cachingDelegate.getUnverifiedSessionIdentifier(nonce)).thenReturn(
-        Optional.of("session123"));
+    DefaultClaims claims =
+        new DefaultClaims(
+            Map.of(
+                CLAIM_NONCE,
+                nonce.toString(),
+                CLAIM_FIRST_NAME,
+                IDENTITY_FORENAMES,
+                CLAIM_FAMILY_NAME,
+                IDENTITY_SURNAME,
+                CLAIM_BIRTH_DATE,
+                IDENTITY_DOB.toString()));
+    setDefaultClaimsMocks(claims, codeVerifier);
+    when(cachingDelegate.getUnverifiedSessionIdentifier(nonce))
+        .thenReturn(Optional.of("session123"));
 
-    IdentityDataDto identityData = new IdentityDataDto(IDENTITY_FORENAMES, IDENTITY_SURNAME,
-        IDENTITY_DOB);
+    IdentityDataDto identityData =
+        new IdentityDataDto(IDENTITY_FORENAMES, IDENTITY_SURNAME, IDENTITY_DOB);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
-        null);
+    URI uri =
+        verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/invalid-credential"));
 
@@ -474,36 +514,162 @@ class VerificationServiceTest {
   }
 
   @ParameterizedTest
-  @CsvSource(delimiter = '|', textBlock = """
+  @CsvSource(
+      delimiter = '|',
+      textBlock =
+          """
       anthony | gilliam
       Anthony | Gilliam
       ANTHONY | GILLIAM
+      Antony  | Gillam
+      Anthony Mara | Gilliam-Murphy
       """)
-  void shouldReturnCredentialVerifiedWhenIdentityVerificationPasses(String forenames,
-      String surname) {
+  void shouldReturnCredentialVerifiedWhenIdentityVerificationPasses(
+      String forenames, String surname) {
     UUID state = UUID.randomUUID();
     String codeVerifier = "code-verifier";
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.of(codeVerifier));
 
     UUID nonce = UUID.randomUUID();
-    DefaultClaims claims = new DefaultClaims(Map.of(
-        CLAIM_NONCE, nonce.toString(),
-        CLAIM_FIRST_NAME, forenames,
-        CLAIM_FAMILY_NAME, surname,
-        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
-        CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
-    setDefaultClaimsMocks(claims, nonce, codeVerifier);
-    when(cachingDelegate.getUnverifiedSessionIdentifier(nonce)).thenReturn(
-        Optional.of("session123"));
+    DefaultClaims claims =
+        new DefaultClaims(
+            Map.of(
+                CLAIM_NONCE, nonce.toString(),
+                CLAIM_FIRST_NAME, forenames,
+                CLAIM_FAMILY_NAME, surname,
+                CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
+                CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
+    setDefaultClaimsMocks(claims, codeVerifier);
+    when(cachingDelegate.getUnverifiedSessionIdentifier(nonce))
+        .thenReturn(Optional.of("session123"));
 
-    IdentityDataDto identityData = new IdentityDataDto(IDENTITY_FORENAMES, IDENTITY_SURNAME,
-        IDENTITY_DOB);
+    IdentityDataDto identityData =
+        new IdentityDataDto(IDENTITY_FORENAMES, IDENTITY_SURNAME, IDENTITY_DOB);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
-        null);
+    URI uri =
+        verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
 
     assertThat("Unexpected URI path.", uri.getPath(), is("/credential-verified"));
+  }
+
+  @ParameterizedTest
+  @CsvSource(
+      delimiter = '|',
+      textBlock =
+          """
+      Anthony | Anthony      | 1.0  | 1.0
+      Anthony | ANTHONY      | 1.0  | 1.0
+      Anthony | anthony      | 1.0  | 1.0
+      Anthony | Anthony Mara | 1.0  | 1.0
+      Anthony | Anthony-Mara | 1.0  | 1.0
+      Anthony | Mara Anthony | 1.0  | 1.0
+      Anthony | Mara-Anthony | 1.0  | 1.0
+      Anthony | Anthonie     | 1.0  | 0.75
+      Anthony | Antony       | 0.75 | 0.86
+      Anthony | Ant          | 0.50 | 0.43
+      Anthony | Tony         | 0.25 | 0.57
+      Anthony | Mara         | 0.0  | 0.0
+      """)
+  void shouldPublishFirstNameAccuracyMetricsWhenVerifyingIdentity(
+      String identityName, String claimName, double phoneticAccuracy, double textAccuracy) {
+    UUID state = UUID.randomUUID();
+    String codeVerifier = "code-verifier";
+    when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.of(codeVerifier));
+
+    UUID nonce = UUID.randomUUID();
+    DefaultClaims claims =
+        new DefaultClaims(
+            Map.of(
+                CLAIM_NONCE, nonce.toString(),
+                CLAIM_FIRST_NAME, claimName,
+                CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
+                CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
+                CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
+    setDefaultClaimsMocks(claims, codeVerifier);
+    when(cachingDelegate.getUnverifiedSessionIdentifier(nonce))
+        .thenReturn(Optional.of("session123"));
+
+    IdentityDataDto identityData =
+        new IdentityDataDto(identityName, IDENTITY_SURNAME, IDENTITY_DOB);
+    when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
+
+    verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
+
+    ArgumentCaptor<Double> accuracyCaptor = ArgumentCaptor.captor();
+    InOrder metricsInOrder = Mockito.inOrder(metricsService);
+    metricsInOrder.verify(metricsService).publishIdentityPhoneticAccuracy(accuracyCaptor.capture());
+    metricsInOrder.verify(metricsService).publishIdentityTextAccuracy(accuracyCaptor.capture());
+    metricsInOrder.verify(metricsService).publishIdentityPhoneticAccuracy(1.0);
+    metricsInOrder.verify(metricsService).publishIdentityTextAccuracy(1.0);
+
+    List<Double> accuracies = accuracyCaptor.getAllValues();
+    DecimalFormat decimalFormat = new DecimalFormat("#.##");
+
+    double phoneticAccuracyMetric = Double.parseDouble(decimalFormat.format(accuracies.get(0)));
+    assertThat("Unexpected phonetic accuracy.", phoneticAccuracyMetric, is(phoneticAccuracy));
+
+    double textAccuracyMetric = Double.parseDouble(decimalFormat.format(accuracies.get(1)));
+    assertThat("Unexpected text accuracy.", textAccuracyMetric, is(textAccuracy));
+  }
+
+  @ParameterizedTest
+  @CsvSource(
+      delimiter = '|',
+      textBlock =
+          """
+      Gilliam | Gilliam | 1.0 | 1.0
+      Gilliam | GILLIAM | 1.0 | 1.0
+      Gilliam | gilliam | 1.0 | 1.0
+      Gilliam | Gilliam Murphy | 1.0 | 1.0
+      Gilliam | Gilliam-Murphy | 1.0 | 1.0
+      Gilliam | Murphy Gilliam | 1.0 | 1.0
+      Gilliam | Murphy-Gilliam | 1.0 | 1.0
+      Gilliam | Giliam  | 1.0 | 0.86
+      Gilliam | Gilliem  | 1.0 | 0.86
+      Gilliam | Gill  | 0.67 | 0.57
+      Gilliam | Murphy  | 0.0 | 0.0
+      """)
+  void shouldPublishSurnameAccuracyMetricsWhenVerifyingIdentity(
+      String identityName, String claimName, double phoneticAccuracy, double textAccuracy) {
+    UUID state = UUID.randomUUID();
+    String codeVerifier = "code-verifier";
+    when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.of(codeVerifier));
+
+    UUID nonce = UUID.randomUUID();
+    DefaultClaims claims =
+        new DefaultClaims(
+            Map.of(
+                CLAIM_NONCE, nonce.toString(),
+                CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
+                CLAIM_FAMILY_NAME, claimName,
+                CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
+                CLAIM_UNIQUE_IDENTIFIER, UUID.randomUUID().toString()));
+    setDefaultClaimsMocks(claims, codeVerifier);
+    when(cachingDelegate.getUnverifiedSessionIdentifier(nonce))
+        .thenReturn(Optional.of("session123"));
+
+    IdentityDataDto identityData =
+        new IdentityDataDto(IDENTITY_FORENAMES, identityName, IDENTITY_DOB);
+    when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
+
+    verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
+
+    ArgumentCaptor<Double> accuracyCaptor = ArgumentCaptor.captor();
+    InOrder metricsInOrder = Mockito.inOrder(metricsService);
+    metricsInOrder.verify(metricsService).publishIdentityPhoneticAccuracy(1.0);
+    metricsInOrder.verify(metricsService).publishIdentityTextAccuracy(1.0);
+    metricsInOrder.verify(metricsService).publishIdentityPhoneticAccuracy(accuracyCaptor.capture());
+    metricsInOrder.verify(metricsService).publishIdentityTextAccuracy(accuracyCaptor.capture());
+
+    List<Double> accuracies = accuracyCaptor.getAllValues();
+    DecimalFormat decimalFormat = new DecimalFormat("#.##");
+
+    double phoneticAccuracyMetric = Double.parseDouble(decimalFormat.format(accuracies.get(0)));
+    assertThat("Unexpected phonetic accuracy.", phoneticAccuracyMetric, is(phoneticAccuracy));
+
+    double textAccuracyMetric = Double.parseDouble(decimalFormat.format(accuracies.get(1)));
+    assertThat("Unexpected text accuracy.", textAccuracyMetric, is(textAccuracy));
   }
 
   @Test
@@ -514,18 +680,20 @@ class VerificationServiceTest {
 
     UUID nonce = UUID.randomUUID();
     UUID identityId = UUID.randomUUID();
-    DefaultClaims claims = new DefaultClaims(Map.of(
-        CLAIM_NONCE, nonce.toString(),
-        CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
-        CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
-        CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
-        CLAIM_UNIQUE_IDENTIFIER, identityId.toString()));
-    setDefaultClaimsMocks(claims, nonce, codeVerifier);
-    when(cachingDelegate.getUnverifiedSessionIdentifier(nonce)).thenReturn(
-        Optional.of("session123"));
+    DefaultClaims claims =
+        new DefaultClaims(
+            Map.of(
+                CLAIM_NONCE, nonce.toString(),
+                CLAIM_FIRST_NAME, IDENTITY_FORENAMES,
+                CLAIM_FAMILY_NAME, IDENTITY_SURNAME,
+                CLAIM_BIRTH_DATE, IDENTITY_DOB.toString(),
+                CLAIM_UNIQUE_IDENTIFIER, identityId.toString()));
+    setDefaultClaimsMocks(claims, codeVerifier);
+    when(cachingDelegate.getUnverifiedSessionIdentifier(nonce))
+        .thenReturn(Optional.of("session123"));
 
-    IdentityDataDto identityData = new IdentityDataDto(IDENTITY_FORENAMES, IDENTITY_SURNAME,
-        IDENTITY_DOB);
+    IdentityDataDto identityData =
+        new IdentityDataDto(IDENTITY_FORENAMES, IDENTITY_SURNAME, IDENTITY_DOB);
     when(cachingDelegate.getIdentityData(nonce)).thenReturn(Optional.of(identityData));
 
     verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
@@ -539,8 +707,8 @@ class VerificationServiceTest {
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.empty());
     when(cachingDelegate.getClientState(state)).thenReturn(Optional.of("client-state"));
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
-        null);
+    URI uri =
+        verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
 
     Map<String, String> queryParams = splitQueryParams(uri);
     String clientState = queryParams.get(QUERY_PARAM_STATE);
@@ -553,12 +721,12 @@ class VerificationServiceTest {
     when(cachingDelegate.getCodeVerifier(state)).thenReturn(Optional.empty());
     when(cachingDelegate.getClientState(state)).thenReturn(Optional.empty());
 
-    URI uri = verificationService.completeCredentialVerification(CODE, state.toString(), null,
-        null);
+    URI uri =
+        verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
 
     Map<String, String> queryParams = splitQueryParams(uri);
-    assertThat("Unexpected client state presence.", queryParams.keySet(),
-        not(hasItem(QUERY_PARAM_STATE)));
+    assertThat(
+        "Unexpected client state presence.", queryParams.keySet(), not(hasItem(QUERY_PARAM_STATE)));
   }
 
   @Test
@@ -571,8 +739,8 @@ class VerificationServiceTest {
     request.addHeader(HttpHeaders.AUTHORIZATION, token);
 
     when(jwtService.getClaims(token)).thenReturn(claims);
-    when(cachingDelegate.getVerifiedIdentityIdentifier(tokenIdentifier)).thenReturn(
-        Optional.of(UUID.randomUUID()));
+    when(cachingDelegate.getVerifiedIdentityIdentifier(tokenIdentifier))
+        .thenReturn(Optional.of(UUID.randomUUID()));
 
     boolean hasVerifiedSession = verificationService.hasVerifiedSession(request);
     assertThat("Unexpected verified session state.", hasVerifiedSession, is(true));
@@ -588,8 +756,8 @@ class VerificationServiceTest {
     request.addHeader(HttpHeaders.AUTHORIZATION, token);
 
     when(jwtService.getClaims(token)).thenReturn(claims);
-    when(cachingDelegate.getVerifiedIdentityIdentifier(tokenIdentifier)).thenReturn(
-        Optional.empty());
+    when(cachingDelegate.getVerifiedIdentityIdentifier(tokenIdentifier))
+        .thenReturn(Optional.empty());
 
     boolean hasVerifiedSession = verificationService.hasVerifiedSession(request);
     assertThat("Unexpected verified session state.", hasVerifiedSession, is(false));
@@ -602,8 +770,7 @@ class VerificationServiceTest {
    * @return A map of parameter names to value.
    */
   private Map<String, String> splitQueryParams(URI uri) {
-    return Arrays.stream(
-            uri.getQuery().split("&"))
+    return Arrays.stream(uri.getQuery().split("&"))
         .map(param -> param.split("="))
         .collect(Collectors.toMap(keyValue -> keyValue[0], keyValue -> keyValue[1]));
   }
@@ -611,18 +778,16 @@ class VerificationServiceTest {
   /**
    * Set the gateway service default claims mocks.
    *
-   * @param claims       the default claims.
-   * @param nonce        the nonce.
+   * @param claims the default claims.
    * @param codeVerifier the code verifier.
    */
-  private void setDefaultClaimsMocks(DefaultClaims claims, UUID nonce, String codeVerifier) {
+  private void setDefaultClaimsMocks(DefaultClaims claims, String codeVerifier) {
     TokenResponse tokenResponse = new TokenResponse("id token", IDENTITY_SCOPE);
-    ResponseEntity<TokenResponse> tokenResponseEntity
-        = new ResponseEntity<>(tokenResponse, HttpStatus.OK);
+    ResponseEntity<TokenResponse> tokenResponseEntity =
+        new ResponseEntity<>(tokenResponse, HttpStatus.OK);
 
     when(gatewayService.getTokenResponse(TOKEN_ENDPOINT, REDIRECT_URI, CODE, codeVerifier))
         .thenReturn(tokenResponseEntity);
-    when(gatewayService.getTokenClaims(tokenResponseEntity))
-        .thenReturn(claims);
+    when(gatewayService.getTokenClaims(tokenResponseEntity)).thenReturn(claims);
   }
 }
