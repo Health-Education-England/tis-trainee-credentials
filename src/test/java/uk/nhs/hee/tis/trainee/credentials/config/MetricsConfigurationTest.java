@@ -27,6 +27,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.Meter.MeterProvider;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,24 +43,17 @@ class MetricsConfigurationTest {
   }
 
   @Test
-  void shouldConfigureIdentityTextAccuracy() {
+  void shouldConfigureIdentityAccuracy() {
     MeterRegistry registry = new SimpleMeterRegistry();
 
-    DistributionSummary distributionSummary = configuration.identityTextAccuracy(registry);
+    MeterProvider<DistributionSummary> provider = configuration.identityAccuracy(registry);
 
-    Meter.Id id = distributionSummary.getId();
-    assertThat("Unexpected meter name.", id.getName(), is("identity.accuracy.text"));
+    DistributionSummary identityAccuracy = provider.withTags();
+    Meter.Id id = identityAccuracy.getId();
+    assertThat("Unexpected meter name.", id.getName(), is("identity.accuracy"));
     assertThat("Unexpected base unit.", id.getBaseUnit(), is(PERCENT));
-  }
 
-  @Test
-  void shouldConfigureIdentityPhoneticAccuracy() {
-    MeterRegistry registry = new SimpleMeterRegistry();
-
-    DistributionSummary distributionSummary = configuration.identityPhoneticAccuracy(registry);
-
-    Meter.Id id = distributionSummary.getId();
-    assertThat("Unexpected meter name.", id.getName(), is("identity.accuracy.phonetic"));
-    assertThat("Unexpected base unit.", id.getBaseUnit(), is(PERCENT));
+    identityAccuracy.record(0.5);
+    assertThat("Unexpected meter scaling.", identityAccuracy.totalAmount(), is(50.0));
   }
 }

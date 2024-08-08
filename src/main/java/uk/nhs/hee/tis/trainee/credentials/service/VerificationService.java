@@ -256,11 +256,16 @@ public class VerificationService {
       LocalDate claimBirthDate = LocalDate.parse(claims.get(CLAIM_BIRTH_DATE, String.class));
       String identityId = claims.get(CLAIM_UNIQUE_IDENTIFIER, String.class);
 
-      boolean firstNameValid = verifyName(identityData.forenames(), claimFirstName);
-      boolean familyNameValid = verifyName(identityData.surname(), claimFamilyName);
+      NameVerificationResult firstNameResult = verifyName(identityData.forenames(), claimFirstName);
+      metricsService.publishForenamePhoneticAccuracy(firstNameResult.phoneticAccuracy());
+      metricsService.publishForenameTextAccuracy(firstNameResult.textAccuracy());
 
-      if (firstNameValid
-          && familyNameValid
+      NameVerificationResult familyNameResult = verifyName(identityData.surname(), claimFamilyName);
+      metricsService.publishSurnamePhoneticAccuracy(familyNameResult.phoneticAccuracy());
+      metricsService.publishSurnameTextAccuracy(familyNameResult.textAccuracy());
+
+      if (firstNameResult.valid()
+          && familyNameResult.valid()
           && identityData.dateOfBirth().equals(claimBirthDate)
           && identityId != null) {
         Optional<String> sessionIdentifier = cachingDelegate.getUnverifiedSessionIdentifier(nonce);
@@ -282,9 +287,9 @@ public class VerificationService {
    *
    * @param identityName The TIS sourced identity name data.
    * @param claimName The credential sourced identity name data.
-   * @return true if considered equal, else false.
+   * @return The verification result.
    */
-  private boolean verifyName(String identityName, String claimName) {
+  private NameVerificationResult verifyName(String identityName, String claimName) {
     LinkedHashSet<String> claimNames = new LinkedHashSet<>();
     claimNames.add(claimName);
     claimNames.addAll(List.of(claimName.split("[- ]")));
@@ -292,22 +297,32 @@ public class VerificationService {
     NameVerificationResult result =
         claimNames.stream()
             .map(
-                name ->
-                    new NameVerificationResult(
-                        name,
-                        calculatePhoneticAccuracy(identityName, name),
-                        calculateTextAccuracy(identityName, name)))
+                name -> {
+                  double phoneticAccuracy = calculatePhoneticAccuracy(identityName, name);
+                  double textAccuracy = calculateTextAccuracy(identityName, name);
+
+                  // Require 50% text accuracy if the name is a phonetic match, otherwise require
+                  // 80%.
+                  double requiredTextAccuracy = phoneticAccuracy == 1.0 ? 0.5 : 0.8;
+                  boolean valid = textAccuracy >= requiredTextAccuracy;
+
+                  return new NameVerificationResult(name, valid, phoneticAccuracy, textAccuracy);
+                })
             .max(
                 Comparator.comparingDouble(NameVerificationResult::phoneticAccuracy)
                     .thenComparingDouble(NameVerificationResult::textAccuracy))
             .orElseThrow();
 
-    metricsService.publishIdentityPhoneticAccuracy(result.phoneticAccuracy);
-    metricsService.publishIdentityTextAccuracy(result.textAccuracy);
+    if (!result.valid()) {
+      log.warn(
+          "Name validation failed for {} and {} (phonetic: {}, text: {}) .",
+          identityName,
+          claimName,
+          result.phoneticAccuracy(),
+          result.textAccuracy());
+    }
 
-    // Require 50% text accuracy if the name is a phonetic match, otherwise require 80%.
-    double requiredTextAccuracy = result.phoneticAccuracy() == 1.0 ? 0.5 : 0.8;
-    return result.textAccuracy() >= requiredTextAccuracy;
+    return result;
   }
 
   /**
@@ -363,5 +378,5 @@ public class VerificationService {
    * @param textAccuracy The text accuracy of the name.
    */
   private record NameVerificationResult(
-      String name, double phoneticAccuracy, double textAccuracy) {}
+      String name, boolean valid, double phoneticAccuracy, double textAccuracy) {}
 }

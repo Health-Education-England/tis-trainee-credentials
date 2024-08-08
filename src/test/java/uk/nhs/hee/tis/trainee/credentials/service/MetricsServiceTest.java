@@ -21,12 +21,20 @@
 
 package uk.nhs.hee.tis.trainee.credentials.service;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.Meter.MeterProvider;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -34,47 +42,120 @@ import org.junit.jupiter.params.provider.ValueSource;
 class MetricsServiceTest {
 
   private MetricsService service;
-  private DistributionSummary textAccuracy;
-  private DistributionSummary phoneticAccuracy;
+  MeterProvider<DistributionSummary> identityAccuracyProvider;
+  private DistributionSummary identityAccuracy;
 
   @BeforeEach
   void setUp() {
-    textAccuracy = mock(DistributionSummary.class);
-    phoneticAccuracy = mock(DistributionSummary.class);
-    service = new MetricsService(textAccuracy, phoneticAccuracy);
+    identityAccuracyProvider = mock(MeterProvider.class);
+
+    when(identityAccuracyProvider.withTags(any(String[].class)))
+        .thenAnswer(
+            invocation -> {
+              String[] tags =
+                  Arrays.stream(invocation.getArguments())
+                      .map(Object::toString)
+                      .toArray(String[]::new);
+              identityAccuracy =
+                  spy(
+                      DistributionSummary.builder("test.meter")
+                          .tags(tags)
+                          .register(new SimpleMeterRegistry()));
+              return identityAccuracy;
+            });
+
+    service = new MetricsService(identityAccuracyProvider);
   }
 
   @ParameterizedTest
   @ValueSource(doubles = {-0.1, 1.1})
-  void shouldNotPublishIdentityTextAccuracyWhenInvalid(double accuracy) {
+  void shouldNotPublishForenameTextAccuracyWhenInvalid(double accuracy) {
     assertThrows(
-        IllegalArgumentException.class, () -> service.publishIdentityTextAccuracy(accuracy));
+        IllegalArgumentException.class, () -> service.publishForenameTextAccuracy(accuracy));
 
-    verifyNoInteractions(textAccuracy);
+    verifyNoInteractions(identityAccuracyProvider);
   }
 
   @ParameterizedTest
   @ValueSource(doubles = {0.0, 0.5, 1.0})
-  void shouldPublishIdentityTextAccuracyWhenValid(double accuracy) {
-    service.publishIdentityTextAccuracy(accuracy);
+  void shouldPublishForenameTextAccuracyWhenValid(double accuracy) {
+    service.publishForenameTextAccuracy(accuracy);
 
-    verify(textAccuracy).record(accuracy);
+    verify(identityAccuracy).record(accuracy);
+
+    String analysisType = identityAccuracy.getId().getTag("AnalysisType");
+    assertThat("Unexpected AnalysisType.", analysisType, is("text"));
+
+    String nameType = identityAccuracy.getId().getTag("NameType");
+    assertThat("Unexpected NameType.", nameType, is("forename"));
   }
 
   @ParameterizedTest
   @ValueSource(doubles = {-0.1, 1.1})
-  void shouldNotPublishIdentityPhoneticAccuracyWhenInvalid(double accuracy) {
+  void shouldNotPublishForenamePhoneticAccuracyWhenInvalid(double accuracy) {
     assertThrows(
-        IllegalArgumentException.class, () -> service.publishIdentityPhoneticAccuracy(accuracy));
+        IllegalArgumentException.class, () -> service.publishForenamePhoneticAccuracy(accuracy));
 
-    verifyNoInteractions(textAccuracy);
+    verifyNoInteractions(identityAccuracyProvider);
   }
 
   @ParameterizedTest
   @ValueSource(doubles = {0.0, 0.5, 1.0})
-  void shouldPublishIdentityPhoneticAccuracyWhenValid(double accuracy) {
-    service.publishIdentityPhoneticAccuracy(accuracy);
+  void shouldPublishForenamePhoneticAccuracyWhenValid(double accuracy) {
+    service.publishForenamePhoneticAccuracy(accuracy);
 
-    verify(phoneticAccuracy).record(accuracy);
+    verify(identityAccuracy).record(accuracy);
+
+    String analysisType = identityAccuracy.getId().getTag("AnalysisType");
+    assertThat("Unexpected AnalysisType.", analysisType, is("phonetic"));
+
+    String nameType = identityAccuracy.getId().getTag("NameType");
+    assertThat("Unexpected NameType.", nameType, is("forename"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(doubles = {-0.1, 1.1})
+  void shouldNotPublishSurnameTextAccuracyWhenInvalid(double accuracy) {
+    assertThrows(
+        IllegalArgumentException.class, () -> service.publishSurnameTextAccuracy(accuracy));
+
+    verifyNoInteractions(identityAccuracyProvider);
+  }
+
+  @ParameterizedTest
+  @ValueSource(doubles = {0.0, 0.5, 1.0})
+  void shouldPublishSurnameTextAccuracyWhenValid(double accuracy) {
+    service.publishSurnameTextAccuracy(accuracy);
+
+    verify(identityAccuracy).record(accuracy);
+
+    String analysisType = identityAccuracy.getId().getTag("AnalysisType");
+    assertThat("Unexpected AnalysisType.", analysisType, is("text"));
+
+    String nameType = identityAccuracy.getId().getTag("NameType");
+    assertThat("Unexpected NameType.", nameType, is("surname"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(doubles = {-0.1, 1.1})
+  void shouldNotPublishSurnamePhoneticAccuracyWhenInvalid(double accuracy) {
+    assertThrows(
+        IllegalArgumentException.class, () -> service.publishSurnamePhoneticAccuracy(accuracy));
+
+    verifyNoInteractions(identityAccuracyProvider);
+  }
+
+  @ParameterizedTest
+  @ValueSource(doubles = {0.0, 0.5, 1.0})
+  void shouldPublishSurnamePhoneticAccuracyWhenValid(double accuracy) {
+    service.publishSurnamePhoneticAccuracy(accuracy);
+
+    verify(identityAccuracy).record(accuracy);
+
+    String analysisType = identityAccuracy.getId().getTag("AnalysisType");
+    assertThat("Unexpected AnalysisType.", analysisType, is("phonetic"));
+
+    String nameType = identityAccuracy.getId().getTag("NameType");
+    assertThat("Unexpected NameType.", nameType, is("surname"));
   }
 }

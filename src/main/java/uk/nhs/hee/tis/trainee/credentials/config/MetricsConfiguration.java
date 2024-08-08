@@ -22,6 +22,7 @@
 package uk.nhs.hee.tis.trainee.credentials.config;
 
 import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.Meter.MeterProvider;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.BaseUnits;
 import org.springframework.context.annotation.Bean;
@@ -32,34 +33,18 @@ import org.springframework.context.annotation.Configuration;
 public class MetricsConfiguration {
 
   /**
-   * A distribution summary for the accuracy of text based identity verification.
+   * A meter provider for the identity accuracy metrics.
    *
-   * @param registry The meter registry to use.
-   * @return The build distribution summary.
+   * @param registry The registry to use.
+   * @return The identity accuracy meter provider.
    */
   @Bean
-  DistributionSummary identityTextAccuracy(MeterRegistry registry) {
-    return DistributionSummary.builder("identity.accuracy.text")
-        .description("How closely matched the text of a given identity was to TIS data.")
+  MeterProvider<DistributionSummary> identityAccuracy(MeterRegistry registry) {
+    return DistributionSummary.builder("identity.accuracy")
+        .description("How closely matched a given identity's name was to TIS data.")
         .baseUnit(BaseUnits.PERCENT)
         .scale(100)
         .maximumExpectedValue(100.0)
-        .register(registry);
-  }
-
-  /**
-   * A distribution summary for the accuracy of phonetic based identity verification.
-   *
-   * @param registry The meter registry to use.
-   * @return The build distribution summary.
-   */
-  @Bean
-  DistributionSummary identityPhoneticAccuracy(MeterRegistry registry) {
-    return DistributionSummary.builder("identity.accuracy.phonetic")
-        .description("How closely matched the phonetics of a given identity was to TIS data.")
-        .baseUnit(BaseUnits.PERCENT)
-        .scale(100)
-        .maximumExpectedValue(100.0)
-        .register(registry);
+        .withRegistry(registry);
   }
 }

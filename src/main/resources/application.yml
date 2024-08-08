@@ -60,7 +60,7 @@ management:
       all: false
       identity.accuracy: true
     tags:
-      environment: ${application.environment}
+      Environment: ${application.environment}
 
 sentry:
   dsn: ${SENTRY_DSN:}

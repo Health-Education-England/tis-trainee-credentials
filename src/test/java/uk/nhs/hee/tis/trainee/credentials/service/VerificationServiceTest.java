@@ -53,8 +53,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
-import org.mockito.Mockito;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -597,11 +595,10 @@ class VerificationServiceTest {
     verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
 
     ArgumentCaptor<Double> accuracyCaptor = ArgumentCaptor.captor();
-    InOrder metricsInOrder = Mockito.inOrder(metricsService);
-    metricsInOrder.verify(metricsService).publishIdentityPhoneticAccuracy(accuracyCaptor.capture());
-    metricsInOrder.verify(metricsService).publishIdentityTextAccuracy(accuracyCaptor.capture());
-    metricsInOrder.verify(metricsService).publishIdentityPhoneticAccuracy(1.0);
-    metricsInOrder.verify(metricsService).publishIdentityTextAccuracy(1.0);
+    verify(metricsService).publishForenamePhoneticAccuracy(accuracyCaptor.capture());
+    verify(metricsService).publishForenameTextAccuracy(accuracyCaptor.capture());
+    verify(metricsService).publishSurnamePhoneticAccuracy(1.0);
+    verify(metricsService).publishSurnameTextAccuracy(1.0);
 
     List<Double> accuracies = accuracyCaptor.getAllValues();
     DecimalFormat decimalFormat = new DecimalFormat("#.##");
@@ -656,11 +653,10 @@ class VerificationServiceTest {
     verificationService.completeCredentialVerification(CODE, state.toString(), null, null);
 
     ArgumentCaptor<Double> accuracyCaptor = ArgumentCaptor.captor();
-    InOrder metricsInOrder = Mockito.inOrder(metricsService);
-    metricsInOrder.verify(metricsService).publishIdentityPhoneticAccuracy(1.0);
-    metricsInOrder.verify(metricsService).publishIdentityTextAccuracy(1.0);
-    metricsInOrder.verify(metricsService).publishIdentityPhoneticAccuracy(accuracyCaptor.capture());
-    metricsInOrder.verify(metricsService).publishIdentityTextAccuracy(accuracyCaptor.capture());
+    verify(metricsService).publishForenamePhoneticAccuracy(1.0);
+    verify(metricsService).publishForenameTextAccuracy(1.0);
+    verify(metricsService).publishSurnamePhoneticAccuracy(accuracyCaptor.capture());
+    verify(metricsService).publishSurnameTextAccuracy(accuracyCaptor.capture());
 
     List<Double> accuracies = accuracyCaptor.getAllValues();
     DecimalFormat decimalFormat = new DecimalFormat("#.##");

@@ -22,47 +22,95 @@
 package uk.nhs.hee.tis.trainee.credentials.service;
 
 import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.Meter.MeterProvider;
 import org.springframework.stereotype.Service;
 
 /** A service for publishing custom application metrics. */
 @Service
 public class MetricsService {
 
+  private static final String TAG_ANALYSIS_TYPE = "AnalysisType";
+  private static final String ANALYSIS_TYPE_PHONETIC = "phonetic";
+  private static final String ANALYSIS_TYPE_TEXT = "text";
+
+  private static final String TAG_NAME_TYPE = "NameType";
+  private static final String NAME_TYPE_FORENAME = "forename";
+  private static final String NAME_TYPE_SURNAME = "surname";
+
   private static final String ACCURACY_ERROR_TEMPLATE =
       "%s accuracy out of bounds, must be between 0.0 and 1.0.";
 
-  private final DistributionSummary identityTextAccuracy;
-  private final DistributionSummary identityPhoneticAccuracy;
+  private final MeterProvider<DistributionSummary> identityAccuracy;
 
-  public MetricsService(
-      DistributionSummary identityTextAccuracy, DistributionSummary identityPhoneticAccuracy) {
-    this.identityTextAccuracy = identityTextAccuracy;
-    this.identityPhoneticAccuracy = identityPhoneticAccuracy;
+  public MetricsService(MeterProvider<DistributionSummary> identityAccuracy) {
+    this.identityAccuracy = identityAccuracy;
   }
 
   /**
-   * Publish an accuracy value for the text identity accuracy metric.
+   * Publish an accuracy value for the phonetic-based forename accuracy metric.
    *
    * @param accuracy The percentage accuracy between 0.0 and 1.0.
    */
-  public void publishIdentityTextAccuracy(double accuracy) {
+  public void publishForenamePhoneticAccuracy(double accuracy) {
     if (accuracy < 0.0 || accuracy > 1.0) {
-      throw new IllegalArgumentException(ACCURACY_ERROR_TEMPLATE.formatted("text"));
+      throw new IllegalArgumentException(ACCURACY_ERROR_TEMPLATE.formatted(ANALYSIS_TYPE_PHONETIC));
     }
 
-    identityTextAccuracy.record(accuracy);
+    identityAccuracy
+        .withTags(
+            TAG_ANALYSIS_TYPE, ANALYSIS_TYPE_PHONETIC,
+            TAG_NAME_TYPE, NAME_TYPE_FORENAME)
+        .record(accuracy);
   }
 
   /**
-   * Publish an accuracy value for the phonetic identity accuracy metric.
+   * Publish an accuracy value for the text-based forename accuracy metric.
    *
    * @param accuracy The percentage accuracy between 0.0 and 1.0.
    */
-  public void publishIdentityPhoneticAccuracy(double accuracy) {
+  public void publishForenameTextAccuracy(double accuracy) {
     if (accuracy < 0.0 || accuracy > 1.0) {
-      throw new IllegalArgumentException(ACCURACY_ERROR_TEMPLATE.formatted("Phonetic"));
+      throw new IllegalArgumentException(ACCURACY_ERROR_TEMPLATE.formatted(ANALYSIS_TYPE_TEXT));
     }
 
-    identityPhoneticAccuracy.record(accuracy);
+    identityAccuracy
+        .withTags(
+            TAG_ANALYSIS_TYPE, ANALYSIS_TYPE_TEXT,
+            TAG_NAME_TYPE, NAME_TYPE_FORENAME)
+        .record(accuracy);
+  }
+
+  /**
+   * Publish an accuracy value for the phonetic-based surname accuracy metric.
+   *
+   * @param accuracy The percentage accuracy between 0.0 and 1.0.
+   */
+  public void publishSurnamePhoneticAccuracy(double accuracy) {
+    if (accuracy < 0.0 || accuracy > 1.0) {
+      throw new IllegalArgumentException(ACCURACY_ERROR_TEMPLATE.formatted(ANALYSIS_TYPE_PHONETIC));
+    }
+
+    identityAccuracy
+        .withTags(
+            TAG_ANALYSIS_TYPE, ANALYSIS_TYPE_PHONETIC,
+            TAG_NAME_TYPE, NAME_TYPE_SURNAME)
+        .record(accuracy);
+  }
+
+  /**
+   * Publish an accuracy value for the text-based surname accuracy metric.
+   *
+   * @param accuracy The percentage accuracy between 0.0 and 1.0.
+   */
+  public void publishSurnameTextAccuracy(double accuracy) {
+    if (accuracy < 0.0 || accuracy > 1.0) {
+      throw new IllegalArgumentException(ACCURACY_ERROR_TEMPLATE.formatted(ANALYSIS_TYPE_TEXT));
+    }
+
+    identityAccuracy
+        .withTags(
+            TAG_ANALYSIS_TYPE, ANALYSIS_TYPE_TEXT,
+            TAG_NAME_TYPE, NAME_TYPE_SURNAME)
+        .record(accuracy);
   }
 }
