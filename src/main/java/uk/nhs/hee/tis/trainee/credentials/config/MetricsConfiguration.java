@@ -33,15 +33,15 @@ import org.springframework.context.annotation.Configuration;
 public class MetricsConfiguration {
 
   /**
-   * A meter provider for the identity accuracy metrics.
+   * A meter provider for the identity inaccuracy metrics.
    *
    * @param registry The registry to use.
-   * @return The identity accuracy meter provider.
+   * @return The identity inaccuracy meter provider.
    */
   @Bean
-  MeterProvider<DistributionSummary> identityAccuracy(MeterRegistry registry) {
-    return DistributionSummary.builder("identity.accuracy")
-        .description("How closely matched a given identity's name was to TIS data.")
+  MeterProvider<DistributionSummary> identityInaccuracy(MeterRegistry registry) {
+    return DistributionSummary.builder("identity.inaccuracy")
+        .description("How different a given identity's name was to TIS data.")
         .baseUnit(BaseUnits.PERCENT)
         .scale(100)
         .maximumExpectedValue(100.0)

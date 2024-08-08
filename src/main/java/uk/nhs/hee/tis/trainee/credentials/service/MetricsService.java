@@ -29,21 +29,15 @@ import org.springframework.stereotype.Service;
 @Service
 public class MetricsService {
 
-  private static final String TAG_ANALYSIS_TYPE = "AnalysisType";
   private static final String ANALYSIS_TYPE_PHONETIC = "phonetic";
   private static final String ANALYSIS_TYPE_TEXT = "text";
-
-  private static final String TAG_NAME_TYPE = "NameType";
   private static final String NAME_TYPE_FORENAME = "forename";
   private static final String NAME_TYPE_SURNAME = "surname";
 
-  private static final String ACCURACY_ERROR_TEMPLATE =
-      "%s accuracy out of bounds, must be between 0.0 and 1.0.";
+  private final MeterProvider<DistributionSummary> identityInaccuracy;
 
-  private final MeterProvider<DistributionSummary> identityAccuracy;
-
-  public MetricsService(MeterProvider<DistributionSummary> identityAccuracy) {
-    this.identityAccuracy = identityAccuracy;
+  public MetricsService(MeterProvider<DistributionSummary> identityInaccuracy) {
+    this.identityInaccuracy = identityInaccuracy;
   }
 
   /**
@@ -52,15 +46,7 @@ public class MetricsService {
    * @param accuracy The percentage accuracy between 0.0 and 1.0.
    */
   public void publishForenamePhoneticAccuracy(double accuracy) {
-    if (accuracy < 0.0 || accuracy > 1.0) {
-      throw new IllegalArgumentException(ACCURACY_ERROR_TEMPLATE.formatted(ANALYSIS_TYPE_PHONETIC));
-    }
-
-    identityAccuracy
-        .withTags(
-            TAG_ANALYSIS_TYPE, ANALYSIS_TYPE_PHONETIC,
-            TAG_NAME_TYPE, NAME_TYPE_FORENAME)
-        .record(accuracy);
+    publishNameAccuracy(accuracy, ANALYSIS_TYPE_PHONETIC, NAME_TYPE_FORENAME);
   }
 
   /**
@@ -69,15 +55,7 @@ public class MetricsService {
    * @param accuracy The percentage accuracy between 0.0 and 1.0.
    */
   public void publishForenameTextAccuracy(double accuracy) {
-    if (accuracy < 0.0 || accuracy > 1.0) {
-      throw new IllegalArgumentException(ACCURACY_ERROR_TEMPLATE.formatted(ANALYSIS_TYPE_TEXT));
-    }
-
-    identityAccuracy
-        .withTags(
-            TAG_ANALYSIS_TYPE, ANALYSIS_TYPE_TEXT,
-            TAG_NAME_TYPE, NAME_TYPE_FORENAME)
-        .record(accuracy);
+    publishNameAccuracy(accuracy, ANALYSIS_TYPE_TEXT, NAME_TYPE_FORENAME);
   }
 
   /**
@@ -86,15 +64,7 @@ public class MetricsService {
    * @param accuracy The percentage accuracy between 0.0 and 1.0.
    */
   public void publishSurnamePhoneticAccuracy(double accuracy) {
-    if (accuracy < 0.0 || accuracy > 1.0) {
-      throw new IllegalArgumentException(ACCURACY_ERROR_TEMPLATE.formatted(ANALYSIS_TYPE_PHONETIC));
-    }
-
-    identityAccuracy
-        .withTags(
-            TAG_ANALYSIS_TYPE, ANALYSIS_TYPE_PHONETIC,
-            TAG_NAME_TYPE, NAME_TYPE_SURNAME)
-        .record(accuracy);
+    publishNameAccuracy(accuracy, ANALYSIS_TYPE_PHONETIC, NAME_TYPE_SURNAME);
   }
 
   /**
@@ -103,14 +73,29 @@ public class MetricsService {
    * @param accuracy The percentage accuracy between 0.0 and 1.0.
    */
   public void publishSurnameTextAccuracy(double accuracy) {
+    publishNameAccuracy(accuracy, ANALYSIS_TYPE_TEXT, NAME_TYPE_SURNAME);
+  }
+
+  /**
+   * Publish an accuracy value for the given analysis and name types.
+   *
+   * @param accuracy The percentage accuracy between 0.0 and 1.0.
+   * @param analysisType The analysis type.
+   * @param nameType The name type.
+   */
+  private void publishNameAccuracy(double accuracy, String analysisType, String nameType) {
     if (accuracy < 0.0 || accuracy > 1.0) {
-      throw new IllegalArgumentException(ACCURACY_ERROR_TEMPLATE.formatted(ANALYSIS_TYPE_TEXT));
+      String message =
+          String.format("%s accuracy out of bounds, must be between 0.0 and 1.0.", analysisType);
+      throw new IllegalArgumentException(message);
     }
 
-    identityAccuracy
+    // The meter does not support minimum values, but does support maximum. The accuracy is inverted
+    // so that it can be reported as "inaccuracy" with the maximum representing the lowest accuracy.
+    identityInaccuracy
         .withTags(
-            TAG_ANALYSIS_TYPE, ANALYSIS_TYPE_TEXT,
-            TAG_NAME_TYPE, NAME_TYPE_SURNAME)
-        .record(accuracy);
+            "AnalysisType", analysisType,
+            "NameType", nameType)
+        .record(1 - accuracy);
   }
 }

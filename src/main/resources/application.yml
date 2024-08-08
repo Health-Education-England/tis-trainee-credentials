@@ -58,7 +58,7 @@ management:
   metrics:
     enable:
       all: false
-      identity.accuracy: true
+      identity.inaccuracy: true
     tags:
       Environment: ${application.environment}
 

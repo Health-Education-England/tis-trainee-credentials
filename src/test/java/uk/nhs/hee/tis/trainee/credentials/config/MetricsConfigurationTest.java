@@ -43,17 +43,17 @@ class MetricsConfigurationTest {
   }
 
   @Test
-  void shouldConfigureIdentityAccuracy() {
+  void shouldConfigureIdentityInaccuracy() {
     MeterRegistry registry = new SimpleMeterRegistry();
 
-    MeterProvider<DistributionSummary> provider = configuration.identityAccuracy(registry);
+    MeterProvider<DistributionSummary> provider = configuration.identityInaccuracy(registry);
 
-    DistributionSummary identityAccuracy = provider.withTags();
-    Meter.Id id = identityAccuracy.getId();
-    assertThat("Unexpected meter name.", id.getName(), is("identity.accuracy"));
+    DistributionSummary identityInaccuracy = provider.withTags();
+    Meter.Id id = identityInaccuracy.getId();
+    assertThat("Unexpected meter name.", id.getName(), is("identity.inaccuracy"));
     assertThat("Unexpected base unit.", id.getBaseUnit(), is(PERCENT));
 
-    identityAccuracy.record(0.5);
-    assertThat("Unexpected meter scaling.", identityAccuracy.totalAmount(), is(50.0));
+    identityInaccuracy.record(0.5);
+    assertThat("Unexpected meter scaling.", identityInaccuracy.totalAmount(), is(50.0));
   }
 }

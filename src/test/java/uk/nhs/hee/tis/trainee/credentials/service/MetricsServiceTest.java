@@ -37,6 +37,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class MetricsServiceTest {
@@ -77,11 +78,20 @@ class MetricsServiceTest {
   }
 
   @ParameterizedTest
-  @ValueSource(doubles = {0.0, 0.5, 1.0})
-  void shouldPublishForenameTextAccuracyWhenValid(double accuracy) {
+  @CsvSource(
+      delimiter = '|',
+      textBlock =
+          """
+          0.0  | 1.0
+          0.25 | 0.75
+          0.5  | 0.5
+          0.75 | 0.25
+          1.0  | 0.0
+          """)
+  void shouldPublishForenameTextAccuracyWhenValid(double accuracy, double inaccuracy) {
     service.publishForenameTextAccuracy(accuracy);
 
-    verify(identityAccuracy).record(accuracy);
+    verify(identityAccuracy).record(inaccuracy);
 
     String analysisType = identityAccuracy.getId().getTag("AnalysisType");
     assertThat("Unexpected AnalysisType.", analysisType, is("text"));
@@ -100,11 +110,20 @@ class MetricsServiceTest {
   }
 
   @ParameterizedTest
-  @ValueSource(doubles = {0.0, 0.5, 1.0})
-  void shouldPublishForenamePhoneticAccuracyWhenValid(double accuracy) {
+  @CsvSource(
+      delimiter = '|',
+      textBlock =
+          """
+          0.0  | 1.0
+          0.25 | 0.75
+          0.5  | 0.5
+          0.75 | 0.25
+          1.0  | 0.0
+         """)
+  void shouldPublishForenamePhoneticAccuracyWhenValid(double accuracy, double inaccuracy) {
     service.publishForenamePhoneticAccuracy(accuracy);
 
-    verify(identityAccuracy).record(accuracy);
+    verify(identityAccuracy).record(inaccuracy);
 
     String analysisType = identityAccuracy.getId().getTag("AnalysisType");
     assertThat("Unexpected AnalysisType.", analysisType, is("phonetic"));
@@ -123,11 +142,20 @@ class MetricsServiceTest {
   }
 
   @ParameterizedTest
-  @ValueSource(doubles = {0.0, 0.5, 1.0})
-  void shouldPublishSurnameTextAccuracyWhenValid(double accuracy) {
+  @CsvSource(
+      delimiter = '|',
+      textBlock =
+          """
+          0.0  | 1.0
+          0.25 | 0.75
+          0.5  | 0.5
+          0.75 | 0.25
+          1.0  | 0.0
+          """)
+  void shouldPublishSurnameTextAccuracyWhenValid(double accuracy, double inaccuracy) {
     service.publishSurnameTextAccuracy(accuracy);
 
-    verify(identityAccuracy).record(accuracy);
+    verify(identityAccuracy).record(inaccuracy);
 
     String analysisType = identityAccuracy.getId().getTag("AnalysisType");
     assertThat("Unexpected AnalysisType.", analysisType, is("text"));
@@ -146,11 +174,20 @@ class MetricsServiceTest {
   }
 
   @ParameterizedTest
-  @ValueSource(doubles = {0.0, 0.5, 1.0})
-  void shouldPublishSurnamePhoneticAccuracyWhenValid(double accuracy) {
+  @CsvSource(
+      delimiter = '|',
+      textBlock =
+          """
+          0.0  | 1.0
+          0.25 | 0.75
+          0.5  | 0.5
+          0.75 | 0.25
+          1.0  | 0.0
+          """)
+  void shouldPublishSurnamePhoneticAccuracyWhenValid(double accuracy, double inaccuracy) {
     service.publishSurnamePhoneticAccuracy(accuracy);
 
-    verify(identityAccuracy).record(accuracy);
+    verify(identityAccuracy).record(inaccuracy);
 
     String analysisType = identityAccuracy.getId().getTag("AnalysisType");
     assertThat("Unexpected AnalysisType.", analysisType, is("phonetic"));
