@@ -29,10 +29,15 @@ import java.net.URI;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.util.Base64;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.codec.language.DoubleMetaphone;
+import org.apache.commons.text.similarity.LevenshteinDistance;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -41,9 +46,7 @@ import uk.nhs.hee.tis.trainee.credentials.config.GatewayProperties.VerificationP
 import uk.nhs.hee.tis.trainee.credentials.dto.IdentityDataDto;
 import uk.nhs.hee.tis.trainee.credentials.service.GatewayService.TokenResponse;
 
-/**
- * A service providing credential verification functionality.
- */
+/** A service providing credential verification functionality. */
 @Slf4j
 @Service
 @XRayEnabled
@@ -69,34 +72,43 @@ public class VerificationService {
   private final JwtService jwtService;
   private final CachingDelegate cachingDelegate;
   private final VerificationProperties properties;
+  private final MetricsService metricsService;
+
+  private final LevenshteinDistance levenshteinDistance = LevenshteinDistance.getDefaultInstance();
+  private final DoubleMetaphone metaphone = new DoubleMetaphone();
 
   /**
    * Create a service providing credential verification functionality.
    *
-   * @param gatewayService  The service to handle all credential gateway interactions.
-   * @param jwtService      The JWT service to use.
+   * @param gatewayService The service to handle all credential gateway interactions.
+   * @param jwtService The JWT service to use.
    * @param cachingDelegate The caching delegate for caching data between requests.
-   * @param properties      The application's gateway verification configuration.
+   * @param properties The application's gateway verification configuration.
    */
-  VerificationService(GatewayService gatewayService, JwtService jwtService,
-      CachingDelegate cachingDelegate, VerificationProperties properties) {
+  VerificationService(
+      GatewayService gatewayService,
+      JwtService jwtService,
+      CachingDelegate cachingDelegate,
+      VerificationProperties properties,
+      MetricsService metricsService) {
     this.gatewayService = gatewayService;
     this.jwtService = jwtService;
     this.cachingDelegate = cachingDelegate;
     this.properties = properties;
+    this.metricsService = metricsService;
   }
 
   /**
    * Start the identity credential verification process, the result will direct the user to provide
    * an identity credential using the credential gateway.
    *
-   * @param authToken   The request's authorization token.
-   * @param dto         The user's identity data.
+   * @param authToken The request's authorization token.
+   * @param dto The user's identity data.
    * @param clientState The state sent by client when making the request to start verification.
    * @return A URI to a credential gateway prompt for an identity credential.
    */
-  public URI startIdentityVerification(String authToken, IdentityDataDto dto,
-      @Nullable String clientState) {
+  public URI startIdentityVerification(
+      String authToken, IdentityDataDto dto, @Nullable String clientState) {
     // Cache the provided identity data against the nonce.
     UUID nonce = UUID.randomUUID();
     cachingDelegate.cacheIdentityData(nonce, dto);
@@ -152,14 +164,14 @@ public class VerificationService {
   /**
    * Complete the credential verification process.
    *
-   * @param code             The code provided by the credential gateway.
-   * @param state            The state set in the initial gateway request.
-   * @param error            The error code from the verification callback.
+   * @param code The code provided by the credential gateway.
+   * @param state The state set in the initial gateway request.
+   * @param error The error code from the verification callback.
    * @param errorDescription The error description from the verification callback.
    * @return The built redirect URI for completed verification.
    */
-  public URI completeCredentialVerification(String code, String state, @Nullable String error,
-      @Nullable String errorDescription) {
+  public URI completeCredentialVerification(
+      String code, String state, @Nullable String error, @Nullable String errorDescription) {
     // If successfully verified then continue, else return callback error.
     if (error == null) {
       return completeCredentialVerification(code, state);
@@ -181,7 +193,7 @@ public class VerificationService {
   /**
    * Complete the credential verification process.
    *
-   * @param code  The code provided by the credential gateway.
+   * @param code The code provided by the credential gateway.
    * @param state The state set in the initial gateway request.
    * @return The built redirect URI for completed verification.
    */
@@ -195,9 +207,9 @@ public class VerificationService {
     } else {
       URI tokenEndpoint = URI.create(properties.tokenEndpoint());
       URI redirectEndpoint = URI.create(properties.redirectUri());
-      ResponseEntity<TokenResponse> tokenResponseEntity
-          = gatewayService.getTokenResponse(tokenEndpoint, redirectEndpoint, code,
-          codeVerifier.get());
+      ResponseEntity<TokenResponse> tokenResponseEntity =
+          gatewayService.getTokenResponse(
+              tokenEndpoint, redirectEndpoint, code, codeVerifier.get());
       Claims claims = gatewayService.getTokenClaims(tokenResponseEntity);
       String scope = gatewayService.getTokenScope(tokenResponseEntity);
       String credentialType = scope.replace(CREDENTIAL_PREFIX, "");
@@ -216,8 +228,9 @@ public class VerificationService {
     if (failureCode == null) {
       uriBuilder = UriComponentsBuilder.fromUriString("/credential-verified");
     } else {
-      uriBuilder = UriComponentsBuilder.fromUriString("/invalid-credential")
-          .queryParam(PARAM_REASON, failureCode);
+      uriBuilder =
+          UriComponentsBuilder.fromUriString("/invalid-credential")
+              .queryParam(PARAM_REASON, failureCode);
     }
 
     Optional<String> clientState = cachingDelegate.getClientState(stateUuid);
@@ -243,21 +256,103 @@ public class VerificationService {
       LocalDate claimBirthDate = LocalDate.parse(claims.get(CLAIM_BIRTH_DATE, String.class));
       String identityId = claims.get(CLAIM_UNIQUE_IDENTIFIER, String.class);
 
-      if (identityData.forenames().equalsIgnoreCase(claimFirstName) && identityData.surname()
-          .equalsIgnoreCase(claimFamilyName) && identityData.dateOfBirth().equals(claimBirthDate)
+      NameVerificationResult firstNameResult = verifyName(identityData.forenames(), claimFirstName);
+      metricsService.publishForenamePhoneticAccuracy(firstNameResult.phoneticAccuracy());
+      metricsService.publishForenameTextAccuracy(firstNameResult.textAccuracy());
+
+      NameVerificationResult familyNameResult = verifyName(identityData.surname(), claimFamilyName);
+      metricsService.publishSurnamePhoneticAccuracy(familyNameResult.phoneticAccuracy());
+      metricsService.publishSurnameTextAccuracy(familyNameResult.textAccuracy());
+
+      if (firstNameResult.valid()
+          && familyNameResult.valid()
+          && identityData.dateOfBirth().equals(claimBirthDate)
           && identityId != null) {
         Optional<String> sessionIdentifier = cachingDelegate.getUnverifiedSessionIdentifier(nonce);
 
         // If the unverified session is cached, move it to the verified session cache.
         if (sessionIdentifier.isPresent()) {
-          cachingDelegate.cacheVerifiedIdentityIdentifier(sessionIdentifier.get(),
-              UUID.fromString(identityId));
+          cachingDelegate.cacheVerifiedIdentityIdentifier(
+              sessionIdentifier.get(), UUID.fromString(identityId));
           return true;
         }
       }
     }
 
     return false;
+  }
+
+  /**
+   * Verify the givens names are similar enough to be considered equal.
+   *
+   * @param identityName The TIS sourced identity name data.
+   * @param claimName The credential sourced identity name data.
+   * @return The verification result.
+   */
+  private NameVerificationResult verifyName(String identityName, String claimName) {
+    LinkedHashSet<String> claimNames = new LinkedHashSet<>();
+    claimNames.add(claimName);
+    claimNames.addAll(List.of(claimName.split("[- ]")));
+
+    NameVerificationResult result =
+        claimNames.stream()
+            .map(
+                name -> {
+                  double phoneticAccuracy = calculatePhoneticAccuracy(identityName, name);
+                  double textAccuracy = calculateTextAccuracy(identityName, name);
+
+                  // Require 50% text accuracy if the name is a phonetic match, otherwise require
+                  // 80%.
+                  double requiredTextAccuracy = phoneticAccuracy == 1.0 ? 0.5 : 0.8;
+                  boolean valid = textAccuracy >= requiredTextAccuracy;
+
+                  return new NameVerificationResult(name, valid, phoneticAccuracy, textAccuracy);
+                })
+            .max(
+                Comparator.comparingDouble(NameVerificationResult::phoneticAccuracy)
+                    .thenComparingDouble(NameVerificationResult::textAccuracy))
+            .orElseThrow();
+
+    if (!result.valid()) {
+      log.warn(
+          "Name validation failed for {} and {} (phonetic: {}, text: {}) .",
+          identityName,
+          claimName,
+          result.phoneticAccuracy(),
+          result.textAccuracy());
+    }
+
+    return result;
+  }
+
+  /**
+   * Calculate the text-based accuracy of an identity's name.
+   *
+   * @param identityName The TIS sourced identity name data.
+   * @param claimName The credential sourced identity name data.
+   * @return The percentage accuracy between 0.0 and 1.0.
+   */
+  private double calculateTextAccuracy(String identityName, String claimName) {
+    double textDistance =
+        levenshteinDistance.apply(identityName.toLowerCase(), claimName.toLowerCase());
+    double textLength = Math.max(identityName.length(), claimName.length());
+    return 1 - (textDistance / textLength);
+  }
+
+  /**
+   * Calculate the phonetic-based accuracy of an identity's name.
+   *
+   * @param identityName The TIS sourced identity name data.
+   * @param claimName The credential sourced identity name data.
+   * @return The percentage accuracy between 0.0 and 1.0.
+   */
+  private double calculatePhoneticAccuracy(String identityName, String claimName) {
+    String identityCode = metaphone.doubleMetaphone(identityName);
+    String claimCode = metaphone.doubleMetaphone(claimName);
+    double phoneticDistance =
+        LevenshteinDistance.getDefaultInstance().apply(identityCode, claimCode);
+    double phoneticLength = Math.max(identityCode.length(), claimCode.length());
+    return 1 - (phoneticDistance / phoneticLength);
   }
 
   /**
@@ -274,4 +369,14 @@ public class VerificationService {
 
     return verifiedIdentityId.isPresent();
   }
+
+  /**
+   * A result of verifying the similarity of names.
+   *
+   * @param name The identity that was checked against.
+   * @param phoneticAccuracy The phonetic accuracy of the name.
+   * @param textAccuracy The text accuracy of the name.
+   */
+  private record NameVerificationResult(
+      String name, boolean valid, double phoneticAccuracy, double textAccuracy) {}
 }

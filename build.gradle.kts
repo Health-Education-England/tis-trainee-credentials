@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "uk.nhs.tis.trainee"
-version = "0.23.5"
+version = "0.24.0"
 
 configurations {
   compileOnly {
@@ -53,14 +53,14 @@ dependencies {
   implementation("io.sentry:sentry-spring-boot-starter-jakarta:$sentryVersion")
   implementation("io.sentry:sentry-logback:$sentryVersion")
 
-  // Amazon SQS
+  // AWS
   implementation("io.awspring.cloud:spring-cloud-aws-starter-sns")
   implementation("io.awspring.cloud:spring-cloud-aws-starter-sqs")
-
-  //AWS X-ray
+  implementation("io.micrometer:micrometer-registry-cloudwatch2")
   implementation("com.amazonaws:aws-xray-recorder-sdk-spring:2.15.2")
 
-  implementation("commons-codec:commons-codec:1.16.1")
+  implementation("commons-codec:commons-codec:1.17.1")
+  implementation("org.apache.commons:commons-text:1.12.0")
 
   val jjwtVersion = "0.11.5"
   implementation("io.jsonwebtoken:jjwt-api:$jjwtVersion")

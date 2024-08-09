@@ -50,6 +50,18 @@ com:
       emitters:
         daemon-address: ${AWS_XRAY_DAEMON_ADDRESS:}
 
+management:
+  cloudwatch:
+    metrics:
+      export:
+        namespace: TIS/Trainee/Credentials
+  metrics:
+    enable:
+      all: false
+      identity.inaccuracy: true
+    tags:
+      Environment: ${application.environment}
+
 sentry:
   dsn: ${SENTRY_DSN:}
   environment: ${application.environment}
