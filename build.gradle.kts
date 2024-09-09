@@ -68,7 +68,7 @@ dependencies {
   runtimeOnly("io.jsonwebtoken:jjwt-jackson:$jjwtVersion")
 
   testImplementation("org.springframework.cloud:spring-cloud-starter-bootstrap")
-  testImplementation("com.playtika.testcontainers:embedded-redis:3.1.5")
+  testImplementation("com.playtika.testcontainers:embedded-redis:3.1.8")
   testImplementation("org.testcontainers:junit-jupiter:1.19.7")
 }
 
